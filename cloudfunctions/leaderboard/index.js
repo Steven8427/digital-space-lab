@@ -158,17 +158,21 @@ exports.main = async (event, context) => {
     if (action === 'saveShopData') {
       const shopData = event.shopData
       if (!shopData) return { success: false, msg: '无数据' }
+      const now = db.serverDate()
       try {
         await db.collection('users').doc(OPENID).update({
-          data: { shopData: shopData, lastSeen: db.serverDate() }
+          data: { shopData: shopData, lastSeen: now }
         })
       } catch(e) {
         // 用户不存在则创建
         try {
           await db.collection('users').doc(OPENID).set({
-            data: { _id: OPENID, openid: OPENID, shopData: shopData, lastSeen: db.serverDate() }
+            data: { _id: OPENID, openid: OPENID, shopData: shopData, firstSeen: now, lastSeen: now }
           })
-        } catch(e2) {}
+        } catch(e2) {
+          console.error('saveShopData 创建用户失败:', e2)
+          return { success: false, msg: '保存失败' }
+        }
       }
       return { success: true }
     }

@@ -31,6 +31,27 @@ try { require('./js/themeSystem.js') } catch(e) { console.error('themeSystem.js 
 try { require('./js/tileMatchLogic.js') } catch(e) { console.error('tileMatchLogic.js 加载失败', e) }
 try { require('./js/tileMatchRender.js') } catch(e) { console.error('tileMatchRender.js 加载失败', e) }
 
+// ── 2.5 小游戏切后台 / 切回前台时同步数据
+wx.onHide(function() {
+  // 切后台时立即同步，防止数据丢失
+  if (GameGlobal.AchieveShop && GameGlobal.AchieveShop._syncToCloud) {
+    if (GameGlobal.AchieveShop._saveTimer) {
+      clearTimeout(GameGlobal.AchieveShop._saveTimer)
+      GameGlobal.AchieveShop._saveTimer = null
+    }
+    GameGlobal.AchieveShop._syncToCloud()
+    console.log('[lifecycle] 切后台，数据已同步')
+  }
+})
+
+wx.onShow(function() {
+  // 切回前台时拉取最新云端数据（多设备场景）
+  if (GameGlobal.AchieveShop && GameGlobal.AchieveShop._syncFromCloud) {
+    GameGlobal.AchieveShop._syncFromCloud()
+    console.log('[lifecycle] 切前台，拉取云端数据')
+  }
+})
+
 // ── 3. 当前界面状态
 var currentScreen = 'loading'
 var _loadingProgress = 0

@@ -134,8 +134,10 @@ GameGlobal.AchieveShop = {
     self._saveTimer = setTimeout(function() { self._syncToCloud() }, 2000)
   },
 
-  // ── 上传到云端 users 集合
-  _syncToCloud: function() {
+  // ── 上传到云端 users 集合（带重试）
+  _syncToCloud: function(retryCount) {
+    var self = this
+    retryCount = retryCount || 0
     var data = {
       shopData: {
         coins: this.coins,
@@ -150,70 +152,119 @@ GameGlobal.AchieveShop = {
     wx.cloud.callFunction({
       name: 'leaderboard',
       data: { action: 'saveShopData', shopData: data.shopData },
-      fail: function() {}
+      success: function(res) {
+        if (res.result && res.result.success) {
+          self._cloudSynced = true
+          console.log('[sync] 数据已同步到云端')
+        } else if (retryCount < 2) {
+          console.warn('[sync] 云端保存返回失败，重试中...', retryCount + 1)
+          setTimeout(function() { self._syncToCloud(retryCount + 1) }, 3000)
+        }
+      },
+      fail: function(err) {
+        console.warn('[sync] 云端保存失败:', err)
+        if (retryCount < 2) {
+          // 最多重试2次，间隔递增
+          setTimeout(function() { self._syncToCloud(retryCount + 1) }, 3000 * (retryCount + 1))
+        } else {
+          console.error('[sync] 云端保存最终失败，数据仅存于本地')
+        }
+      }
     })
   },
 
   // ── 从云端恢复（云端数据更新时覆盖本地）
-  _syncFromCloud: function() {
+  _syncFromCloud: function(retryCount) {
     var self = this
+    retryCount = retryCount || 0
+    self._cloudSynced = false
     wx.cloud.callFunction({
       name: 'leaderboard',
       data: { action: 'getShopData' },
       success: function(res) {
-        if (!res.result || !res.result.success || !res.result.data) return
+        if (!res.result || !res.result.success || !res.result.data) {
+          self._cloudSynced = true  // 云端没有数据，也算同步完成
+          console.log('[sync] 云端无数据，使用本地数据')
+          // 首次使用或清缓存后云端无数据，立即上传本地数据作为备份
+          if (self.coins > 0 || self.totalCoinsEarned > 0 || Object.keys(self.unlocked).length > 0) {
+            self._syncToCloud()
+          }
+          return
+        }
         var d = res.result.data
+        var changed = false
 
         // 金币取大值（防止回滚）
-        if (d.coins > self.coins) {
+        if ((d.coins || 0) > self.coins) {
           self.coins = d.coins
-          wx.setStorageSync('coins', self.coins)
+          changed = true
         }
-        if (d.totalCoinsEarned > self.totalCoinsEarned) {
+        if ((d.totalCoinsEarned || 0) > self.totalCoinsEarned) {
           self.totalCoinsEarned = d.totalCoinsEarned
-          wx.setStorageSync('totalCoinsEarned', self.totalCoinsEarned)
+          changed = true
         }
 
         // 成就：合并（云端有的本地也要有）
         if (d.unlocked) {
           for (var k in d.unlocked) {
-            if (d.unlocked[k] && !self.unlocked[k]) self.unlocked[k] = true
+            if (d.unlocked[k] && !self.unlocked[k]) { self.unlocked[k] = true; changed = true }
           }
-          wx.setStorageSync('achievements_unlocked', self.unlocked)
         }
 
         // 已购皮肤：合并
         if (d.owned) {
           for (var k in d.owned) {
-            if (d.owned[k]) self.owned[k] = true
+            if (d.owned[k] && !self.owned[k]) { self.owned[k] = true; changed = true }
           }
-          wx.setStorageSync('shop_owned', self.owned)
         }
 
-        // 装备/道具：云端覆盖
-        if (d.equipped) { self.equipped = d.equipped; wx.setStorageSync('shop_equipped', self.equipped) }
+        // 装备/道具：取大值
+        if (d.equipped) { self.equipped = d.equipped; changed = true }
         if (d.propCounts) {
           for (var k in d.propCounts) {
-            if ((d.propCounts[k] || 0) > (self.propCounts[k] || 0)) self.propCounts[k] = d.propCounts[k]
+            if ((d.propCounts[k] || 0) > (self.propCounts[k] || 0)) {
+              self.propCounts[k] = d.propCounts[k]; changed = true
+            }
           }
-          wx.setStorageSync('prop_counts', self.propCounts)
         }
 
         // 统计：取大值
         if (d.stats) {
           var fields = ['plays_2048','wins_2048','plays_hr','wins_hr','plays_sdk','wins_sdk','plays_total']
           for (var i = 0; i < fields.length; i++) {
-            if ((d.stats[fields[i]] || 0) > (self.stats[fields[i]] || 0)) self.stats[fields[i]] = d.stats[fields[i]]
+            if ((d.stats[fields[i]] || 0) > (self.stats[fields[i]] || 0)) {
+              self.stats[fields[i]] = d.stats[fields[i]]; changed = true
+            }
           }
-          if (d.stats.played_2048) self.stats.played_2048 = true
-          if (d.stats.played_hr) self.stats.played_hr = true
-          if (d.stats.played_sdk) self.stats.played_sdk = true
-          wx.setStorageSync('game_stats', self.stats)
+          if (d.stats.played_2048 && !self.stats.played_2048) { self.stats.played_2048 = true; changed = true }
+          if (d.stats.played_hr && !self.stats.played_hr) { self.stats.played_hr = true; changed = true }
+          if (d.stats.played_sdk && !self.stats.played_sdk) { self.stats.played_sdk = true; changed = true }
         }
 
-        console.log('[sync] 商城数据已从云端恢复')
+        // 有变化才写本地
+        if (changed) {
+          wx.setStorageSync('coins', self.coins)
+          wx.setStorageSync('totalCoinsEarned', self.totalCoinsEarned)
+          wx.setStorageSync('achievements_unlocked', self.unlocked)
+          wx.setStorageSync('shop_owned', self.owned)
+          wx.setStorageSync('shop_equipped', self.equipped)
+          wx.setStorageSync('prop_counts', self.propCounts)
+          wx.setStorageSync('game_stats', self.stats)
+          console.log('[sync] 云端数据已恢复到本地')
+        } else {
+          console.log('[sync] 本地数据与云端一致，无需更新')
+        }
+        self._cloudSynced = true
       },
-      fail: function() {}
+      fail: function(err) {
+        console.warn('[sync] 云端拉取失败:', err)
+        if (retryCount < 2) {
+          setTimeout(function() { self._syncFromCloud(retryCount + 1) }, 3000 * (retryCount + 1))
+        } else {
+          self._cloudSynced = true  // 放弃重试，使用本地数据
+          console.error('[sync] 云端拉取最终失败，使用本地数据')
+        }
+      }
     })
   },
 
