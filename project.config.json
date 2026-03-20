@@ -1,0 +1,18 @@
+{
+  "description": "月月的2048大冒险",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "newFeature": false,
+    "minifyWXML": true
+  },
+  "appid": "YOUR_WECHAT_APPID",
+  "projectname": "月月的2048大冒险",
+  "libVersion": "2.19.4",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "condition": {},
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/"
+}

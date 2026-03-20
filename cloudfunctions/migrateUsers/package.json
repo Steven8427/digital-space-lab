@@ -1,0 +1,9 @@
+{
+  "name": "migrateusers",
+  "version": "1.0.0",
+  "description": "migrate leaderboard to users collection",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
