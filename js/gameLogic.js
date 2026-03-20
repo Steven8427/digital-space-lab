@@ -203,8 +203,7 @@ GameGlobal.Game = {
         var self = this
         this._gameOverTimer = setTimeout(function() { self._gameOverTimer = null; self.gameOver = true; GameGlobal.Sound.pauseBgm(); GameGlobal.Sound.play('win') }, 500)
       }
-    } else if (!this.keepPlaying && !this.canMove()) {
-      // 加 !this.keepPlaying 防止无尽模式下赢了之后棋盘满了误判为输
+    } else if (!this.canMove()) {
       GameGlobal.Timer.stop()
       GameGlobal.Rank.upload(this.score, GameGlobal.Timer.seconds, false)
       var self = this
