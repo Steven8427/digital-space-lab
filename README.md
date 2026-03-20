@@ -81,4 +81,4 @@ A WeChat Mini Game featuring a collection of classic number and logic puzzles, a
 
 ## License
 
-MIT
+**All Rights Reserved.** This code is provided for viewing and educational reference only. No copying, modification, distribution, or commercial use is permitted. See [LICENSE](LICENSE) for details.
