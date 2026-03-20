@@ -318,11 +318,7 @@ function handleTap(x, y) {
         G.useUndoItem()
       } else if (GameGlobal.AchieveShop && GameGlobal.AchieveShop.getPropCount('prop_undo') > 0) {
         GameGlobal.AchieveShop.useProp('prop_undo')
-        G.grid = G.prevGrid; G.score = G.prevScore; G.prevGrid = null
-        G.gameOver = false; G.gameWon = false
-        GameGlobal.Timer.resume()
-        G.buildTiles(null, null)
-        GameGlobal.Sound.play('click')
+        G.undo()  // 统一调用 undo()，确保定时器被取消
         wx.showToast({ title: '撤销成功（道具）', icon: 'success' })
       } else {
         G.useUndoItem() // 走广告流程

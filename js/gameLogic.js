@@ -25,6 +25,7 @@ GameGlobal.Game = {
   gameWon:     false,
   keepPlaying: false,
   tiles:       [],
+  _gameOverTimer: null,   // 用于追踪 gameOver 的 setTimeout，撤销时可取消
 
   // ---- 撤销道具 ----
   // 每局免费1次，用完后提示
@@ -47,6 +48,7 @@ GameGlobal.Game = {
     this.gameOver    = false
     this.gameWon     = false
     this.keepPlaying = false
+    this._clearGameOverTimer()  // 清除残留的定时器
     this.undoItem.reset()   // 每局重置道具次数
     GameGlobal.Timer.reset()
     GameGlobal.Timer.start()
@@ -193,25 +195,35 @@ GameGlobal.Game = {
           // 标准模式：到2048结束
           GameGlobal.Timer.stop()
           var self = this
-          setTimeout(function() { self.gameOver = true; GameGlobal.Sound.play('win') }, 500)
+          this._gameOverTimer = setTimeout(function() { self._gameOverTimer = null; self.gameOver = true; GameGlobal.Sound.play('win') }, 500)
         }
       } else {
         // 单人模式：弹覆盖层
         GameGlobal.Timer.stop()
         var self = this
-        setTimeout(function() { self.gameOver = true; GameGlobal.Sound.pauseBgm(); GameGlobal.Sound.play('win') }, 500)
+        this._gameOverTimer = setTimeout(function() { self._gameOverTimer = null; self.gameOver = true; GameGlobal.Sound.pauseBgm(); GameGlobal.Sound.play('win') }, 500)
       }
-    } else if (!this.canMove()) {
+    } else if (!this.keepPlaying && !this.canMove()) {
+      // 加 !this.keepPlaying 防止无尽模式下赢了之后棋盘满了误判为输
       GameGlobal.Timer.stop()
       GameGlobal.Rank.upload(this.score, GameGlobal.Timer.seconds, false)
       var self = this
-      setTimeout(function() { self.gameOver = true; GameGlobal.Sound.pauseBgm(); GameGlobal.Sound.play('lose') }, 400)
+      this._gameOverTimer = setTimeout(function() { self._gameOverTimer = null; self.gameOver = true; GameGlobal.Sound.pauseBgm(); GameGlobal.Sound.play('lose') }, 400)
+    }
+  },
+
+  // ---- 清除 gameOver 定时器 ----
+  _clearGameOverTimer: function() {
+    if (this._gameOverTimer) {
+      clearTimeout(this._gameOverTimer)
+      this._gameOverTimer = null
     }
   },
 
   // ---- 普通撤销（上一步，不消耗道具）----
   undo: function() {
     if (!this.prevGrid) return
+    this._clearGameOverTimer()  // 关键：取消待执行的 gameOver，防止撤销后又被强制结束
     this.grid      = this.prevGrid
     this.score     = this.prevScore
     this.prevGrid  = null
