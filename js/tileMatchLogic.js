@@ -203,14 +203,18 @@ function _makeTemplates(layers, total, level) {
 // ── 判断方块是否自由
 function _isFree(tile, allTiles) {
   if (tile.removed) return false
+  // 用方块中心区域（内缩20%）判断是否被压住
+  // 边缘轻微重叠不算遮挡，只有压住中心才算
+  var margin = tile.w * 0.20
+  var tl = tile.x + margin, tr = tile.x + tile.w - margin
+  var tt = tile.y + margin, tb = tile.y + tile.h - margin
   for (var i = 0; i < allTiles.length; i++) {
     var t = allTiles[i]
     if (t.removed || t.id === tile.id) continue
-    // 只有更高层才可能压住当前方块，同层和低层忽略
+    // 只有更高层才可能压住，同层和低层忽略
     if (t.layer <= tile.layer) continue
-    // 有任何重叠就算被压住
-    if (t.x + t.w > tile.x + 2 && t.x < tile.x + tile.w - 2 &&
-        t.y + t.h > tile.y + 2 && t.y < tile.y + tile.h - 2) {
+    // 高层方块是否覆盖了当前方块的中心区域
+    if (t.x < tr && t.x + t.w > tl && t.y < tb && t.y + t.h > tt) {
       return false
     }
   }
