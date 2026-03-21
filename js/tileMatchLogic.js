@@ -83,8 +83,8 @@ function _genLayout(level) {
   var needW = maxCols + 0.5
   var fitByH = areaH / needH
   var fitByW = areaW / needW
-  var tileW = Math.min(fitByH, fitByW, SW * 0.18)
-  tileW = Math.max(SW * 0.10, tileW)
+  var tileW = Math.min(fitByH, fitByW, SW * 0.22)
+  tileW = Math.max(SW * 0.12, tileW)
   var tileH = tileW
   var sp = tileW  // 间距=方块大小（紧密排列）
 
@@ -206,13 +206,12 @@ function _isFree(tile, allTiles) {
   for (var i = 0; i < allTiles.length; i++) {
     var t = allTiles[i]
     if (t.removed || t.id === tile.id) continue
-    // 上层方块 或 同层但id更大的（渲染在上面的）都算遮挡
-    if (t.layer < tile.layer) continue
-    if (t.layer === tile.layer && t.id <= tile.id) continue
-    // 检测重叠
+    // 只有更高层的方块才算遮挡，同层方块不互相遮挡
+    if (t.layer <= tile.layer) continue
+    // 检测重叠（需要有足够面积的重叠才算被盖住）
     var overlapX = Math.min(t.x + t.w, tile.x + tile.w) - Math.max(t.x, tile.x)
     var overlapY = Math.min(t.y + t.h, tile.y + tile.h) - Math.max(t.y, tile.y)
-    if (overlapX > 2 && overlapY > 2) return false
+    if (overlapX > tile.w * 0.15 && overlapY > tile.h * 0.15) return false
   }
   return true
 }
