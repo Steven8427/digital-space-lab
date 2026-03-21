@@ -52,66 +52,54 @@ function _preloadTileImages() {
 }
 _preloadTileImages()
 
-// ── 关卡布局：对称金字塔/菱形
+// ============================================================
+//  关卡布局（羊了个羊风格）
+//  - 每层是紧密网格，无间隙
+//  - 奇数层偏移半格，压在偶数层四块交界处
+//  - 上层比下层小，形成金字塔
+//  - 总数保证是3的倍数
+// ============================================================
 function _genLayout(level) {
-  var layers = Math.min(8, 2 + Math.floor(level / 4))
-  var typeCnt = Math.min(12, 8 + Math.floor(level / 10))
-  var setsPerType = Math.min(8, 1 + Math.floor(level / 5))
-  var totalTiles = typeCnt * setsPerType * 3
+  var typeCnt = Math.min(12, 6 + Math.floor(level / 5))
+  var layers  = Math.min(5, 2 + Math.floor(level / 6))
+
+  // 底层网格大小，随关卡增大
+  var baseCols = Math.min(7, 4 + Math.floor(level / 8))
+  var baseRows = Math.min(6, 4 + Math.floor(level / 10))
+
+  // 可用区域
+  var areaTop = SH * 0.12, areaBot = SH * 0.72
+  var areaH = areaBot - areaTop
+  var areaW = SW * 0.94
+  var cx = SW * 0.5
+
+  // 计算方块大小：让底层+偏移都能放下
+  var needW = baseCols + 0.5  // 偏移层多半格
+  var needH = baseRows + 0.5
+  var tileW = Math.min(areaW / needW, areaH / needH, SW * 0.18)
+  tileW = Math.max(SW * 0.10, tileW)
+  var tileH = tileW
+  var sp = tileW  // 紧密排列，间距=方块大小
 
   var tiles = [], id = 0
 
-  var cx = SW * 0.5
+  for (var L = 0; L < layers; L++) {
+    // 每层比上一层少1行1列（金字塔递减）
+    var cols = Math.max(2, baseCols - L)
+    var rows = Math.max(2, baseRows - L)
 
-  var templates = _makeTemplates(layers, totalTiles, level)
-
-  // 计算需要的行列数
-  var maxRows = 0, maxCols = 0
-  for (var L2 = 0; L2 < templates.length; L2++) {
-    if (templates[L2].length > maxRows) maxRows = templates[L2].length
-    if (templates[L2][0] && templates[L2][0].length > maxCols) maxCols = templates[L2][0].length
-  }
-
-  // 可用区域：顶栏下方 到 槽位上方
-  var areaTop = SH * 0.12, areaBot = SH * 0.72
-  var areaH = areaBot - areaTop
-  var areaW = SW * 0.96
-
-  // 根据可用空间反算方块大小（确保不超出）
-  // +0.5 给层偏移留余量（半格偏移）
-  var needH = maxRows + 0.5
-  var needW = maxCols + 0.5
-  var fitByH = areaH / needH
-  var fitByW = areaW / needW
-  var tileW = Math.min(fitByH, fitByW, SW * 0.22)
-  tileW = Math.max(SW * 0.12, tileW)
-  var tileH = tileW
-  var sp = tileW  // 间距=方块大小（紧密排列）
-
-  // 棋盘居中
-  var boardH = maxRows * sp + sp * 0.5  // +半格偏移
-  var topY = areaTop + Math.max(0, (areaH - boardH) / 2)
-
-  var screenL = (SW - areaW) / 2   // 左边界
-  var screenR = screenL + areaW    // 右边界
-  var screenB = areaBot            // 下边界
-
-  for (var L = 0; L < templates.length; L++) {
-    var tmpl = templates[L]
-    var rows = tmpl.length, cols = tmpl[0].length
-    var layerW = cols * sp
-    // 每层偏移半格（相对上一层），交替方向
+    // 奇数层偏移半格
     var offX = (L % 2) * sp * 0.5
     var offY = (L % 2) * sp * 0.5
+
+    // 居中
+    var layerW = cols * sp
+    var layerH = rows * sp
     var ox = cx - layerW / 2 + offX
-    var oy = topY + offY
-    // 边界钳制：确保这一层不超出可用区域
-    if (ox < screenL) ox = screenL
-    if (ox + layerW > screenR) ox = screenR - layerW
+    var oy = areaTop + (areaH - layerH) / 2 + offY
 
     for (var r = 0; r < rows; r++) {
       for (var c = 0; c < cols; c++) {
-        if (!tmpl[r][c]) continue
         tiles.push({
           id: id++, layer: L, w: tileW, h: tileH, type: -1, removed: false,
           x: ox + c * sp,
@@ -121,97 +109,52 @@ function _genLayout(level) {
     }
   }
 
-  // 裁剪/补充到 totalTiles
-  while (tiles.length > totalTiles) tiles.splice(Math.floor(Math.random() * tiles.length), 1)
-  while (tiles.length < totalTiles) {
-    var rt = tiles[Math.floor(Math.random() * tiles.length)]
-    var nx = rt.x + (rt.layer % 2 ? sp * 0.5 : 0)
-    var ny = rt.y + (rt.layer % 2 ? sp * 0.45 : 0)
-    // 钳制在屏幕内
-    if (nx + tileW > screenR) nx = screenR - tileW
-    if (nx < screenL) nx = screenL
-    if (ny + tileH > screenB) ny = screenB - tileH
-    if (ny < areaTop) ny = areaTop
-    tiles.push({ id: id++, layer: rt.layer, w: tileW, h: tileH, type: -1, removed: false,
-      x: nx, y: ny })
+  // 确保总数是3的倍数（从最高层随机删除多余的）
+  while (tiles.length % 3 !== 0) {
+    // 找最高层的方块删一个
+    var maxL = 0
+    for (var i = 0; i < tiles.length; i++) if (tiles[i].layer > maxL) maxL = tiles[i].layer
+    var topTiles = []
+    for (var i = 0; i < tiles.length; i++) if (tiles[i].layer === maxL) topTiles.push(i)
+    tiles.splice(topTiles[Math.floor(Math.random() * topTiles.length)], 1)
   }
 
-  // 分配类型
+  // 分配类型（保证每种3个一组）
+  var setsNeeded = Math.ceil(tiles.length / 3)
   var types = []
-  for (var t = 0; t < typeCnt; t++) for (var s = 0; s < setsPerType; s++) types.push(t, t, t)
-  for (var i = types.length-1; i > 0; i--) { var j = Math.floor(Math.random()*(i+1)); var tmp=types[i]; types[i]=types[j]; types[j]=tmp }
-  for (var i = 0; i < tiles.length; i++) tiles[i].type = types[i % types.length]
-  for (var i = 0; i < tiles.length; i++) tiles[i].id = i
+  for (var s = 0; s < setsNeeded; s++) {
+    var t = s % typeCnt
+    types.push(t, t, t)
+  }
+  // 裁剪到实际数量
+  types = types.slice(0, tiles.length)
+  // 打乱
+  for (var i = types.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1))
+    var tmp = types[i]; types[i] = types[j]; types[j] = tmp
+  }
+  // 分配
+  for (var i = 0; i < tiles.length; i++) {
+    tiles[i].type = types[i]
+    tiles[i].id = i
+  }
 
   return { tiles: tiles, tileW: tileW, tileH: tileH, typeCnt: typeCnt }
 }
 
-// ── 生成对称模板
-function _makeTemplates(layers, total, level) {
-  var templates = []
-  var tilesPlaced = 0
-
-  for (var L = 0; L < layers; L++) {
-    // 底层最大，上层逐渐缩小
-    var maxCols = Math.max(2, Math.min(7, Math.ceil(Math.sqrt(total / layers * 1.5)) - Math.floor(L * 0.5)))
-    var maxRows = Math.max(2, Math.min(6, Math.ceil(Math.sqrt(total / layers * 0.8)) - Math.floor(L * 0.4)))
-
-    // 生成对称的菱形/金字塔形状
-    var grid = []
-    var centerR = (maxRows - 1) / 2
-    var centerC = (maxCols - 1) / 2
-
-    for (var r = 0; r < maxRows; r++) {
-      var row = []
-      for (var c = 0; c < maxCols; c++) {
-        // 到中心的距离（曼哈顿）
-        var distR = Math.abs(r - centerR) / Math.max(1, centerR)
-        var distC = Math.abs(c - centerC) / Math.max(1, centerC)
-        var dist = (distR + distC) / 2
-
-        // 菱形：距离越远越可能为空
-        // 底层填充率高，上层填充率低
-        var fillRate = L === 0 ? 0.85 : 0.75 - L * 0.03
-        var keep = dist < fillRate
-
-        // 对称性：如果左边有，右边镜像也有
-        row.push(keep ? 1 : 0)
-      }
-      // 强制左右对称
-      for (var c = 0; c < Math.floor(maxCols / 2); c++) {
-        var mirror = maxCols - 1 - c
-        if (row[c] || row[mirror]) { row[c] = 1; row[mirror] = 1 }
-      }
-      grid.push(row)
-    }
-
-    // 强制上下对称
-    for (var r = 0; r < Math.floor(maxRows / 2); r++) {
-      var mr = maxRows - 1 - r
-      for (var c = 0; c < maxCols; c++) {
-        if (grid[r][c] || grid[mr][c]) { grid[r][c] = 1; grid[mr][c] = 1 }
-      }
-    }
-
-    templates.push(grid)
-  }
-
-  return templates
-}
-
-// ── 判断方块是否自由（没有被上层覆盖）
-// ── 判断方块是否自由
-// 判断方块是否自由（没有任何高层方块与之重叠）
+// ============================================================
+//  判断方块是否自由（羊了个羊规则）
+//  只要有任何更高层的方块与之有重叠（哪怕1像素），就算被压
+// ============================================================
 function _isFree(tile, allTiles) {
   if (tile.removed) return false
   for (var i = 0; i < allTiles.length; i++) {
     var t = allTiles[i]
     if (t.removed || t.id === tile.id) continue
     if (t.layer <= tile.layer) continue
-    // 高层方块需要覆盖超过边缘10%才算被压
-    var m = tile.w * 0.10
-    if (t.x + t.w > tile.x + m && t.x < tile.x + tile.w - m &&
-        t.y + t.h > tile.y + m && t.y < tile.y + tile.h - m) {
+    // 严格重叠判断：任何重叠都算被压
+    if (t.x < tile.x + tile.w && t.x + t.w > tile.x &&
+        t.y < tile.y + tile.h && t.y + t.h > tile.y) {
       return false
     }
   }
@@ -265,15 +208,15 @@ GameGlobal.TileMatch = {
   tapTile: function(x, y) {
     if (this.gameOver || this.victory) return
 
-    // 找点击位置所有方块，取最高层的自由方块
+    // 找点击位置最高层的自由方块
     var hit = null
     for (var i = 0; i < this.tiles.length; i++) {
       var t = this.tiles[i]
       if (t.removed) continue
-      if (x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h) {
-        if (_isFree(t, this.tiles)) {
-          if (!hit || t.layer > hit.layer) hit = t
-        }
+      if (x < t.x || x > t.x + t.w || y < t.y || y > t.y + t.h) continue
+      if (!_isFree(t, this.tiles)) continue
+      if (!hit || t.layer > hit.layer || (t.layer === hit.layer && t.id > hit.id)) {
+        hit = t
       }
     }
     if (!hit) return
