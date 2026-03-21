@@ -82,8 +82,8 @@ function _genLayout(level) {
   var needW = maxCols + 1.5
   var fitByH = areaH / needH
   var fitByW = areaW / needW
-  var tileW = Math.min(fitByH, fitByW, SW * 0.15)
-  tileW = Math.max(SW * 0.09, tileW)  // 最小不能太小
+  var tileW = Math.min(fitByH, fitByW, SW * 0.20)
+  tileW = Math.max(SW * 0.11, tileW)  // 最小不能太小
   var tileH = tileW
   var sp = tileW  // 间距=方块大小（紧密排列，像参考图）
 

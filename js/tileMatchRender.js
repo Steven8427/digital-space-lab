@@ -147,7 +147,7 @@ GameGlobal.drawTileMatchScreen = function() {
 
     // ── 图标（图片 or emoji fallback）
     var iconImg = TM.getIconImg(t.type)
-    var pad = tw * 0.15  // 图标内边距
+    var pad = tw * 0.08  // 图标内边距（更小=图标更大）
     if (iconImg) {
       if (!free) ctx.globalAlpha = 0.35
       ctx.drawImage(iconImg, t.x + pad, t.y + pad, tw - pad * 2, th - pad * 2)
@@ -184,7 +184,7 @@ GameGlobal.drawTileMatchScreen = function() {
         roundRect(hx + 3, holdY, slotW - 6, trayH * 0.7, 8, hColor, 'rgba(255,255,255,0.3)')
       }
       var hIconImg = TM.getIconImg(hItem.type)
-      var hPad = slotW * 0.2
+      var hPad = slotW * 0.10
       if (hIconImg) {
         ctx.drawImage(hIconImg, hx + hPad, holdY + hPad * 0.6, slotW - hPad * 2, trayH * 0.7 - hPad * 1.2)
       } else {
@@ -215,7 +215,7 @@ GameGlobal.drawTileMatchScreen = function() {
       }
       // 图标
       var trayIconImg = TM.getIconImg(item2.type)
-      var tPad = slotW * 0.18
+      var tPad = slotW * 0.10
       if (trayIconImg) {
         ctx.drawImage(trayIconImg, sx + tPad, trayY + tPad, slotW - tPad * 2, trayH - tPad * 2)
       } else {
