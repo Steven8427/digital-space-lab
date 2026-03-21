@@ -5,7 +5,8 @@
 // ================================================
 
 // ── 1. 初始化云开发
-wx.cloud.init({ env: 'YOUR_CLOUD_ENV_ID', traceUser: true })
+var _localCfg = {}; try { _localCfg = require('./config.local.js') } catch(e) {}
+wx.cloud.init({ env: _localCfg.cloudEnv || 'YOUR_CLOUD_ENV_ID', traceUser: true })
 console.log('[game.js] v2.4 闯关模式版 已加载')
 
 // ── 2. 加载模块（顺序很重要！layout 必须第一个）
