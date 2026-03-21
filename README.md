@@ -12,6 +12,10 @@ A WeChat Mini Game featuring a collection of classic number and logic puzzles, a
 - **Survival Mode** — Race against time in an endless number challenge.
 - **Tile Match** — Match and clear numbered tiles before they pile up.
 
+![f6e818e9d12ec5ce7d67f2fa72602ca2](https://github.com/user-attachments/assets/64974c42-6cce-46a7-8bdc-0f880dc85134)
+![6b33f263160a46c845581eb0a9dc024e](https://github.com/user-attachments/assets/3b305f8d-6ecd-454a-88d7-1cbbd3b0a7b9)
+![d766ff446d99628d19ed3b2e76cab2d0](https://github.com/user-attachments/assets/64778a78-8e6c-4c0d-a582-1add55506454)
+
 ## Features
 
 - **Multiplayer PK** — Real-time 1v1 battles across all game modes via WeChat cloud functions.
