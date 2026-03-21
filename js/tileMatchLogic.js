@@ -73,27 +73,28 @@ function _genLayout(level) {
   }
 
   // 可用区域：顶栏下方 到 槽位上方
-  var areaTop = SH * 0.14, areaBot = SH * 0.68
+  var areaTop = SH * 0.12, areaBot = SH * 0.72
   var areaH = areaBot - areaTop
-  var areaW = SW * 0.92
+  var areaW = SW * 0.96
 
   // 根据可用空间反算方块大小（确保不超出）
-  // 偏移层需要额外半格空间，所以 +1 而不是 +0.5
-  var needH = maxRows + 1
-  var needW = maxCols + 1
+  // +0.5 给层偏移留余量（半格偏移）
+  var needH = maxRows + 0.5
+  var needW = maxCols + 0.5
   var fitByH = areaH / needH
   var fitByW = areaW / needW
-  var tileW = Math.min(fitByH, fitByW, SW * 0.15)
-  tileW = Math.max(SW * 0.09, tileW)  // 最小不能太小
+  var tileW = Math.min(fitByH, fitByW, SW * 0.18)
+  tileW = Math.max(SW * 0.10, tileW)
   var tileH = tileW
-  var sp = tileW  // 间距=方块大小（紧密排列，像参考图）
+  var sp = tileW  // 间距=方块大小（紧密排列）
 
   // 棋盘居中
   var boardH = maxRows * sp + sp * 0.5  // +半格偏移
   var topY = areaTop + Math.max(0, (areaH - boardH) / 2)
 
-  var screenL = (SW - areaW) / 2  // 左边界
-  var screenR = screenL + areaW   // 右边界
+  var screenL = (SW - areaW) / 2   // 左边界
+  var screenR = screenL + areaW    // 右边界
+  var screenB = areaBot            // 下边界
 
   for (var L = 0; L < templates.length; L++) {
     var tmpl = templates[L]
@@ -129,7 +130,7 @@ function _genLayout(level) {
     // 钳制在屏幕内
     if (nx + tileW > screenR) nx = screenR - tileW
     if (nx < screenL) nx = screenL
-    if (ny + tileH > areaBot) ny = areaBot - tileH
+    if (ny + tileH > screenB) ny = screenB - tileH
     if (ny < areaTop) ny = areaTop
     tiles.push({ id: id++, layer: rt.layer, w: tileW, h: tileH, type: -1, removed: false,
       x: nx, y: ny })
