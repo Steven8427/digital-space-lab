@@ -201,7 +201,12 @@ function _makeTemplates(layers, total, level) {
 
 // ── 判断方块是否自由（没有被上层覆盖）
 // ── 判断方块是否自由
-// 判断方块在某个点(px,py)是否是最上层（用于渲染视觉提示）
+// 按渲染顺序排序（和 tileMatchRender.js 完全一致）
+function _renderOrder(allTiles) {
+  return allTiles.slice().sort(function(a, b) { return a.layer - b.layer })
+}
+
+// 判断方块中心是否是最上层（用于渲染视觉提示：白/暗卡片）
 function _isFreeAtCenter(tile, allTiles) {
   if (tile.removed) return false
   var px = tile.x + tile.w / 2, py = tile.y + tile.h / 2
@@ -209,15 +214,15 @@ function _isFreeAtCenter(tile, allTiles) {
 }
 
 // 找到某个点(px,py)最上层的方块
+// 按渲染顺序遍历，最后画的（数组最后的）就是视觉最上层
 function _topTileAt(px, py, allTiles) {
+  var sorted = _renderOrder(allTiles)
   var best = null
-  for (var i = 0; i < allTiles.length; i++) {
-    var t = allTiles[i]
+  for (var i = 0; i < sorted.length; i++) {
+    var t = sorted[i]
     if (t.removed) continue
     if (px >= t.x && px <= t.x + t.w && py >= t.y && py <= t.y + t.h) {
-      if (!best || t.layer > best.layer || (t.layer === best.layer && t.id > best.id)) {
-        best = t
-      }
+      best = t  // 后面的覆盖前面的，最终 best 就是最上层
     }
   }
   return best
