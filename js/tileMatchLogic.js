@@ -7,27 +7,17 @@
 var SW = GameGlobal.SW, SH = GameGlobal.SH
 
 // ── 图标池（12种）- 保留emoji作为fallback
-var TILE_ICONS = ['🏀','🎲','🔔','👑','🌸','🎈','💎','☘','🎁','🍇','⭐','🍎']
+var TILE_ICONS = ['🌸','🏀','💎','👑','⭐','🎲','🎈','🍎','🔔','☘','🪙','🍇']
 
 // ── 云存储图片加载
-var _CLOUD_BASE = 'cloud://cloud1-6gfj19793c24b47c.636c-cloud1-6gfj19793c24b47c-1406406015/tileMatch/'
+var _CLOUD_BASE = 'cloud://cloud1-6gfj19793c24b47c.636c-cloud1-6gfj19793c24b47c-1406406015/tileMatch/picture/'
 var _IMG_FILES = [
-  '生成特定尺寸图片.png',
-  '生成特定尺寸图片 (1).png',
-  '生成特定尺寸图片 (3).png',
-  '生成特定尺寸图片 (4).png',
-  '生成特定尺寸图片 (5).png',
-  '生成特定尺寸图片 (6).png',
-  '生成特定尺寸图片 (7).png',
-  '生成特定尺寸图片 (8).png',
-  '生成特定尺寸图片 (9).png',
-  '生成特定尺寸图片 (10).png',
-  '生成特定尺寸图片 (11).png',
-  '生成特定尺寸图片 (12).png'
+  'icon_0.png', 'icon_1.png', 'icon_2.png', 'icon_3.png',
+  'icon_4.png', 'icon_5.png', 'icon_6.png', 'icon_7.png',
+  'icon_8.png', 'icon_9.png', 'icon_10.png', 'icon_11.png'
 ]
 var _CARD_FILES = [
-  '生成卡片图片.png',
-  '生成卡片图片 (1).png'
+  'card_0.png', 'card_1.png'
 ]
 
 // 图片缓存
