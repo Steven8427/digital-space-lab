@@ -201,31 +201,20 @@ function _makeTemplates(layers, total, level) {
 
 // ── 判断方块是否自由（没有被上层覆盖）
 // ── 判断方块是否自由
-// 按渲染顺序排序（和 tileMatchRender.js 完全一致）
-function _renderOrder(allTiles) {
-  return allTiles.slice().sort(function(a, b) { return a.layer - b.layer })
-}
-
-// 判断方块中心是否是最上层（用于渲染视觉提示：白/暗卡片）
-function _isFreeAtCenter(tile, allTiles) {
+// 判断方块是否自由（没有任何高层方块与之重叠）
+function _isFree(tile, allTiles) {
   if (tile.removed) return false
-  var px = tile.x + tile.w / 2, py = tile.y + tile.h / 2
-  return _topTileAt(px, py, allTiles) === tile
-}
-
-// 找到某个点(px,py)最上层的方块
-// 按渲染顺序遍历，最后画的（数组最后的）就是视觉最上层
-function _topTileAt(px, py, allTiles) {
-  var sorted = _renderOrder(allTiles)
-  var best = null
-  for (var i = 0; i < sorted.length; i++) {
-    var t = sorted[i]
-    if (t.removed) continue
-    if (px >= t.x && px <= t.x + t.w && py >= t.y && py <= t.y + t.h) {
-      best = t  // 后面的覆盖前面的，最终 best 就是最上层
+  for (var i = 0; i < allTiles.length; i++) {
+    var t = allTiles[i]
+    if (t.removed || t.id === tile.id) continue
+    if (t.layer <= tile.layer) continue
+    // 任何高层方块有重叠就算被压（2px容差忽略像素边缘）
+    if (t.x + t.w > tile.x + 2 && t.x < tile.x + tile.w - 2 &&
+        t.y + t.h > tile.y + 2 && t.y < tile.y + tile.h - 2) {
+      return false
     }
   }
-  return best
+  return true
 }
 
 // ================================================
@@ -275,8 +264,17 @@ GameGlobal.TileMatch = {
   tapTile: function(x, y) {
     if (this.gameOver || this.victory) return
 
-    // 直接找点击位置最上层的方块
-    var hit = _topTileAt(x, y, this.tiles)
+    // 找点击位置所有方块，取最高层的自由方块
+    var hit = null
+    for (var i = 0; i < this.tiles.length; i++) {
+      var t = this.tiles[i]
+      if (t.removed) continue
+      if (x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h) {
+        if (_isFree(t, this.tiles)) {
+          if (!hit || t.layer > hit.layer) hit = t
+        }
+      }
+    }
     if (!hit) return
 
     // 记录撤回历史
@@ -500,7 +498,7 @@ GameGlobal.TileMatch = {
   },
 
   // ── 判断方块是否自由
-  isFree: _isFreeAtCenter,
+  isFree: _isFree,
   TILE_ICONS: TILE_ICONS,
   // 图片访问
   getIconImg: function(typeIdx) {
