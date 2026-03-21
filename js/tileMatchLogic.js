@@ -119,22 +119,33 @@ var SHAPES = {
   }
 }
 
-// 获取某个关卡的形状
-function _getShape(level) {
+// 获取某个关卡的形状和参数
+function _getLevelConfig(level) {
+  // 形状随关卡循环，但大小随关卡递增
   var mod = level % 10
-  if (mod <= 2) return SHAPES.rect(4, 5)
-  if (mod <= 4) return SHAPES.diamond(3)
-  if (mod <= 5) return SHAPES.cross()
-  if (mod <= 7) return SHAPES.invTriangle(7, 4)
-  return SHAPES.heart()
+  var scale = Math.floor(level / 10)  // 每10关增大一圈
+
+  // 基础行列数随关卡增加
+  var baseRows = Math.min(6, 3 + Math.floor(level / 8) + scale)
+  var baseCols = Math.min(7, 4 + Math.floor(level / 6) + scale)
+
+  var shape
+  if (mod <= 1)      shape = SHAPES.rect(baseRows, baseCols)
+  else if (mod <= 3) shape = SHAPES.diamond(Math.min(4, 2 + Math.floor(level / 10)))
+  else if (mod <= 4) shape = SHAPES.cross()
+  else if (mod <= 6) shape = SHAPES.invTriangle(baseCols, baseRows)
+  else               shape = SHAPES.heart()
+
+  return shape
 }
 
 function _genLayout(level) {
-  var typeCnt = Math.min(12, 6 + Math.floor(level / 5))
-  var layers  = Math.min(4, 2 + Math.floor(level / 8))
+  var typeCnt = Math.min(12, 5 + Math.floor(level / 4))
+  // 层数：1关=2层，逐渐增加到4层
+  var layers = Math.min(4, 2 + Math.floor(level / 10))
 
   // 顶层形状
-  var topShape = _getShape(level)
+  var topShape = _getLevelConfig(level)
   var shapeRows = topShape.length
   var shapeCols = topShape[0].length
 
