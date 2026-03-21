@@ -135,16 +135,15 @@ GameGlobal.drawTileMatchScreen = function() {
     // ── 卡片底板（图片 or fallback）
     var cardImg = TM.getCardImg(free)
     if (cardImg) {
-      // 阴影层
-      ctx.globalAlpha = 0.3
-      ctx.drawImage(cardImg, t.x + 3, t.y + 4, tw, th)
-      ctx.globalAlpha = 1
+      // 阴影层（纯色圆角矩形，不再用图片当阴影）
+      roundRect(t.x + 2, t.y + 3, tw, th, 8, 'rgba(0,0,0,0.2)')
       // 卡片底板
       ctx.drawImage(cardImg, t.x, t.y, tw, th)
       // 被盖住时加暗遮罩
       if (!free) {
-        ctx.fillStyle = 'rgba(0,0,0,0.45)'
-        roundRect(t.x, t.y, tw, th, 6, 'rgba(0,0,0,0.45)')
+        ctx.globalAlpha = 0.5
+        roundRect(t.x, t.y, tw, th, 8, 'rgba(0,0,0,0.5)')
+        ctx.globalAlpha = 1
       }
     } else {
       // fallback: Canvas绘制
