@@ -315,9 +315,10 @@ GameGlobal.TileMatch = {
     // 记录撤回历史
     this._history.push({ tileId: hit.id, type: hit.type })
 
-    // 移入槽位
+    // 移入槽位（带飞行动画）
     hit.removed = true
-    hit._pickTime = Date.now()  // 动画时间戳
+    hit._pickTime = Date.now()
+    hit._flyFrom = { x: hit.x, y: hit.y }  // 起飞位置
     this.tray.push({ type: hit.type, tileId: hit.id })
     GameGlobal.Sound.play('click')
 
@@ -361,20 +362,32 @@ GameGlobal.TileMatch = {
     var eliminated = false
     for (var type in counts) {
       if (counts[type] >= 3) {
-        // 移除3个
+        // 记录消除的槽位索引（用于动画）
+        var elimIndices = []
         var removed = 0
         for (var i = this.tray.length - 1; i >= 0; i--) {
           if (this.tray[i].type == type && removed < 3) {
-            this.tray.splice(i, 1)
+            elimIndices.push(i)
             removed++
           }
+        }
+        // 记录消除动画数据
+        this._elimAnim = {
+          time: Date.now(),
+          type: parseInt(type),
+          positions: elimIndices.slice()
+        }
+        // 移除
+        elimIndices.sort(function(a,b){ return b-a })
+        for (var ei = 0; ei < elimIndices.length; ei++) {
+          this.tray.splice(elimIndices[ei], 1)
         }
         this.score += 3
         this.combo++
         eliminated = true
-        this._elimFlash = Date.now()  // 消除闪光
+        this._elimFlash = Date.now()
         GameGlobal.Sound.play('merge')
-        break  // 一次只消一组
+        break
       }
     }
 

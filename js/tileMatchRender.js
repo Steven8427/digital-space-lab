@@ -115,13 +115,56 @@ GameGlobal.drawTileMatchScreen = function() {
   var sortedTiles = TM.tiles.slice().sort(function(a, b) { return a.layer - b.layer })
   var now = Date.now()
 
-  // 拾取闪光效果
+  // 飞行动画：方块从棋盘飞到槽位
+  var trayY_anim = SH * 0.76
+  var trayW_anim = SW * 0.92
+  var trayX_anim = (SW - trayW_anim) / 2
+  var slotW_anim = trayW_anim / 7
+  var flyDuration = 250  // 飞行时间ms
+
   for (var pi = 0; pi < sortedTiles.length; pi++) {
     var pt = sortedTiles[pi]
-    if (pt.removed && pt._pickTime && now - pt._pickTime < 300) {
-      var pa = 1 - (now - pt._pickTime) / 300
-      ctx.beginPath(); ctx.arc(pt.x + pt.w/2, pt.y + pt.h/2, pt.w * 0.6 * (1 + (1-pa)*0.5), 0, Math.PI*2)
-      ctx.fillStyle = 'rgba(255,255,200,' + (pa * 0.3) + ')'; ctx.fill()
+    if (!pt.removed || !pt._pickTime || !pt._flyFrom) continue
+    var elapsed = now - pt._pickTime
+    if (elapsed >= flyDuration) continue
+
+    var progress = elapsed / flyDuration
+    // 缓动函数（ease-out）
+    var ease = 1 - Math.pow(1 - progress, 3)
+
+    // 找到在槽位中的目标位置
+    var targetIdx = -1
+    for (var ti = 0; ti < TM.tray.length; ti++) {
+      if (TM.tray[ti].tileId === pt.id) { targetIdx = ti; break }
+    }
+    if (targetIdx < 0) continue
+
+    var toX = trayX_anim + targetIdx * slotW_anim + 2
+    var toY = trayY_anim + 2
+    var toW = slotW_anim - 4
+    var toH = SW * 0.15 - 4
+
+    // 插值位置和大小
+    var curX = pt._flyFrom.x + (toX - pt._flyFrom.x) * ease
+    var curY = pt._flyFrom.y + (toY - pt._flyFrom.y) * ease
+    var curW = pt.w + (toW - pt.w) * ease
+    var curH = pt.h + (toH - pt.h) * ease
+
+    // 画飞行中的方块
+    var cardImg = TM.getCardImg(true)
+    if (cardImg) {
+      ctx.globalAlpha = 1 - progress * 0.2
+      ctx.drawImage(cardImg, curX, curY, curW, curH)
+      ctx.globalAlpha = 1
+    }
+    var iconImg = TM.getIconImg(pt.type)
+    var fPad = curW * 0.10
+    if (iconImg) {
+      ctx.drawImage(iconImg, curX + fPad, curY + fPad, curW - fPad * 2, curH - fPad * 2)
+    } else {
+      var icon = TM.TILE_ICONS[pt.type % TM.TILE_ICONS.length]
+      setFont(curW * 0.5, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      ctx.fillText(icon, curX + curW / 2, curY + curH / 2)
     }
   }
 
@@ -131,33 +174,70 @@ GameGlobal.drawTileMatchScreen = function() {
 
     var free = TM.isFree(t, TM.tiles)
     var tw = t.w, th = t.h
+    var dx = t.x, dy = t.y
+
+    // ── 自由方块微弹效果（点击反馈用 CSS 式的 scale 感觉）
+    // 如果刚被标记为 free 时可以加微小浮动，这里先跳过
 
     // ── 卡片底板（图片 or fallback）
     var cardImg = TM.getCardImg(free)
     if (cardImg) {
-      ctx.drawImage(cardImg, t.x, t.y, tw, th)
+      // 自由方块加一点阴影深度
+      if (free) {
+        ctx.globalAlpha = 0.15
+        roundRect(dx + 2, dy + 3, tw, th, 8, 'rgba(0,0,0,1)')
+        ctx.globalAlpha = 1
+      }
+      ctx.drawImage(cardImg, dx, dy, tw, th)
     } else {
-      // fallback: Canvas绘制
       ctx.fillStyle = 'rgba(0,0,0,0.3)'
-      roundRect(t.x + 3, t.y + 4, tw, th, 6, 'rgba(0,0,0,0.3)')
-      roundRect(t.x + 1.5, t.y + 2, tw, th, 6, free ? '#b0b5bc' : '#555566')
-      roundRect(t.x, t.y, tw, th, 6, free ? '#f5f5f5' : '#4a4a5a')
-      if (!free) roundRect(t.x, t.y, tw, th, 6, 'rgba(0,0,0,0.3)')
+      roundRect(dx + 3, dy + 4, tw, th, 6, 'rgba(0,0,0,0.3)')
+      roundRect(dx + 1.5, dy + 2, tw, th, 6, free ? '#b0b5bc' : '#555566')
+      roundRect(dx, dy, tw, th, 6, free ? '#f5f5f5' : '#4a4a5a')
+      if (!free) roundRect(dx, dy, tw, th, 6, 'rgba(0,0,0,0.3)')
     }
 
     // ── 图标（图片 or emoji fallback）
     var iconImg = TM.getIconImg(t.type)
-    var pad = tw * 0.10  // 图标内边距
+    var pad = tw * 0.10
     if (iconImg) {
       if (!free) ctx.globalAlpha = 0.35
-      ctx.drawImage(iconImg, t.x + pad, t.y + pad, tw - pad * 2, th - pad * 2)
+      ctx.drawImage(iconImg, dx + pad, dy + pad, tw - pad * 2, th - pad * 2)
       ctx.globalAlpha = 1
     } else {
-      // emoji fallback
       var icon = TM.TILE_ICONS[t.type % TM.TILE_ICONS.length]
       setFont(tw * 0.52, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-      ctx.fillText(icon, t.x + tw / 2, t.y + th / 2 + 1)
+      if (!free) ctx.globalAlpha = 0.35
+      ctx.fillText(icon, dx + tw / 2, dy + th / 2 + 1)
+      ctx.globalAlpha = 1
     }
+  }
+
+  // ── 消除爆炸粒子效果
+  if (TM._elimAnim && now - TM._elimAnim.time < 400) {
+    var ep = (now - TM._elimAnim.time) / 400
+    var elimSlotW = trayW_anim / 7
+    for (var ei = 0; ei < TM._elimAnim.positions.length; ei++) {
+      var si = TM._elimAnim.positions[ei]
+      var ecx = trayX_anim + si * elimSlotW + elimSlotW / 2
+      var ecy = trayY_anim + SW * 0.075
+      // 星星粒子扩散
+      for (var star = 0; star < 6; star++) {
+        var angle = (star / 6) * Math.PI * 2 + ep * 2
+        var dist = ep * SW * 0.12
+        var sx = ecx + Math.cos(angle) * dist
+        var sy = ecy + Math.sin(angle) * dist
+        var ss = (1 - ep) * SW * 0.02
+        ctx.globalAlpha = 1 - ep
+        ctx.fillStyle = star % 2 === 0 ? '#FFD700' : '#FF6B6B'
+        ctx.beginPath(); ctx.arc(sx, sy, ss, 0, Math.PI * 2); ctx.fill()
+      }
+      // 中心闪光
+      ctx.globalAlpha = (1 - ep) * 0.4
+      ctx.fillStyle = '#fff'
+      ctx.beginPath(); ctx.arc(ecx, ecy, (1 - ep) * SW * 0.06, 0, Math.PI * 2); ctx.fill()
+    }
+    ctx.globalAlpha = 1
   }
 
   // ── 底部槽位区
