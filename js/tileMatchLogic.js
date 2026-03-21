@@ -208,9 +208,10 @@ function _isFree(tile, allTiles) {
     var t = allTiles[i]
     if (t.removed || t.id === tile.id) continue
     if (t.layer <= tile.layer) continue
-    // 任何高层方块有重叠就算被压（2px容差忽略像素边缘）
-    if (t.x + t.w > tile.x + 2 && t.x < tile.x + tile.w - 2 &&
-        t.y + t.h > tile.y + 2 && t.y < tile.y + tile.h - 2) {
+    // 高层方块需要覆盖超过边缘10%才算被压
+    var m = tile.w * 0.10
+    if (t.x + t.w > tile.x + m && t.x < tile.x + tile.w - m &&
+        t.y + t.h > tile.y + m && t.y < tile.y + tile.h - m) {
       return false
     }
   }
