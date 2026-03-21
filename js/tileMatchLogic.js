@@ -201,24 +201,26 @@ function _makeTemplates(layers, total, level) {
 
 // ── 判断方块是否自由（没有被上层覆盖）
 // ── 判断方块是否自由
-function _isFree(tile, allTiles) {
+// 判断方块在某个点(px,py)是否是最上层（用于渲染视觉提示）
+function _isFreeAtCenter(tile, allTiles) {
   if (tile.removed) return false
-  // 用方块中心区域（内缩20%）判断是否被压住
-  // 边缘轻微重叠不算遮挡，只有压住中心才算
-  var margin = tile.w * 0.20
-  var tl = tile.x + margin, tr = tile.x + tile.w - margin
-  var tt = tile.y + margin, tb = tile.y + tile.h - margin
+  var px = tile.x + tile.w / 2, py = tile.y + tile.h / 2
+  return _topTileAt(px, py, allTiles) === tile
+}
+
+// 找到某个点(px,py)最上层的方块
+function _topTileAt(px, py, allTiles) {
+  var best = null
   for (var i = 0; i < allTiles.length; i++) {
     var t = allTiles[i]
-    if (t.removed || t.id === tile.id) continue
-    // 只有更高层才可能压住，同层和低层忽略
-    if (t.layer <= tile.layer) continue
-    // 高层方块是否覆盖了当前方块的中心区域
-    if (t.x < tr && t.x + t.w > tl && t.y < tb && t.y + t.h > tt) {
-      return false
+    if (t.removed) continue
+    if (px >= t.x && px <= t.x + t.w && py >= t.y && py <= t.y + t.h) {
+      if (!best || t.layer > best.layer || (t.layer === best.layer && t.id > best.id)) {
+        best = t
+      }
     }
   }
-  return true
+  return best
 }
 
 // ================================================
@@ -268,27 +270,8 @@ GameGlobal.TileMatch = {
   tapTile: function(x, y) {
     if (this.gameOver || this.victory) return
 
-    // 找到点击位置所有方块，取最高层的
-    var candidates = []
-    for (var i = 0; i < this.tiles.length; i++) {
-      var t = this.tiles[i]
-      if (t.removed) continue
-      if (x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h) {
-        candidates.push(t)
-      }
-    }
-    if (candidates.length === 0) return
-
-    // 按层从高到低排序
-    candidates.sort(function(a, b) { return b.layer - a.layer })
-    
-    // 取最高层的那个，且必须是自由的
-    var hit = null
-    for (var i = 0; i < candidates.length; i++) {
-      if (_isFree(candidates[i], this.tiles)) {
-        hit = candidates[i]; break
-      }
-    }
+    // 直接找点击位置最上层的方块
+    var hit = _topTileAt(x, y, this.tiles)
     if (!hit) return
 
     // 记录撤回历史
@@ -512,7 +495,7 @@ GameGlobal.TileMatch = {
   },
 
   // ── 判断方块是否自由
-  isFree: _isFree,
+  isFree: _isFreeAtCenter,
   TILE_ICONS: TILE_ICONS,
   // 图片访问
   getIconImg: function(typeIdx) {
