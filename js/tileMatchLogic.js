@@ -206,15 +206,21 @@ function _isFree(tile, allTiles) {
   for (var i = 0; i < allTiles.length; i++) {
     var t = allTiles[i]
     if (t.removed || t.id === tile.id) continue
-    // 只有更高层的方块才算遮挡，同层方块不互相遮挡
-    if (t.layer <= tile.layer) continue
-    // 检测重叠（重叠面积超过方块面积5%才算被盖住）
+    // 低层的不会遮挡高层
+    if (t.layer < tile.layer) continue
+    // 计算重叠
     var overlapX = Math.min(t.x + t.w, tile.x + tile.w) - Math.max(t.x, tile.x)
     var overlapY = Math.min(t.y + t.h, tile.y + tile.h) - Math.max(t.y, tile.y)
-    if (overlapX > 0 && overlapY > 0) {
-      var overlapArea = overlapX * overlapY
-      var tileArea = tile.w * tile.h
-      if (overlapArea > tileArea * 0.05) return false
+    if (overlapX <= 0 || overlapY <= 0) continue
+    if (t.layer > tile.layer) {
+      // 高层方块：只要有实质重叠就算遮挡
+      if (overlapX > 2 && overlapY > 2) return false
+    } else {
+      // 同层方块：渲染时 id 大的后画（在上面），重叠面积大才算遮挡
+      if (t.id > tile.id) {
+        var area = overlapX * overlapY
+        if (area > tile.w * tile.h * 0.3) return false
+      }
     }
   }
   return true
