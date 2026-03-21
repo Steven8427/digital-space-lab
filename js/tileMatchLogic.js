@@ -160,8 +160,8 @@ function _genLayout(level) {
   var cx = SW * 0.5
 
   // 计算方块大小
-  var needW = maxCols + 0.5
-  var needH = maxRows + 0.5
+  var needW = maxCols + 0.2
+  var needH = maxRows + 0.2
   var tileW = Math.min(areaW / needW, areaH / needH, SW * 0.20)
   tileW = Math.max(SW * 0.10, tileW)
   var tileH = tileW
@@ -174,9 +174,10 @@ function _genLayout(level) {
     var lRows = shapeRows + (layers - 1 - L)
     var lCols = shapeCols + (layers - 1 - L)
 
-    // 奇数层偏移半格
-    var offX = (L % 2) * sp * 0.5
-    var offY = (L % 2) * sp * 0.5
+    // 每层向右下偏移几像素（仅视觉深度效果，不是半格）
+    var depthOff = sp * 0.06
+    var offX = L * depthOff
+    var offY = L * depthOff
 
     // 居中对齐
     var layerW = lCols * sp
