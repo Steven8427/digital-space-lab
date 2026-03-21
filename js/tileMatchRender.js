@@ -147,7 +147,7 @@ GameGlobal.drawTileMatchScreen = function() {
 
     // ── 图标（图片 or emoji fallback）
     var iconImg = TM.getIconImg(t.type)
-    var pad = tw * 0.08  // 图标内边距（更小=图标更大）
+    var pad = tw * 0.10  // 图标内边距
     if (iconImg) {
       if (!free) ctx.globalAlpha = 0.35
       ctx.drawImage(iconImg, t.x + pad, t.y + pad, tw - pad * 2, th - pad * 2)

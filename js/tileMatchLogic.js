@@ -78,12 +78,13 @@ function _genLayout(level) {
   var areaW = SW * 0.92
 
   // 根据可用空间反算方块大小（确保不超出）
-  var needH = maxRows + 1.5  // 行数+层偏移余量
-  var needW = maxCols + 1.5
+  // 偏移层需要额外半格空间，所以 +1 而不是 +0.5
+  var needH = maxRows + 1
+  var needW = maxCols + 1
   var fitByH = areaH / needH
   var fitByW = areaW / needW
-  var tileW = Math.min(fitByH, fitByW, SW * 0.20)
-  tileW = Math.max(SW * 0.11, tileW)  // 最小不能太小
+  var tileW = Math.min(fitByH, fitByW, SW * 0.15)
+  tileW = Math.max(SW * 0.09, tileW)  // 最小不能太小
   var tileH = tileW
   var sp = tileW  // 间距=方块大小（紧密排列，像参考图）
 
@@ -91,16 +92,21 @@ function _genLayout(level) {
   var boardH = maxRows * sp + sp * 0.5  // +半格偏移
   var topY = areaTop + Math.max(0, (areaH - boardH) / 2)
 
+  var screenL = (SW - areaW) / 2  // 左边界
+  var screenR = screenL + areaW   // 右边界
+
   for (var L = 0; L < templates.length; L++) {
     var tmpl = templates[L]
     var rows = tmpl.length, cols = tmpl[0].length
     var layerW = cols * sp
     // 每层偏移半格（相对上一层），交替方向
-    // 这样上层方块恰好压在下层四个方块的交界处
     var offX = (L % 2) * sp * 0.5
     var offY = (L % 2) * sp * 0.5
     var ox = cx - layerW / 2 + offX
     var oy = topY + offY
+    // 边界钳制：确保这一层不超出可用区域
+    if (ox < screenL) ox = screenL
+    if (ox + layerW > screenR) ox = screenR - layerW
 
     for (var r = 0; r < rows; r++) {
       for (var c = 0; c < cols; c++) {
@@ -118,8 +124,15 @@ function _genLayout(level) {
   while (tiles.length > totalTiles) tiles.splice(Math.floor(Math.random() * tiles.length), 1)
   while (tiles.length < totalTiles) {
     var rt = tiles[Math.floor(Math.random() * tiles.length)]
+    var nx = rt.x + (rt.layer % 2 ? sp * 0.5 : 0)
+    var ny = rt.y + (rt.layer % 2 ? sp * 0.45 : 0)
+    // 钳制在屏幕内
+    if (nx + tileW > screenR) nx = screenR - tileW
+    if (nx < screenL) nx = screenL
+    if (ny + tileH > areaBot) ny = areaBot - tileH
+    if (ny < areaTop) ny = areaTop
     tiles.push({ id: id++, layer: rt.layer, w: tileW, h: tileH, type: -1, removed: false,
-      x: rt.x + (L % 2 ? sp * 0.5 : 0), y: rt.y + (L % 2 ? sp * 0.45 : 0) })
+      x: nx, y: ny })
   }
 
   // 分配类型
