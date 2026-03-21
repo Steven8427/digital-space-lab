@@ -53,53 +53,136 @@ function _preloadTileImages() {
 _preloadTileImages()
 
 // ============================================================
-//  关卡布局（羊了个羊风格）
-//  - 每层是紧密网格，无间隙
-//  - 奇数层偏移半格，压在偶数层四块交界处
-//  - 上层比下层小，形成金字塔
+//  关卡布局（Tile Match 风格）
+//  - 形状模板定义每层哪些格子有方块
+//  - 底层比顶层多1行1列，边缘露出立体感
+//  - 奇数层偏移半格
 //  - 总数保证是3的倍数
 // ============================================================
+
+// 预定义形状模板（1=有方块，0=空）
+var SHAPES = {
+  // 矩形
+  rect: function(rows, cols) {
+    var g = []
+    for (var r = 0; r < rows; r++) {
+      var row = []
+      for (var c = 0; c < cols; c++) row.push(1)
+      g.push(row)
+    }
+    return g
+  },
+  // 菱形
+  diamond: function(size) {
+    var g = [], n = size * 2 - 1
+    for (var r = 0; r < n; r++) {
+      var row = [], mid = Math.abs(r - (size - 1))
+      for (var c = 0; c < n; c++) {
+        var dc = Math.abs(c - (size - 1))
+        row.push((mid + dc) < size ? 1 : 0)
+      }
+      g.push(row)
+    }
+    return g
+  },
+  // 倒三角
+  invTriangle: function(cols, rows) {
+    var g = []
+    for (var r = 0; r < rows; r++) {
+      var row = [], skip = r
+      for (var c = 0; c < cols; c++) {
+        row.push(c >= skip && c < cols - skip ? 1 : 0)
+      }
+      g.push(row)
+    }
+    return g
+  },
+  // 心形
+  heart: function() {
+    return [
+      [0,1,1,0,1,1,0],
+      [1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1],
+      [0,1,1,1,1,1,0],
+      [0,0,1,1,1,0,0],
+      [0,0,0,1,0,0,0]
+    ]
+  },
+  // 十字
+  cross: function() {
+    return [
+      [0,1,1,0],
+      [1,1,1,1],
+      [1,1,1,1],
+      [0,1,1,0]
+    ]
+  }
+}
+
+// 获取某个关卡的形状
+function _getShape(level) {
+  var mod = level % 10
+  if (mod <= 2) return SHAPES.rect(4, 5)
+  if (mod <= 4) return SHAPES.diamond(3)
+  if (mod <= 5) return SHAPES.cross()
+  if (mod <= 7) return SHAPES.invTriangle(7, 4)
+  return SHAPES.heart()
+}
+
 function _genLayout(level) {
   var typeCnt = Math.min(12, 6 + Math.floor(level / 5))
-  var layers  = Math.min(5, 2 + Math.floor(level / 6))
+  var layers  = Math.min(4, 2 + Math.floor(level / 8))
 
-  // 底层网格大小，随关卡增大
-  var baseCols = Math.min(7, 4 + Math.floor(level / 8))
-  var baseRows = Math.min(6, 4 + Math.floor(level / 10))
+  // 顶层形状
+  var topShape = _getShape(level)
+  var shapeRows = topShape.length
+  var shapeCols = topShape[0].length
+
+  // 底层比顶层多1行1列（每一层都多一圈）
+  var maxRows = shapeRows + (layers - 1)
+  var maxCols = shapeCols + (layers - 1)
 
   // 可用区域
   var areaTop = SH * 0.12, areaBot = SH * 0.72
   var areaH = areaBot - areaTop
-  var areaW = SW * 0.94
+  var areaW = SW * 0.96
   var cx = SW * 0.5
 
-  // 计算方块大小：让底层+偏移都能放下
-  var needW = baseCols + 0.5  // 偏移层多半格
-  var needH = baseRows + 0.5
-  var tileW = Math.min(areaW / needW, areaH / needH, SW * 0.18)
+  // 计算方块大小
+  var needW = maxCols + 0.5
+  var needH = maxRows + 0.5
+  var tileW = Math.min(areaW / needW, areaH / needH, SW * 0.20)
   tileW = Math.max(SW * 0.10, tileW)
   var tileH = tileW
-  var sp = tileW  // 紧密排列，间距=方块大小
+  var sp = tileW
 
   var tiles = [], id = 0
 
   for (var L = 0; L < layers; L++) {
-    // 每层比上一层少1行1列（金字塔递减）
-    var cols = Math.max(2, baseCols - L)
-    var rows = Math.max(2, baseRows - L)
+    // 当前层的行列数：底层最大，顶层=形状大小
+    var lRows = shapeRows + (layers - 1 - L)
+    var lCols = shapeCols + (layers - 1 - L)
 
     // 奇数层偏移半格
     var offX = (L % 2) * sp * 0.5
     var offY = (L % 2) * sp * 0.5
 
-    // 居中
-    var layerW = cols * sp
-    var layerH = rows * sp
+    // 居中对齐
+    var layerW = lCols * sp
+    var layerH = lRows * sp
     var ox = cx - layerW / 2 + offX
     var oy = areaTop + (areaH - layerH) / 2 + offY
 
-    for (var r = 0; r < rows; r++) {
-      for (var c = 0; c < cols; c++) {
+    // 顶层：使用形状模板
+    // 非顶层：填满矩形（底层露出边缘）
+    var isTopLayer = (L === layers - 1)
+
+    for (var r = 0; r < lRows; r++) {
+      for (var c = 0; c < lCols; c++) {
+        if (isTopLayer) {
+          // 顶层按形状放置
+          if (r >= topShape.length || c >= topShape[0].length || !topShape[r][c]) continue
+        }
         tiles.push({
           id: id++, layer: L, w: tileW, h: tileH, type: -1, removed: false,
           x: ox + c * sp,
@@ -109,31 +192,27 @@ function _genLayout(level) {
     }
   }
 
-  // 确保总数是3的倍数（从最高层随机删除多余的）
+  // 确保总数是3的倍数
   while (tiles.length % 3 !== 0) {
-    // 找最高层的方块删一个
     var maxL = 0
     for (var i = 0; i < tiles.length; i++) if (tiles[i].layer > maxL) maxL = tiles[i].layer
-    var topTiles = []
-    for (var i = 0; i < tiles.length; i++) if (tiles[i].layer === maxL) topTiles.push(i)
-    tiles.splice(topTiles[Math.floor(Math.random() * topTiles.length)], 1)
+    var topT = []
+    for (var i = 0; i < tiles.length; i++) if (tiles[i].layer === maxL) topT.push(i)
+    if (topT.length > 0) tiles.splice(topT[topT.length - 1], 1)
+    else break
   }
 
-  // 分配类型（保证每种3个一组）
-  var setsNeeded = Math.ceil(tiles.length / 3)
+  // 分配类型（3个一组）
   var types = []
-  for (var s = 0; s < setsNeeded; s++) {
+  for (var s = 0; s < Math.ceil(tiles.length / 3); s++) {
     var t = s % typeCnt
     types.push(t, t, t)
   }
-  // 裁剪到实际数量
   types = types.slice(0, tiles.length)
-  // 打乱
   for (var i = types.length - 1; i > 0; i--) {
     var j = Math.floor(Math.random() * (i + 1))
     var tmp = types[i]; types[i] = types[j]; types[j] = tmp
   }
-  // 分配
   for (var i = 0; i < tiles.length; i++) {
     tiles[i].type = types[i]
     tiles[i].id = i
