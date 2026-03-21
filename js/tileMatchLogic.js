@@ -208,13 +208,13 @@ function _isFree(tile, allTiles) {
     if (t.removed || t.id === tile.id) continue
     // 只有更高层的方块才算遮挡，同层方块不互相遮挡
     if (t.layer <= tile.layer) continue
-    // 检测重叠（重叠面积超过方块面积25%才算被盖住）
+    // 检测重叠（重叠面积超过方块面积5%才算被盖住）
     var overlapX = Math.min(t.x + t.w, tile.x + tile.w) - Math.max(t.x, tile.x)
     var overlapY = Math.min(t.y + t.h, tile.y + tile.h) - Math.max(t.y, tile.y)
     if (overlapX > 0 && overlapY > 0) {
       var overlapArea = overlapX * overlapY
       var tileArea = tile.w * tile.h
-      if (overlapArea > tileArea * 0.25) return false
+      if (overlapArea > tileArea * 0.05) return false
     }
   }
   return true
