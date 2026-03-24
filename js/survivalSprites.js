@@ -488,22 +488,21 @@ function drawLightningVFX(ctx, x1, y1, x2, y2, elapsed) {
   ctx.translate(x1, y1)
   ctx.rotate(angle)
   ctx.imageSmoothingEnabled = false
-  // Stretch sprite to fit distance, keep proportional height
-  var drawH = frameH * (dist / frameW)
-  if (drawH < 20) drawH = 20
+  // Stretch sprite to fit distance, make it thick enough to see
+  var drawH = Math.max(40, dist * 0.35)
   ctx.drawImage(img, sx, 0, frameW, frameH, 0, -drawH / 2, dist, drawH)
   ctx.restore()
   return true
 }
 
 // Draw fire ring animation at position
-// Uses row 10 of 01.png (sy=320, 32x32 frames, ~8 frames at 10fps)
+// Uses row 6 of 01.png (sy=192, 32x32 frames, ~8 frames at 10fps)
 function drawFireRing(ctx, x, y, radius, elapsed) {
   var img = _spriteImages['vfx_spell']
   if (!img || !_spriteLoaded['vfx_spell']) return false
 
   var frameW = 32, frameH = 32
-  var sy = 320
+  var sy = 192
   var totalFrames = 8, fps = 10
   var frameIdx = Math.floor(elapsed * fps) % totalFrames
   var sx = frameIdx * frameW
@@ -517,13 +516,13 @@ function drawFireRing(ctx, x, y, radius, elapsed) {
 }
 
 // Draw ice aura animation at position
-// Uses row 11 of 01.png (sy=352, 32x32 frames, ~8 frames at 10fps)
+// Uses row 7 of 01.png (sy=224, 32x32 frames, ~8 frames at 10fps)
 function drawIceAura(ctx, x, y, radius, elapsed) {
   var img = _spriteImages['vfx_spell']
   if (!img || !_spriteLoaded['vfx_spell']) return false
 
   var frameW = 32, frameH = 32
-  var sy = 352
+  var sy = 224
   var totalFrames = 8, fps = 10
   var frameIdx = Math.floor(elapsed * fps) % totalFrames
   var sx = frameIdx * frameW
