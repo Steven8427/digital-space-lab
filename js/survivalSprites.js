@@ -266,10 +266,11 @@ var DECO_ITEMS = [
   { sx: 112, sy: 16, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 棕色罐子2
   { sx: 128, sy: 32, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 蓝色罐子
   { sx: 32,  sy: 48, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 蓝色瓶子
-  // 石堆
+  // 石堆/木箱/灌木
   { sx: 32,  sy: 64, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 灰色石堆
-  { sx: 48,  sy: 64, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 橙色石堆
-  { sx: 80,  sy: 64, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 橙色石堆2
+  { sx: 96,  sy: 64, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 木箱1
+  { sx: 112, sy: 64, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 木箱2
+  { sx: 16,  sy: 64, sw: 16, sh: 16, drawW: 26, drawH: 26 },   // 绿色灌木
 ]
 
 // 大树（精确定位完整树木）
