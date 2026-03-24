@@ -100,17 +100,24 @@ function _loadSprites() {
         console.warn('[sprites] getTempFileURL failed: no fileList')
         return
       }
+      // 建立 fileID → key 的映射（防止返回顺序不一致）
+      var idToKey = {}
+      for (var fi = 0; fi < fileIDs.length; fi++) {
+        idToKey[fileIDs[fi]] = fileKeys[fi]
+      }
+
       var loadCount = 0
       var totalCount = res.fileList.length
 
       for (var i = 0; i < res.fileList.length; i++) {
         var item = res.fileList[i]
-        var key = fileKeys[i]
+        var key = idToKey[item.fileID] || fileKeys[i]
         if (item.status !== 0 || !item.tempFileURL) {
-          console.warn('[sprites] failed to get URL for', key, item.status)
+          console.warn('[sprites] failed to get URL for', key, item.fileID, item.status)
           loadCount++
           continue
         }
+        console.log('[sprites] Loading:', key)
         ;(function(k, url) {
           var img = wx.createImage()
           img.onload = function() {
