@@ -207,7 +207,8 @@ function drawTile(ctx, x, y, tileVariant) {
   var t = GRASS_TILES[tileVariant % GRASS_TILES.length]
   ctx.save()
   ctx.imageSmoothingEnabled = false
-  ctx.drawImage(img, t.sx, t.sy, t.sw, t.sh, x, y, 80, 80)
+  // +1像素消除拼接间隙（防止闪烁线）
+  ctx.drawImage(img, t.sx, t.sy, t.sw, t.sh, Math.floor(x), Math.floor(y), 81, 81)
   ctx.restore()
   return true
 }
@@ -228,11 +229,13 @@ var DECO_ITEMS = [
   { sx: 176, sy: 48, sw: 16, sh: 16, drawW: 36, drawH: 36 },   // 树桩
 ]
 
-// 大树（多tile拼接，从 tileset 底部）
+// 大树（精确定位完整树木）
 var TREE_DEFS = [
-  { sx: 16,  sy: 192, sw: 48, sh: 64, drawW: 80, drawH: 100 },  // 小树
-  { sx: 80,  sy: 176, sw: 64, sh: 80, drawW: 100, drawH: 120 }, // 中树
-  { sx: 176, sy: 176, sw: 64, sh: 80, drawW: 100, drawH: 120 }, // 大树
+  { sx: 22,  sy: 161, sw: 36, sh: 46, drawW: 72, drawH: 92 },    // 小树1
+  { sx: 70,  sy: 161, sw: 52, sh: 62, drawW: 90, drawH: 108 },   // 中树1
+  { sx: 134, sy: 161, sw: 52, sh: 62, drawW: 90, drawH: 108 },   // 中树2
+  { sx: 198, sy: 161, sw: 68, sh: 78, drawW: 110, drawH: 126 },  // 大树
+  { sx: 22,  sy: 209, sw: 36, sh: 78, drawW: 60, drawH: 130 },   // 高树
 ]
 
 // 伪随机函数（基于坐标种子，保证同一位置装饰不变）
