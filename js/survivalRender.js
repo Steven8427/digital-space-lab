@@ -397,7 +397,7 @@ function _drawPlayer(x,y,p,cam){
 // ── HUD（下移避开顶部胶囊按钮）
 function _drawHUD(S){
   var p=S.player
-  var topOff = SH * 0.08  // 顶部偏移，避开微信胶囊
+  var topOff = SH * 0.055  // 顶部偏移，紧贴胶囊下方
 
   // 无背景，直接画在游戏上面
 
