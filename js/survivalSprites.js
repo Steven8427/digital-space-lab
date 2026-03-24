@@ -344,8 +344,9 @@ function getTreeColliders(px, py, radius) {
       var offsetY = (h2 % 89) * cellSize / 89
       var wx = cx * cellSize + offsetX
       var wy = cy * cellSize + offsetY
-      // 碰撞体在树干底部，半径20
-      colliders.push({ x: wx, y: wy + 20, r: 20 })
+      // 碰撞体覆盖整棵树（树冠中心），半径40
+      var tree = TREE_DEFS[h3 % TREE_DEFS.length]
+      colliders.push({ x: wx, y: wy - tree.drawH * 0.15, r: tree.drawW * 0.38 })
     }
   }
   return colliders
