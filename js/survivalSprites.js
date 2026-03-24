@@ -212,6 +212,83 @@ function drawTile(ctx, x, y, tileVariant) {
   return true
 }
 
+// ── 装饰物定义（从 Tileset.png 手动选取）
+var DECO_ITEMS = [
+  // 小花
+  { sx: 0,   sy: 0,  sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 红花
+  { sx: 96,  sy: 48, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 白花
+  { sx: 80,  sy: 48, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 紫花
+  // 小草/叶子
+  { sx: 128, sy: 0,  sw: 16, sh: 16, drawW: 20, drawH: 20 },   // 草叶
+  { sx: 144, sy: 0,  sw: 16, sh: 16, drawW: 20, drawH: 20 },   // 草叶2
+  // 石头
+  { sx: 64,  sy: 32, sw: 16, sh: 16, drawW: 32, drawH: 32 },   // 灰石头
+  { sx: 80,  sy: 32, sw: 16, sh: 16, drawW: 32, drawH: 32 },   // 大石头
+  // 树桩
+  { sx: 176, sy: 48, sw: 16, sh: 16, drawW: 36, drawH: 36 },   // 树桩
+]
+
+// 大树（多tile拼接，从 tileset 底部）
+var TREE_DEFS = [
+  { sx: 16,  sy: 192, sw: 48, sh: 64, drawW: 80, drawH: 100 },  // 小树
+  { sx: 80,  sy: 176, sw: 64, sh: 80, drawW: 100, drawH: 120 }, // 中树
+  { sx: 176, sy: 176, sw: 64, sh: 80, drawW: 100, drawH: 120 }, // 大树
+]
+
+// 伪随机函数（基于坐标种子，保证同一位置装饰不变）
+function _hashPos(x, y) {
+  var h = (x * 374761393 + y * 668265263) | 0
+  h = (h ^ (h >> 13)) * 1274126177 | 0
+  return (h ^ (h >> 16)) & 0x7FFFFFFF
+}
+
+// 绘制装饰物层
+// cam: {x, y}, screenW, screenH
+function drawDecorations(ctx, cam, screenW, screenH) {
+  var img = _spriteImages['tileset']
+  if (!img || !_spriteLoaded['tileset']) return
+
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+
+  var cellSize = 120  // 每 120px 区域最多放一个装饰
+  var startCX = Math.floor((cam.x - 60) / cellSize)
+  var startCY = Math.floor((cam.y - 60) / cellSize)
+  var endCX = Math.ceil((cam.x + screenW + 60) / cellSize)
+  var endCY = Math.ceil((cam.y + screenH + 60) / cellSize)
+
+  for (var cy = startCY; cy <= endCY; cy++) {
+    for (var cx = startCX; cx <= endCX; cx++) {
+      var h = _hashPos(cx, cy)
+      // 约40%的格子有装饰
+      if (h % 100 > 40) continue
+
+      var h2 = _hashPos(cx + 9999, cy + 7777)
+      var offsetX = (h % 97) * cellSize / 97
+      var offsetY = (h2 % 89) * cellSize / 89
+      var wx = cx * cellSize + offsetX
+      var wy = cy * cellSize + offsetY
+      var sx = wx - cam.x
+      var sy = wy - cam.y
+
+      // 选装饰类型
+      var h3 = _hashPos(cx + 3333, cy + 5555)
+      if (h3 % 100 < 8) {
+        // 8% 概率放树
+        var tree = TREE_DEFS[h3 % TREE_DEFS.length]
+        ctx.drawImage(img, tree.sx, tree.sy, tree.sw, tree.sh,
+          sx - tree.drawW/2, sy - tree.drawH/2, tree.drawW, tree.drawH)
+      } else {
+        // 小装饰
+        var deco = DECO_ITEMS[h3 % DECO_ITEMS.length]
+        ctx.drawImage(img, deco.sx, deco.sy, deco.sw, deco.sh,
+          sx - deco.drawW/2, sy - deco.drawH/2, deco.drawW, deco.drawH)
+      }
+    }
+  }
+  ctx.restore()
+}
+
 // Pick a random monster sprite name for a given enemy type
 function pickMonsterSprite(enemyType) {
   var options = ENEMY_SPRITE_MAP[enemyType] || ENEMY_SPRITE_MAP.walker
@@ -243,6 +320,7 @@ GameGlobal.SurvivalSprites = {
   drawPlayer: drawPlayer,
   drawMonster: drawMonster,
   drawTile: drawTile,
+  drawDecorations: drawDecorations,
   pickMonsterSprite: pickMonsterSprite,
   setPlayerSkin: setPlayerSkin,
   getPlayerSkin: getPlayerSkin,

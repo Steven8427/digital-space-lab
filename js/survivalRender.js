@@ -98,7 +98,10 @@ GameGlobal.drawSurvivalScreen=function(){
     ctx.setLineDash([])
   }
 
-  // 无限地图：不画边界
+  // 装饰物层（花、草、石头、树）
+  if (_sprites && _sprites.isLoaded()) {
+    _sprites.drawDecorations(ctx, cam, SW, SH)
+  }
 
   // 粒子
   var pts=S.particles
