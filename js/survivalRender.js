@@ -67,8 +67,8 @@ GameGlobal.drawSurvivalScreen=function(){
   S.update()
   var cam=S.camera, p=S.player
 
-  // 背景 — tilemap or fallback grid
-  ctx.fillStyle='#06081a';ctx.fillRect(0,0,SW,SH)
+  // 背景 — 先填充草地基色，消除tile间隙
+  ctx.fillStyle='#71d349';ctx.fillRect(0,0,SW,SH)
   var _sprites = GameGlobal.SurvivalSprites
   var _useTiles = _sprites && _sprites.isLoaded() && _sprites.isSpriteReady('tileset')
   if (_useTiles) {
@@ -86,16 +86,7 @@ GameGlobal.drawSurvivalScreen=function(){
       }
     }
   } else {
-    // Fallback: stars + grid
-    for(var si=0;si<_bgStars.length;si++){
-      var st=_bgStars[si],sx2=((st.x-cam.x*0.3)%SW+SW)%SW,sy2=((st.y-cam.y*0.3)%SH+SH)%SH
-      ctx.beginPath();ctx.arc(sx2,sy2,st.r,0,Math.PI*2);ctx.fillStyle='rgba(180,200,255,'+(st.b+Math.sin(Date.now()/800+si)*0.12)+')';ctx.fill()
-    }
-    var gs=S.GRID_SIZE,offX=-(cam.x%gs+gs)%gs,offY=-(cam.y%gs+gs)%gs
-    ctx.strokeStyle='rgba(100,140,255,0.05)';ctx.lineWidth=1;ctx.setLineDash([2,gs-2])
-    for(var gx=offX;gx<SW;gx+=gs){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,SH);ctx.stroke()}
-    for(var gy=offY;gy<SH;gy+=gs){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(SW,gy);ctx.stroke()}
-    ctx.setLineDash([])
+    // Fallback: 纯绿色背景（已由上方fillRect铺好），无需额外绘制
   }
 
   // 装饰物层（花、草、石头、树）
