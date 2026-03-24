@@ -269,7 +269,7 @@ function _drawEnemy(x,y,e){
   var flash=e._flashTimer&&e._flashTimer>0
   var t=Date.now()
   var _sprites = GameGlobal.SurvivalSprites
-  var spriteSize = r * 3.2  // 怪物更大更清晰
+  var spriteSize = r * 2.0  // 缩小减少拉伸
 
   // Try sprite drawing first
   var spriteDrawn = false
@@ -363,7 +363,7 @@ function _drawPlayer(x,y,p,cam){
   var isMoving = js && js.active && (Math.abs(js.dx) > 0.1 || Math.abs(js.dy) > 0.1)
   var isHurt = p._iFrames > 0
   var animState = isHurt ? 'hurt' : (isMoving ? 'run' : 'idle')
-  var spriteSize = r * 3.5  // 玩家更大更清晰
+  var spriteSize = r * 2.2  // 缩小减少拉伸，像素更锐利
 
   // Try sprite drawing
   var spriteDrawn = false
