@@ -82,10 +82,7 @@ GameGlobal.drawSurvivalScreen=function(){
       for (var tcol = startCol; tcol <= endCol; tcol++) {
         var tx = tcol * gs - cam.x
         var ty = trow * gs - cam.y
-        // 大部分用主色草地，偶尔深色变体点缀
-        var hash = ((tcol * 7 + trow * 13) & 0x7FFFFFFF) % 20
-        var tileVariant = hash < 14 ? 0 : (hash % 3) + 1
-        _sprites.drawTile(ctx, tx, ty, tileVariant)
+        _sprites.drawTile(ctx, tx, ty, 0)
       }
     }
   } else {
