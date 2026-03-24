@@ -523,9 +523,8 @@ function drawIceAura(ctx, x, y, radius, elapsed) {
 
   var frameW = 64, frameH = 64
   var sy = 384
-  var totalFrames = 8, fps = 10
-  var frameIdx = Math.floor(elapsed * fps) % totalFrames
-  var sx = frameIdx * frameW
+  // 只用第一帧，静止显示
+  var sx = 0
 
   var drawSize = radius * 2
   ctx.save()
