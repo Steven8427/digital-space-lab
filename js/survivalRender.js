@@ -462,6 +462,30 @@ function _drawBorder(cam){
   if(by2<SH){ctx.beginPath();ctx.moveTo(0,by2);ctx.lineTo(SW,by2);ctx.stroke()}
 }
 
+// ── 武器卡片图标（用VFX精灵替代emoji）
+function _drawWeaponCardIcon(weaponId, x, y, size, def) {
+  var _spr = GameGlobal.SurvivalSprites
+  var drawn = false
+  if (_spr) {
+    if (weaponId === 'orbit' && typeof _spr.drawWeaponIcon === 'function') {
+      drawn = _spr.drawWeaponIcon(ctx, x, y, size, 0)  // 匕首
+    } else if (weaponId === 'bolt' && typeof _spr.drawEnergyBolt === 'function') {
+      drawn = _spr.drawEnergyBolt(ctx, x, y, size, 0)  // 能量弹
+    } else if (weaponId === 'lightning' && typeof _spr.drawPotionIcon === 'function') {
+      drawn = _spr.drawPotionIcon(ctx, x, y, size, 0)  // 蓝色药水代表闪电
+    } else if (weaponId === 'aura' && typeof _spr.drawIceAura === 'function') {
+      drawn = _spr.drawIceAura(ctx, x, y, size * 0.8, 0)  // 冰冻圈
+    } else if (weaponId === 'ring' && typeof _spr.drawFireRing === 'function') {
+      drawn = _spr.drawFireRing(ctx, x, y, size * 0.8, 0)  // 火焰圈
+    }
+  }
+  if (!drawn && def) {
+    // Fallback: emoji
+    setFont(size * 0.7, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillStyle = '#fff'; ctx.fillText(def.icon, x, y)
+  }
+}
+
 // ================================================
 //  武器选择（升级时）
 // ================================================
@@ -482,9 +506,9 @@ function _drawWeaponSelect(S){
 
     if(ch.type==='new'){
       roundRect(cardX,cy,cardW,cardH,14,'rgba(46,204,113,0.1)','rgba(46,204,113,0.3)')
-      setFont(cardH*0.35,'700');ctx.textAlign='left';ctx.textBaseline='middle'
-      ctx.fillStyle='#fff';ctx.fillText(def.icon,cardX+PAD,cy+cardH*0.4)
-      setFont(cardH*0.20,'800');ctx.fillStyle='#2ecc71'
+      // 武器像素图标
+      _drawWeaponCardIcon(ch.id, cardX+PAD+cardH*0.22, cy+cardH*0.45, cardH*0.55, def)
+      setFont(cardH*0.20,'800');ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle='#2ecc71'
       ctx.fillText('新武器: '+def.name,cardX+PAD+cardH*0.5,cy+cardH*0.32)
       setFont(cardH*0.15,'600');ctx.fillStyle=C.textDim
       ctx.fillText(def.desc,cardX+PAD+cardH*0.5,cy+cardH*0.58)
@@ -492,9 +516,9 @@ function _drawWeaponSelect(S){
       ctx.fillText('NEW',cardX+cardW-PAD*3,cy+cardH*0.5)
     }else if(ch.type==='upgrade'){
       roundRect(cardX,cy,cardW,cardH,14,'rgba(243,156,18,0.1)','rgba(243,156,18,0.3)')
-      setFont(cardH*0.35,'700');ctx.textAlign='left';ctx.textBaseline='middle'
-      ctx.fillStyle='#fff';ctx.fillText(def?def.icon:'⬆',cardX+PAD,cy+cardH*0.4)
-      setFont(cardH*0.20,'800');ctx.fillStyle='#f39c12'
+      // 武器像素图标
+      _drawWeaponCardIcon(ch.id, cardX+PAD+cardH*0.22, cy+cardH*0.45, cardH*0.55, def)
+      setFont(cardH*0.20,'800');ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle='#f39c12'
       ctx.fillText((def?def.name:ch.id)+' Lv'+(ch.w.level+1),cardX+PAD+cardH*0.5,cy+cardH*0.32)
       setFont(cardH*0.15,'600');ctx.fillStyle=C.textDim
       ctx.fillText('伤害↑ 效果↑',cardX+PAD+cardH*0.5,cy+cardH*0.58)
