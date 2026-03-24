@@ -209,7 +209,7 @@ GameGlobal.drawSurvivalScreen=function(){
       var daggerDrawn = false
       if (_sprites && typeof _sprites.drawWeaponIcon === 'function') {
         ctx.save(); ctx.translate(kx, ky); ctx.rotate(a + Math.PI / 2)
-        daggerDrawn = _sprites.drawWeaponIcon(ctx, 0, 0, 22, 0)
+        daggerDrawn = _sprites.drawWeaponIcon(ctx, 0, 0, 36, 0)
         ctx.restore()
       }
       if (!daggerDrawn) {
@@ -473,9 +473,17 @@ function _drawWeaponSelect(S){
       ctx.fillText('伤害↑ 效果↑',cardX+PAD+cardH*0.5,cy+cardH*0.58)
     }else if(ch.type==='heal'){
       roundRect(cardX,cy,cardW,cardH,14,'rgba(46,204,113,0.08)','rgba(46,204,113,0.2)')
-      setFont(cardH*0.35,'700');ctx.textAlign='left';ctx.textBaseline='middle'
-      ctx.fillStyle='#fff';ctx.fillText('💚',cardX+PAD,cy+cardH*0.4)
-      setFont(cardH*0.20,'800');ctx.fillStyle='#2ecc71'
+      // 红色药瓶图标（potionIdx 4 = 红色）
+      var _spr = GameGlobal.SurvivalSprites
+      var potionDrawn = false
+      if (_spr && typeof _spr.drawPotionIcon === 'function') {
+        potionDrawn = _spr.drawPotionIcon(ctx, cardX+PAD+cardH*0.22, cy+cardH*0.45, cardH*0.55, 4)
+      }
+      if (!potionDrawn) {
+        setFont(cardH*0.35,'700');ctx.textAlign='left';ctx.textBaseline='middle'
+        ctx.fillStyle='#fff';ctx.fillText('💚',cardX+PAD,cy+cardH*0.4)
+      }
+      setFont(cardH*0.20,'800');ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle='#2ecc71'
       ctx.fillText('回复30HP',cardX+PAD+cardH*0.5,cy+cardH*0.45)
     }else{
       roundRect(cardX,cy,cardW,cardH,14,'rgba(52,152,219,0.08)','rgba(52,152,219,0.2)')
