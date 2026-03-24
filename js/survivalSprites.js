@@ -215,18 +215,36 @@ function drawTile(ctx, x, y, tileVariant) {
 
 // ── 装饰物定义（从 Tileset.png 手动选取）
 var DECO_ITEMS = [
-  // 小花
+  // 小花（高权重，多出现）
   { sx: 0,   sy: 0,  sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 红花
+  { sx: 0,   sy: 0,  sw: 16, sh: 16, drawW: 20, drawH: 20 },   // 红花小
   { sx: 96,  sy: 48, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 白花
+  { sx: 96,  sy: 48, sw: 16, sh: 16, drawW: 20, drawH: 20 },   // 白花小
   { sx: 80,  sy: 48, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 紫花
+  { sx: 112, sy: 48, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 黄花
   // 小草/叶子
-  { sx: 128, sy: 0,  sw: 16, sh: 16, drawW: 20, drawH: 20 },   // 草叶
+  { sx: 128, sy: 0,  sw: 16, sh: 16, drawW: 20, drawH: 20 },   // 草叶1
   { sx: 144, sy: 0,  sw: 16, sh: 16, drawW: 20, drawH: 20 },   // 草叶2
+  { sx: 16,  sy: 0,  sw: 16, sh: 16, drawW: 32, drawH: 32 },   // 草丛
   // 石头
-  { sx: 64,  sy: 32, sw: 16, sh: 16, drawW: 32, drawH: 32 },   // 灰石头
-  { sx: 80,  sy: 32, sw: 16, sh: 16, drawW: 32, drawH: 32 },   // 大石头
-  // 树桩
-  { sx: 176, sy: 48, sw: 16, sh: 16, drawW: 36, drawH: 36 },   // 树桩
+  { sx: 64,  sy: 32, sw: 16, sh: 16, drawW: 30, drawH: 30 },   // 灰石头
+  { sx: 80,  sy: 32, sw: 16, sh: 16, drawW: 34, drawH: 34 },   // 大石头
+  { sx: 96,  sy: 32, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 深色石头
+  // 罐子/瓶子
+  { sx: 48,  sy: 16, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 棕罐子
+  { sx: 64,  sy: 16, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 深棕罐子
+  { sx: 96,  sy: 16, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 灰蓝罐子
+  { sx: 112, sy: 16, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 棕色罐子2
+  { sx: 48,  sy: 32, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 橙色罐子
+  { sx: 128, sy: 32, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 蓝色罐子
+  { sx: 32,  sy: 48, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 蓝色瓶子
+  { sx: 160, sy: 64, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 橙色大罐
+  // 木箱/桶
+  { sx: 128, sy: 48, sw: 16, sh: 16, drawW: 32, drawH: 32 },   // 木箱
+  { sx: 160, sy: 48, sw: 16, sh: 16, drawW: 32, drawH: 32 },   // 木桶
+  // 树桩/蘑菇
+  { sx: 176, sy: 48, sw: 16, sh: 16, drawW: 32, drawH: 32 },   // 树桩
+  { sx: 32,  sy: 0,  sw: 16, sh: 16, drawW: 26, drawH: 26 },   // 蘑菇
 ]
 
 // 大树（精确定位完整树木）
@@ -254,7 +272,7 @@ function drawDecorations(ctx, cam, screenW, screenH) {
   ctx.save()
   ctx.imageSmoothingEnabled = false
 
-  var cellSize = 120  // 每 120px 区域最多放一个装饰
+  var cellSize = 90  // 每 90px 区域最多放一个装饰（更密集）
   var startCX = Math.floor((cam.x - 60) / cellSize)
   var startCY = Math.floor((cam.y - 60) / cellSize)
   var endCX = Math.ceil((cam.x + screenW + 60) / cellSize)
@@ -263,12 +281,23 @@ function drawDecorations(ctx, cam, screenW, screenH) {
   for (var cy = startCY; cy <= endCY; cy++) {
     for (var cx = startCX; cx <= endCX; cx++) {
       var h = _hashPos(cx, cy)
-      // 约40%的格子有装饰
-      if (h % 100 > 40) continue
+      // 约60%的格子有装饰
+      if (h % 100 > 60) continue
 
       var h2 = _hashPos(cx + 9999, cy + 7777)
       var offsetX = (h % 97) * cellSize / 97
       var offsetY = (h2 % 89) * cellSize / 89
+      // 同一格子可能有第二个小装饰（30%概率）
+      var h4 = _hashPos(cx + 1111, cy + 2222)
+      if (h4 % 100 < 30) {
+        var deco2 = DECO_ITEMS[h4 % 6]  // 只用花和草
+        var ox2 = (h4 % 71) * cellSize / 71
+        var oy2 = (_hashPos(cx + 4444, cy + 8888) % 67) * cellSize / 67
+        var sx2 = cx * cellSize + ox2 - cam.x
+        var sy2 = cy * cellSize + oy2 - cam.y
+        ctx.drawImage(img, deco2.sx, deco2.sy, deco2.sw, deco2.sh,
+          sx2 - deco2.drawW/2, sy2 - deco2.drawH/2, deco2.drawW, deco2.drawH)
+      }
       var wx = cx * cellSize + offsetX
       var wy = cy * cellSize + offsetY
       var sx = wx - cam.x
