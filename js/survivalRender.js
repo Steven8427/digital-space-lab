@@ -80,8 +80,8 @@ GameGlobal.drawSurvivalScreen=function(){
     var endRow = startRow + Math.ceil(SH / gs) + 1
     for (var trow = startRow; trow <= endRow; trow++) {
       for (var tcol = startCol; tcol <= endCol; tcol++) {
-        var tx = Math.floor(tcol * gs - cam.x)
-        var ty = Math.floor(trow * gs - cam.y)
+        var tx = Math.round(tcol * gs - cam.x)
+        var ty = Math.round(trow * gs - cam.y)
         _sprites.drawTile(ctx, tx, ty, 0)
       }
     }

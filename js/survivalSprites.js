@@ -240,8 +240,8 @@ function drawTile(ctx, x, y, tileVariant) {
   var t = GRASS_TILES[tileVariant % GRASS_TILES.length]
   ctx.save()
   ctx.imageSmoothingEnabled = false
-  // +1像素消除拼接间隙（防止闪烁线）
-  ctx.drawImage(img, t.sx, t.sy, t.sw, t.sh, Math.floor(x), Math.floor(y), 81, 81)
+  // +2像素消除高DPR设备的拼接间隙
+  ctx.drawImage(img, t.sx, t.sy, t.sw, t.sh, Math.round(x) - 1, Math.round(y) - 1, 82, 82)
   ctx.restore()
   return true
 }
