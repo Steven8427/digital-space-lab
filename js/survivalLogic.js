@@ -105,6 +105,7 @@ GameGlobal.Survival = {
     this.levelUp=false; this.weaponChoices=[]
     this.weapons=[]; this.enemies=[]; this.projectiles=[]
     _particles.length=0; this._rings=[]; this._lightnings=[]
+    this.foodItems=[]; this._foodTimer=0
 
     this.player = {
       x:MAP_W/2, y:MAP_H/2, hp:100, maxHp:100,
@@ -177,6 +178,8 @@ GameGlobal.Survival = {
     this._updateEnemies(dt)
     // 碰撞（玩家撞敌人=受伤）
     this._checkPlayerHit()
+    // 食物掉落
+    this._updateFood(dt)
     // 粒子/特效
     _updateP(dt)
     this._updateRings(dt)
@@ -496,6 +499,51 @@ GameGlobal.Survival = {
         var hp=5+Math.floor(this.elapsed/60)*2
         var _ps5=GameGlobal.SurvivalSprites?GameGlobal.SurvivalSprites.pickMonsterSprite:null
         this.enemies.push({x:b.x+(Math.random()-0.5)*100,y:b.y+(Math.random()-0.5)*100,hp:hp,maxHp:hp,type:'walker',speed:ENEMY_TYPES.walker.speed,spriteType:_ps5?_ps5('walker'):null})
+      }
+    }
+  },
+
+  // ── 食物掉落系统
+  _updateFood: function(dt) {
+    var p = this.player
+
+    // Spawn timer: every 8-12 seconds
+    this._foodTimer += dt
+    var spawnInterval = 8 + Math.random() * 4
+    if (this._foodTimer >= spawnInterval && this.foodItems.length < 5) {
+      this._foodTimer = 0
+      // Spawn near player (100-300px away)
+      var a = Math.random() * Math.PI * 2
+      var d = 100 + Math.random() * 200
+      var fx = p.x + Math.cos(a) * d
+      var fy = p.y + Math.sin(a) * d
+      // Pick food type by weight: apple 60%, bread 30%, chicken_leg 10%
+      var roll = Math.random()
+      var foodType = roll < 0.6 ? 0 : (roll < 0.9 ? 1 : 2)
+      this.foodItems.push({ x: fx, y: fy, type: foodType, age: 0 })
+    }
+
+    // Update food items
+    for (var i = this.foodItems.length - 1; i >= 0; i--) {
+      var f = this.foodItems[i]
+      f.age += dt
+
+      // Despawn after 15 seconds
+      if (f.age >= 15) {
+        this.foodItems.splice(i, 1)
+        continue
+      }
+
+      // Pickup check: distance < 30px
+      var dx = p.x - f.x, dy = p.y - f.y
+      var dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist < 30) {
+        // Heal based on type: apple +10, bread +25, chicken_leg +50
+        var healAmount = f.type === 0 ? 10 : (f.type === 1 ? 25 : 50)
+        p.hp = Math.min(p.maxHp, p.hp + healAmount)
+        GameGlobal.Sound.play('click')
+        _spawnP(f.x, f.y, '#2ecc71', 8)
+        this.foodItems.splice(i, 1)
       }
     }
   },

@@ -132,6 +132,46 @@ GameGlobal.drawSurvivalScreen=function(){
     _drawEnemy(ex,ey,e)
   }
 
+  // 食物掉落
+  var _foodSpriteMap = [0, 1, 3]  // type 0=apple(idx0), 1=bread(idx1), 2=chicken_leg(idx3)
+  for(var fi=0;fi<S.foodItems.length;fi++){
+    var food=S.foodItems[fi]
+    var fx=food.x-cam.x, fy=food.y-cam.y
+    if(fx<-40||fx>SW+40||fy<-40||fy>SH+40) continue
+    // Floating bob animation (sine wave on Y)
+    var bobY = Math.sin(S.elapsed * 2.5 + fi * 1.7) * 4
+    var drawY = fy + bobY
+    // Glow/sparkle effect
+    var glowAlpha = 0.15 + Math.sin(S.elapsed * 3 + fi * 2.3) * 0.08
+    ctx.save()
+    ctx.beginPath(); ctx.arc(fx, drawY, 18, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(46,204,113,' + glowAlpha + ')'; ctx.fill()
+    ctx.restore()
+    // Draw food sprite or fallback
+    var foodSize = 28
+    var foodIdx = _foodSpriteMap[food.type]
+    var foodDrawn = false
+    if (_sprites) {
+      foodDrawn = _sprites.drawFoodItem(ctx, fx, drawY, foodSize, foodIdx)
+    }
+    if (!foodDrawn) {
+      // Fallback: colored circles
+      ctx.beginPath(); ctx.arc(fx, drawY, 10, 0, Math.PI * 2)
+      ctx.fillStyle = food.type === 0 ? '#e74c3c' : (food.type === 1 ? '#f39c12' : '#e67e22')
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1.5; ctx.stroke()
+    }
+    // Despawn fade (last 3 seconds)
+    if (food.age > 12) {
+      var fadeAlpha = 1 - (food.age - 12) / 3
+      ctx.save()
+      ctx.globalAlpha = 1 - fadeAlpha
+      ctx.beginPath(); ctx.arc(fx, drawY, 16, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(6,8,26,0.6)'; ctx.fill()
+      ctx.restore()
+    }
+  }
+
   // Boss
   if(S.boss) _drawBoss(S.boss.x-cam.x,S.boss.y-cam.y,S.boss)
 
@@ -165,11 +205,20 @@ GameGlobal.drawSurvivalScreen=function(){
     for(var k=0;k<w.count;k++){
       var a=S.elapsed*2.5+k*(Math.PI*2/w.count)
       var kx=p.x+Math.cos(a)*w.range-cam.x, ky=p.y+Math.sin(a)*w.range-cam.y
-      ctx.save();ctx.translate(kx,ky);ctx.rotate(a+Math.PI/2)
-      // 飞刀形状
-      ctx.beginPath();ctx.moveTo(0,-10);ctx.lineTo(4,6);ctx.lineTo(-4,6);ctx.closePath()
-      ctx.fillStyle='#ecf0f1';ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=1;ctx.stroke()
-      ctx.restore()
+      // Try dagger icon from Weapons.png (index 0)
+      var daggerDrawn = false
+      if (_sprites) {
+        ctx.save(); ctx.translate(kx, ky); ctx.rotate(a + Math.PI / 2)
+        daggerDrawn = _sprites.drawWeaponIcon(ctx, 0, 0, 22, 0)
+        ctx.restore()
+      }
+      if (!daggerDrawn) {
+        // Fallback: triangle shape
+        ctx.save();ctx.translate(kx,ky);ctx.rotate(a+Math.PI/2)
+        ctx.beginPath();ctx.moveTo(0,-10);ctx.lineTo(4,6);ctx.lineTo(-4,6);ctx.closePath()
+        ctx.fillStyle='#ecf0f1';ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=1;ctx.stroke()
+        ctx.restore()
+      }
     }
   }
 

@@ -45,6 +45,11 @@ var ENEMY_SPRITE_MAP = {
 var TILESET_FILE = CLOUD_PREFIX + 'survival/map/Tileset.png'
 var HOUSES_FILE = CLOUD_PREFIX + 'survival/map/Houses.png'
 
+// Icon sprite sheets
+var ICONS_WEAPONS_FILE = CLOUD_PREFIX + 'survival/icons/Weapons.png'
+var ICONS_FOOD_FILE = CLOUD_PREFIX + 'survival/icons/Food.png'
+var ICONS_POTIONS_FILE = CLOUD_PREFIX + 'survival/icons/PotionBottles.png'
+
 // ── State
 var _spriteImages = {}   // key -> Image object
 var _spriteLoaded = {}   // key -> boolean
@@ -78,6 +83,14 @@ function _loadSprites() {
   fileKeys.push('tileset')
   fileIDs.push(HOUSES_FILE)
   fileKeys.push('houses')
+
+  // Icon sprite sheets
+  fileIDs.push(ICONS_WEAPONS_FILE)
+  fileKeys.push('icons_weapons')
+  fileIDs.push(ICONS_FOOD_FILE)
+  fileKeys.push('icons_food')
+  fileIDs.push(ICONS_POTIONS_FILE)
+  fileKeys.push('icons_potions')
 
   // Batch request temp URLs (max 50 per call, we have ~21)
   wx.cloud.getTempFileURL({
@@ -389,6 +402,51 @@ function getPlayerSkin() {
   return _currentSkin
 }
 
+// Draw a weapon icon from Weapons.png sprite sheet
+// iconIdx: 0=dagger, 1=sword, 2=bow, 3=axe, 4=staff
+function drawWeaponIcon(ctx, x, y, size, iconIdx) {
+  var img = _spriteImages['icons_weapons']
+  if (!img || !_spriteLoaded['icons_weapons']) return false
+  var frameW = img.width / 5
+  var frameH = img.height
+  var sx = iconIdx * frameW
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(img, sx, 0, frameW, frameH, x - size / 2, y - size / 2, size, size)
+  ctx.restore()
+  return true
+}
+
+// Draw a food item from Food.png sprite sheet
+// foodType: 0=apple, 1=bread, 3=chicken leg (indices into Food.png)
+function drawFoodItem(ctx, x, y, size, foodType) {
+  var img = _spriteImages['icons_food']
+  if (!img || !_spriteLoaded['icons_food']) return false
+  var frameW = img.width / 5
+  var frameH = img.height
+  var sx = foodType * frameW
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(img, sx, 0, frameW, frameH, x - size / 2, y - size / 2, size, size)
+  ctx.restore()
+  return true
+}
+
+// Draw a potion icon from PotionBottles.png sprite sheet
+// potionIdx: 0=blue, 1=green, 2=yellow, 3=purple, 4=red
+function drawPotionIcon(ctx, x, y, size, potionIdx) {
+  var img = _spriteImages['icons_potions']
+  if (!img || !_spriteLoaded['icons_potions']) return false
+  var frameW = img.width / 5
+  var frameH = img.height
+  var sx = potionIdx * frameW
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(img, sx, 0, frameW, frameH, x - size / 2, y - size / 2, size, size)
+  ctx.restore()
+  return true
+}
+
 function isLoaded() {
   return _allLoaded
 }
@@ -409,6 +467,9 @@ GameGlobal.SurvivalSprites = {
   setPlayerSkin: setPlayerSkin,
   getPlayerSkin: getPlayerSkin,
   isLoaded: isLoaded,
+  drawWeaponIcon: drawWeaponIcon,
+  drawFoodItem: drawFoodItem,
+  drawPotionIcon: drawPotionIcon,
   isSpriteReady: isSpriteReady,
   PLAYER_SKINS: PLAYER_SKINS,
   PLAYER_ANIMS: PLAYER_ANIMS,
