@@ -75,25 +75,8 @@ GameGlobal.drawSurvivalScreen=function(){
 
   // 背景 — 先填充草地基色，消除tile间隙
   ctx.fillStyle='#71d349';ctx.fillRect(0,0,SW,SH)
+  // 纯绿色背景已由上方fillRect铺好，不再用tile避免格子线
   var _sprites = GameGlobal.SurvivalSprites
-  var _useTiles = _sprites && _sprites.isLoaded() && _sprites.isSpriteReady('tileset')
-  if (_useTiles) {
-    // Draw repeating ground tiles
-    var gs = S.GRID_SIZE
-    var startCol = Math.floor(cam.x / gs)
-    var startRow = Math.floor(cam.y / gs)
-    var endCol = startCol + Math.ceil(SW / gs) + 1
-    var endRow = startRow + Math.ceil(SH / gs) + 1
-    for (var trow = startRow; trow <= endRow; trow++) {
-      for (var tcol = startCol; tcol <= endCol; tcol++) {
-        var tx = Math.round(tcol * gs - cam.x)
-        var ty = Math.round(trow * gs - cam.y)
-        _sprites.drawTile(ctx, tx, ty, 0)
-      }
-    }
-  } else {
-    // Fallback: 纯绿色背景（已由上方fillRect铺好），无需额外绘制
-  }
 
   // 装饰物层（花、草、石头、树）
   if (_sprites && _sprites.isLoaded()) {

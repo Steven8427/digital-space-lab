@@ -275,8 +275,9 @@ var DECO_ITEMS = [
   // 木箱/桶
   { sx: 128, sy: 48, sw: 16, sh: 16, drawW: 32, drawH: 32 },   // 木箱
   { sx: 160, sy: 48, sw: 16, sh: 16, drawW: 32, drawH: 32 },   // 木桶
-  // 树桩/蘑菇
-  { sx: 176, sy: 48, sw: 16, sh: 16, drawW: 32, drawH: 32 },   // 树桩
+  // 石堆/蘑菇
+  { sx: 32,  sy: 64, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 灰色石堆
+  { sx: 48,  sy: 64, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 橙色石堆
   { sx: 32,  sy: 0,  sw: 16, sh: 16, drawW: 26, drawH: 26 },   // 蘑菇
 ]
 
