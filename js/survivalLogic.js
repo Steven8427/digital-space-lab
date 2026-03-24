@@ -298,13 +298,16 @@ GameGlobal.Survival = {
   // ── 火焰圈
   _weaponRing: function(w) {
     var p=this.player
-    this._rings.push({x:p.x,y:p.y,r:20,maxR:w.range,dmg:w.dmg,hit:{}})
+    this._rings.push({x:p.x,y:p.y,r:20,maxR:w.range,dmg:w.dmg,hit:{},follow:true})
     _spawnP(p.x,p.y,'#e74c3c',8)
   },
 
   _updateRings: function(dt) {
+    var p=this.player
     for(var ri=this._rings.length-1;ri>=0;ri--){
       var rr=this._rings[ri]; rr.r+=200*dt
+      // 跟随玩家
+      if(rr.follow){rr.x=p.x;rr.y=p.y}
       // 检测碰撞
       for(var i=0;i<this.enemies.length;i++){
         if(rr.hit[i]) continue
