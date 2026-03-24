@@ -24,6 +24,7 @@ try { require('./js/sudokuLogic.js') } catch(e) { console.error('sudokuLogic.js 
 try { require('./js/sudokuRender.js') } catch(e) { console.error('sudokuRender.js 加载失败', e) }
 try { require('./js/sudokuChallenge.js') } catch(e) { console.error('sudokuChallenge.js 加载失败', e) }
 try { require('./js/sudokuChallengeRender.js') } catch(e) { console.error('sudokuChallengeRender.js 加载失败', e) }
+try { require('./js/survivalSprites.js') } catch(e) { console.error('survivalSprites.js 加载失败', e) }
 try { require('./js/survivalLogic.js') } catch(e) { console.error('survivalLogic.js 加载失败', e) }
 try { require('./js/survivalRender.js') } catch(e) { console.error('survivalRender.js 加载失败', e) }
 try { require('./js/achieveShop.js') } catch(e) { console.error('achieveShop.js 加载失败', e) }

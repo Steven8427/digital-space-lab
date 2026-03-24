@@ -67,17 +67,39 @@ GameGlobal.drawSurvivalScreen=function(){
   S.update()
   var cam=S.camera, p=S.player
 
-  // 背景
+  // 背景 — tilemap or fallback grid
   ctx.fillStyle='#06081a';ctx.fillRect(0,0,SW,SH)
-  for(var si=0;si<_bgStars.length;si++){
-    var st=_bgStars[si],sx=((st.x-cam.x*0.3)%SW+SW)%SW,sy=((st.y-cam.y*0.3)%SH+SH)%SH
-    ctx.beginPath();ctx.arc(sx,sy,st.r,0,Math.PI*2);ctx.fillStyle='rgba(180,200,255,'+(st.b+Math.sin(Date.now()/800+si)*0.12)+')';ctx.fill()
+  var _sprites = GameGlobal.SurvivalSprites
+  var _useTiles = _sprites && _sprites.isLoaded() && _sprites.isSpriteReady('tileset')
+  if (_useTiles) {
+    // Draw repeating ground tiles
+    var gs = S.GRID_SIZE
+    var startCol = Math.floor(cam.x / gs)
+    var startRow = Math.floor(cam.y / gs)
+    var endCol = startCol + Math.ceil(SW / gs) + 1
+    var endRow = startRow + Math.ceil(SH / gs) + 1
+    for (var trow = startRow; trow <= endRow; trow++) {
+      for (var tcol = startCol; tcol <= endCol; tcol++) {
+        if (tcol < 0 || trow < 0 || tcol >= Math.ceil(S.MAP_W / gs) || trow >= Math.ceil(S.MAP_H / gs)) continue
+        var tx = tcol * gs - cam.x
+        var ty = trow * gs - cam.y
+        // Use a simple pattern: alternate between a few tile indices for variety
+        var tileIdx = ((tcol + trow) % 4 === 0) ? 1 : _sprites.GROUND_TILE_IDX
+        _sprites.drawTile(ctx, tx, ty, tileIdx)
+      }
+    }
+  } else {
+    // Fallback: stars + grid
+    for(var si=0;si<_bgStars.length;si++){
+      var st=_bgStars[si],sx2=((st.x-cam.x*0.3)%SW+SW)%SW,sy2=((st.y-cam.y*0.3)%SH+SH)%SH
+      ctx.beginPath();ctx.arc(sx2,sy2,st.r,0,Math.PI*2);ctx.fillStyle='rgba(180,200,255,'+(st.b+Math.sin(Date.now()/800+si)*0.12)+')';ctx.fill()
+    }
+    var gs=S.GRID_SIZE,offX=-(cam.x%gs+gs)%gs,offY=-(cam.y%gs+gs)%gs
+    ctx.strokeStyle='rgba(100,140,255,0.05)';ctx.lineWidth=1;ctx.setLineDash([2,gs-2])
+    for(var gx=offX;gx<SW;gx+=gs){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,SH);ctx.stroke()}
+    for(var gy=offY;gy<SH;gy+=gs){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(SW,gy);ctx.stroke()}
+    ctx.setLineDash([])
   }
-  var gs=S.GRID_SIZE,offX=-(cam.x%gs+gs)%gs,offY=-(cam.y%gs+gs)%gs
-  ctx.strokeStyle='rgba(100,140,255,0.05)';ctx.lineWidth=1;ctx.setLineDash([2,gs-2])
-  for(var gx=offX;gx<SW;gx+=gs){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,SH);ctx.stroke()}
-  for(var gy=offY;gy<SH;gy+=gs){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(SW,gy);ctx.stroke()}
-  ctx.setLineDash([])
 
   // 边界
   _drawBorder(cam)
@@ -169,34 +191,44 @@ GameGlobal.drawSurvivalScreen=function(){
 
 function _ah(a){var h=Math.round(Math.max(0,Math.min(1,a))*255).toString(16);return h.length<2?'0'+h:h}
 
-// ── 敌人（不同类型不同形状 + 血条）
+// ── 敌人（sprite or fallback shapes + 血条）
 function _drawEnemy(x,y,e){
   var r=GameGlobal.Survival.enemyRadius(e.type)
   var flash=e._flashTimer&&e._flashTimer>0
   var t=Date.now()
+  var _sprites = GameGlobal.SurvivalSprites
+  var spriteSize = r * 2.5
 
-  ctx.save();ctx.translate(x,y)
-
-  if(e.type==='tank'){
-    ctx.rotate(t/2000);var s=r*1.5
-    ctx.fillStyle=flash?'#fff':'#6c3483';ctx.fillRect(-s/2,-s/2,s,s)
-    ctx.strokeStyle='#9b59b6';ctx.lineWidth=2;ctx.strokeRect(-s/2,-s/2,s,s)
-  }else if(e.type==='dash'){
-    ctx.rotate(Math.PI/4);var s=r*1.3
-    ctx.fillStyle=flash?'#fff':'#e67e22';ctx.fillRect(-s/2,-s/2,s,s)
-    ctx.strokeStyle='#f39c12';ctx.lineWidth=1.5;ctx.strokeRect(-s/2,-s/2,s,s)
-  }else if(e.type==='split'){
-    _drawHex2(0,0,r,flash?'#fff':'#af7ac5')
-    ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1.5;ctx.stroke()
-  }else if(e.type==='swarm'){
-    ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2)
-    ctx.fillStyle=flash?'#fff':'#e74c3c';ctx.fill()
-  }else{
-    ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2)
-    ctx.fillStyle=flash?'#fff':'#c0392b';ctx.fill()
-    ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;ctx.stroke()
+  // Try sprite drawing first
+  var spriteDrawn = false
+  if (_sprites && _sprites.isLoaded() && e.spriteType) {
+    spriteDrawn = _sprites.drawMonster(ctx, x, y, spriteSize, e.spriteType, GameGlobal.Survival.elapsed, flash)
   }
-  ctx.restore()
+
+  if (!spriteDrawn) {
+    // Fallback: original shape-based rendering
+    ctx.save();ctx.translate(x,y)
+    if(e.type==='tank'){
+      ctx.rotate(t/2000);var s=r*1.5
+      ctx.fillStyle=flash?'#fff':'#6c3483';ctx.fillRect(-s/2,-s/2,s,s)
+      ctx.strokeStyle='#9b59b6';ctx.lineWidth=2;ctx.strokeRect(-s/2,-s/2,s,s)
+    }else if(e.type==='dash'){
+      ctx.rotate(Math.PI/4);var s2=r*1.3
+      ctx.fillStyle=flash?'#fff':'#e67e22';ctx.fillRect(-s2/2,-s2/2,s2,s2)
+      ctx.strokeStyle='#f39c12';ctx.lineWidth=1.5;ctx.strokeRect(-s2/2,-s2/2,s2,s2)
+    }else if(e.type==='split'){
+      _drawHex2(0,0,r,flash?'#fff':'#af7ac5')
+      ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1.5;ctx.stroke()
+    }else if(e.type==='swarm'){
+      ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2)
+      ctx.fillStyle=flash?'#fff':'#e74c3c';ctx.fill()
+    }else{
+      ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2)
+      ctx.fillStyle=flash?'#fff':'#c0392b';ctx.fill()
+      ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;ctx.stroke()
+    }
+    ctx.restore()
+  }
 
   // 减速效果
   if(e._slowed&&e._slowed>0){
@@ -253,16 +285,31 @@ function _drawPlayer(x,y,p,cam){
   // 无敌闪烁
   if(p._iFrames>0 && Math.floor(Date.now()/80)%2===0) return
 
-  // 护盾视觉不需要了（改成HP系统）
-  ctx.beginPath();ctx.arc(x,y,r+3,0,Math.PI*2);ctx.fillStyle='rgba(52,152,219,0.15)';ctx.fill()
+  // Determine animation state
+  var _sprites = GameGlobal.SurvivalSprites
+  var js = GameGlobal.Survival.joystick
+  var isMoving = js && js.active && (Math.abs(js.dx) > 0.1 || Math.abs(js.dy) > 0.1)
+  var isHurt = p._iFrames > 0
+  var animState = isHurt ? 'hurt' : (isMoving ? 'run' : 'idle')
+  var spriteSize = r * 2.8
 
-  // 六边形主体
-  ctx.save();ctx.translate(x,y)
-  _drawHex2(0,0,r,'#2980b9')
-  var pg=ctx.createRadialGradient(-r*0.2,-r*0.2,0,0,0,r)
-  pg.addColorStop(0,'rgba(52,152,219,0.5)');pg.addColorStop(1,'rgba(41,128,185,0)')
-  _drawHex2(0,0,r,pg);ctx.strokeStyle='#5dade2';ctx.lineWidth=2;ctx.stroke()
-  ctx.restore()
+  // Try sprite drawing
+  var spriteDrawn = false
+  if (_sprites && _sprites.isLoaded()) {
+    _sprites.setPlayerSkin(p.skin || 'doux')
+    spriteDrawn = _sprites.drawPlayer(ctx, x, y, spriteSize, animState, GameGlobal.Survival.elapsed, p.facingLeft)
+  }
+
+  if (!spriteDrawn) {
+    // Fallback: original hex rendering
+    ctx.beginPath();ctx.arc(x,y,r+3,0,Math.PI*2);ctx.fillStyle='rgba(52,152,219,0.15)';ctx.fill()
+    ctx.save();ctx.translate(x,y)
+    _drawHex2(0,0,r,'#2980b9')
+    var pg=ctx.createRadialGradient(-r*0.2,-r*0.2,0,0,0,r)
+    pg.addColorStop(0,'rgba(52,152,219,0.5)');pg.addColorStop(1,'rgba(41,128,185,0)')
+    _drawHex2(0,0,r,pg);ctx.strokeStyle='#5dade2';ctx.lineWidth=2;ctx.stroke()
+    ctx.restore()
+  }
 
   // HP条
   var hpW=r*2.5, hpH=4, hpX=x-hpW/2, hpY=y+r+6

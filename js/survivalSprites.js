@@ -1,0 +1,265 @@
+// ================================================
+//  survivalSprites.js — Pixel art sprite system
+//  Downloads sprite sheets from cloud storage,
+//  provides animated drawing functions
+// ================================================
+
+var CLOUD_PREFIX = 'cloud://cloud1-6gfj19793c24b47c.636c-cloud1-6gfj19793c24b47c-1406406015/'
+
+// ── Sprite sheet definitions
+var PLAYER_SKINS = ['doux', 'mort', 'vita', 'tard']
+var PLAYER_FILES = {}
+for (var _pi = 0; _pi < PLAYER_SKINS.length; _pi++) {
+  var _sn = PLAYER_SKINS[_pi]
+  PLAYER_FILES[_sn] = CLOUD_PREFIX + 'survival/player/DinoSprites - ' + _sn + '.png'
+}
+
+// Player animation frame ranges (0-indexed in a 24-frame sheet)
+var PLAYER_ANIMS = {
+  idle: { start: 0, count: 4, fps: 6 },
+  run:  { start: 4, count: 6, fps: 10 },
+  hurt: { start: 14, count: 4, fps: 8 }
+}
+
+// Monster sprite files
+var MONSTER_NAMES = [
+  'DeathSlime', 'BloodshotEye', 'BrawnyOgre', 'DarkDragon', 'DireBoar',
+  'FieryImp', 'GhostWarrior', 'GoblinKing', 'IceGolem', 'LavaWorm',
+  'NightStalker', 'PoisonSpider', 'ShadowBat', 'SkullKnight', 'VenomSnake'
+]
+var MONSTER_FILES = {}
+for (var _mi = 0; _mi < MONSTER_NAMES.length; _mi++) {
+  MONSTER_FILES[MONSTER_NAMES[_mi]] = CLOUD_PREFIX + 'survival/monster/' + MONSTER_NAMES[_mi] + '.png'
+}
+
+// Map enemy types to monster sprites
+var ENEMY_SPRITE_MAP = {
+  walker: ['SkullKnight', 'GhostWarrior', 'NightStalker'],
+  swarm:  ['DeathSlime', 'ShadowBat', 'PoisonSpider'],
+  tank:   ['BrawnyOgre', 'IceGolem', 'GoblinKing'],
+  dash:   ['FieryImp', 'DireBoar', 'LavaWorm'],
+  split:  ['DarkDragon', 'BloodshotEye', 'VenomSnake']
+}
+
+// Tileset
+var TILESET_FILE = CLOUD_PREFIX + 'survival/map/Tileset.png'
+var HOUSES_FILE = CLOUD_PREFIX + 'survival/map/Houses.png'
+
+// ── State
+var _spriteImages = {}   // key -> Image object
+var _spriteLoaded = {}   // key -> boolean
+var _allLoaded = false
+var _loadStarted = false
+var _currentSkin = 'doux'
+
+// ── Load all sprite sheets
+function _loadSprites() {
+  if (_loadStarted) return
+  _loadStarted = true
+
+  // Collect all cloud fileIDs
+  var fileIDs = []
+  var fileKeys = []
+
+  // Player skins
+  for (var skin in PLAYER_FILES) {
+    fileIDs.push(PLAYER_FILES[skin])
+    fileKeys.push('player_' + skin)
+  }
+
+  // Monsters
+  for (var mname in MONSTER_FILES) {
+    fileIDs.push(MONSTER_FILES[mname])
+    fileKeys.push('monster_' + mname)
+  }
+
+  // Tileset
+  fileIDs.push(TILESET_FILE)
+  fileKeys.push('tileset')
+  fileIDs.push(HOUSES_FILE)
+  fileKeys.push('houses')
+
+  // Batch request temp URLs (max 50 per call, we have ~21)
+  wx.cloud.getTempFileURL({
+    fileList: fileIDs,
+    success: function(res) {
+      if (!res || !res.fileList) {
+        console.warn('[sprites] getTempFileURL failed: no fileList')
+        return
+      }
+      var loadCount = 0
+      var totalCount = res.fileList.length
+
+      for (var i = 0; i < res.fileList.length; i++) {
+        var item = res.fileList[i]
+        var key = fileKeys[i]
+        if (item.status !== 0 || !item.tempFileURL) {
+          console.warn('[sprites] failed to get URL for', key, item.status)
+          loadCount++
+          continue
+        }
+        ;(function(k, url) {
+          var img = wx.createImage()
+          img.onload = function() {
+            _spriteImages[k] = img
+            _spriteLoaded[k] = true
+            loadCount++
+            if (loadCount >= totalCount) {
+              _allLoaded = true
+              console.log('[sprites] All sprite sheets loaded')
+            }
+          }
+          img.onerror = function() {
+            console.warn('[sprites] Failed to load image:', k)
+            loadCount++
+            if (loadCount >= totalCount) {
+              _allLoaded = true
+              console.log('[sprites] Sprite loading complete (some failed)')
+            }
+          }
+          img.src = url
+        })(key, item.tempFileURL)
+      }
+    },
+    fail: function(err) {
+      console.error('[sprites] getTempFileURL error:', err)
+    }
+  })
+}
+
+// ── Draw a sprite frame from a horizontal sprite sheet
+// img: Image, frameIdx: which frame, totalFrames: total frames in sheet
+// x,y: center position on canvas, w,h: draw size, flipX: mirror horizontally
+function _drawSpriteFrame(ctx, img, frameIdx, totalFrames, x, y, w, h, flipX) {
+  if (!img || !img.width) return
+  var fw = img.width / totalFrames
+  var fh = img.height
+  var sx = frameIdx * fw
+
+  ctx.save()
+  ctx.translate(x, y)
+  if (flipX) {
+    ctx.scale(-1, 1)
+  }
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(img, sx, 0, fw, fh, -w / 2, -h / 2, w, h)
+  ctx.restore()
+}
+
+// ── Public API
+
+// Draw player dino sprite
+// state: 'idle', 'run', 'hurt'
+// elapsed: total game elapsed time in seconds
+// facingLeft: boolean
+function drawPlayer(ctx, x, y, size, state, elapsed, facingLeft) {
+  var key = 'player_' + _currentSkin
+  var img = _spriteImages[key]
+  if (!img || !_spriteLoaded[key]) return false
+
+  var anim = PLAYER_ANIMS[state] || PLAYER_ANIMS.idle
+  var frameDuration = 1.0 / anim.fps
+  var frameIdx = anim.start + Math.floor(elapsed / frameDuration) % anim.count
+
+  _drawSpriteFrame(ctx, img, frameIdx, 24, x, y, size, size, facingLeft)
+  return true
+}
+
+// Draw monster sprite with 4-frame walk animation
+// monsterType: string from MONSTER_NAMES
+// elapsed: total game elapsed time in seconds
+// flash: boolean (damage flash)
+function drawMonster(ctx, x, y, size, monsterType, elapsed, flash) {
+  var key = 'monster_' + monsterType
+  var img = _spriteImages[key]
+  if (!img || !_spriteLoaded[key]) return false
+
+  if (flash) {
+    // When flashing, draw white overlay
+    ctx.save()
+    ctx.globalAlpha = 0.7
+  }
+
+  var frameDuration = 1.0 / 6  // 6 fps for monsters
+  var frameIdx = Math.floor(elapsed / frameDuration) % 4
+
+  _drawSpriteFrame(ctx, img, frameIdx, 4, x, y, size, size, false)
+
+  if (flash) {
+    ctx.restore()
+    // Draw white overlay on top
+    ctx.save()
+    ctx.globalCompositeOperation = 'source-atop'
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(x - size / 2, y - size / 2, size, size)
+    ctx.restore()
+  }
+
+  return true
+}
+
+// Draw a tile from the tileset
+// tileIdx: index of tile in tileset (row-major, assuming 16px tiles)
+// x, y: top-left position, tileSize: draw size
+function drawTile(ctx, x, y, tileIdx) {
+  var img = _spriteImages['tileset']
+  if (!img || !_spriteLoaded['tileset']) return false
+
+  // Assume tileset is arranged in a grid of 16x16 px tiles
+  var tilePx = 16
+  var cols = Math.floor(img.width / tilePx)
+  if (cols < 1) cols = 1
+  var sx = (tileIdx % cols) * tilePx
+  var sy = Math.floor(tileIdx / cols) * tilePx
+
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(img, sx, sy, tilePx, tilePx, x, y, 80, 80)
+  ctx.restore()
+  return true
+}
+
+// Pick a random monster sprite name for a given enemy type
+function pickMonsterSprite(enemyType) {
+  var options = ENEMY_SPRITE_MAP[enemyType] || ENEMY_SPRITE_MAP.walker
+  return options[Math.floor(Math.random() * options.length)]
+}
+
+// Set current player skin
+function setPlayerSkin(skin) {
+  if (PLAYER_SKINS.indexOf(skin) >= 0) {
+    _currentSkin = skin
+  }
+}
+
+function getPlayerSkin() {
+  return _currentSkin
+}
+
+function isLoaded() {
+  return _allLoaded
+}
+
+function isSpriteReady(key) {
+  return !!_spriteLoaded[key]
+}
+
+// ── Export
+GameGlobal.SurvivalSprites = {
+  load: _loadSprites,
+  drawPlayer: drawPlayer,
+  drawMonster: drawMonster,
+  drawTile: drawTile,
+  pickMonsterSprite: pickMonsterSprite,
+  setPlayerSkin: setPlayerSkin,
+  getPlayerSkin: getPlayerSkin,
+  isLoaded: isLoaded,
+  isSpriteReady: isSpriteReady,
+  PLAYER_SKINS: PLAYER_SKINS,
+  PLAYER_ANIMS: PLAYER_ANIMS,
+  ENEMY_SPRITE_MAP: ENEMY_SPRITE_MAP,
+  GROUND_TILE_IDX: 0  // default ground tile index in tileset
+}
+
+// Start loading immediately
+_loadSprites()

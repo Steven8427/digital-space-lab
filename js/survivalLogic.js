@@ -109,20 +109,29 @@ GameGlobal.Survival = {
     this.player = {
       x:MAP_W/2, y:MAP_H/2, hp:100, maxHp:100,
       level:1, xp:0, speed:BASE_SPEED,
-      kills:0, dmgDealt:0, _trail:[], _iFrames:0
+      kills:0, dmgDealt:0, _trail:[], _iFrames:0,
+      facingLeft:false, skin:'doux'
     }
     this.joystick={active:false,baseX:0,baseY:0,stickX:0,stickY:0,dx:0,dy:0}
 
     // 初始武器：旋转飞刀
     this._addWeapon('orbit')
 
+    // Set player skin from sprites module
+    if(GameGlobal.SurvivalSprites) {
+      p.skin = GameGlobal.SurvivalSprites.getPlayerSkin()
+      GameGlobal.SurvivalSprites.setPlayerSkin(p.skin)
+    }
+
     // 初始敌人
+    var _pickSprite = GameGlobal.SurvivalSprites ? GameGlobal.SurvivalSprites.pickMonsterSprite : null
     for(var i=0;i<20;i++){
       var a=Math.random()*Math.PI*2, d=120+Math.random()*350
       this.enemies.push({
         x:MAP_W/2+Math.cos(a)*d, y:MAP_H/2+Math.sin(a)*d,
         hp:[1,2,2,3,3][Math.floor(Math.random()*5)], maxHp:3,
-        type:'walker', speed:ENEMY_TYPES.walker.speed
+        type:'walker', speed:ENEMY_TYPES.walker.speed,
+        spriteType: _pickSprite ? _pickSprite('walker') : null
       })
     }
   },
@@ -147,7 +156,11 @@ GameGlobal.Survival = {
     if (p._iFrames > 0) p._iFrames -= dt
 
     // 移动
-    if(js.active&&(js.dx!==0||js.dy!==0)){p.x+=js.dx*p.speed*dt;p.y+=js.dy*p.speed*dt}
+    if(js.active&&(js.dx!==0||js.dy!==0)){
+      p.x+=js.dx*p.speed*dt;p.y+=js.dy*p.speed*dt
+      if(js.dx<-0.1) p.facingLeft=true
+      else if(js.dx>0.1) p.facingLeft=false
+    }
     p.x=Math.max(22,Math.min(MAP_W-22,p.x)); p.y=Math.max(22,Math.min(MAP_H-22,p.y))
     p._trail.push({x:p.x,y:p.y}); while(p._trail.length>10) p._trail.shift()
     this.camera.x=p.x-SW/2; this.camera.y=p.y-SH/2
@@ -312,7 +325,8 @@ GameGlobal.Survival = {
       // 分裂怪
       if(e.type==='split'&&e.maxHp>=6){
         var hh=Math.floor(e.maxHp/2)
-        for(var s=0;s<2;s++) this.enemies.push({x:e.x+(Math.random()-0.5)*40,y:e.y+(Math.random()-0.5)*40,hp:hh,maxHp:hh,type:'walker',speed:ENEMY_TYPES.walker.speed})
+        var _ps3=GameGlobal.SurvivalSprites?GameGlobal.SurvivalSprites.pickMonsterSprite:null
+        for(var s=0;s<2;s++) this.enemies.push({x:e.x+(Math.random()-0.5)*40,y:e.y+(Math.random()-0.5)*40,hp:hh,maxHp:hh,type:'walker',speed:ENEMY_TYPES.walker.speed,spriteType:_ps3?_ps3('walker'):null})
       }
       this.enemies.splice(idx,1)
       this._checkLevelUp()
@@ -432,12 +446,14 @@ GameGlobal.Survival = {
     var type=_pickType(this.elapsed), hp=_pickEnemyHP(this.elapsed)
     if(type==='tank') hp=Math.floor(hp*2.5)
     if(type==='swarm') hp=Math.max(1,Math.floor(hp*0.4))
-    this.enemies.push({x:x,y:y,hp:hp,maxHp:hp,type:type,speed:ENEMY_TYPES[type].speed})
+    var _pickSprite2 = GameGlobal.SurvivalSprites ? GameGlobal.SurvivalSprites.pickMonsterSprite : null
+    this.enemies.push({x:x,y:y,hp:hp,maxHp:hp,type:type,speed:ENEMY_TYPES[type].speed,spriteType:_pickSprite2?_pickSprite2(type):null})
   },
 
   _spawnElite: function() {
     var p=this.player,a=Math.random()*Math.PI*2
-    this.enemies.push({x:p.x+Math.cos(a)*400,y:p.y+Math.sin(a)*400,hp:150,maxHp:150,type:'tank',speed:18})
+    var _ps4=GameGlobal.SurvivalSprites?GameGlobal.SurvivalSprites.pickMonsterSprite:null
+    this.enemies.push({x:p.x+Math.cos(a)*400,y:p.y+Math.sin(a)*400,hp:150,maxHp:150,type:'tank',speed:18,spriteType:_ps4?_ps4('tank'):null})
   },
 
   _spawnBoss: function() {
@@ -455,7 +471,8 @@ GameGlobal.Survival = {
       b._spawnTimer=0
       for(var i=0;i<3;i++){
         var hp=5+Math.floor(this.elapsed/60)*2
-        this.enemies.push({x:b.x+(Math.random()-0.5)*100,y:b.y+(Math.random()-0.5)*100,hp:hp,maxHp:hp,type:'walker',speed:ENEMY_TYPES.walker.speed})
+        var _ps5=GameGlobal.SurvivalSprites?GameGlobal.SurvivalSprites.pickMonsterSprite:null
+        this.enemies.push({x:b.x+(Math.random()-0.5)*100,y:b.y+(Math.random()-0.5)*100,hp:hp,maxHp:hp,type:'walker',speed:ENEMY_TYPES.walker.speed,spriteType:_ps5?_ps5('walker'):null})
       }
     }
   },
