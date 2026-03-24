@@ -151,7 +151,7 @@ GameGlobal.drawSurvivalScreen=function(){
     var foodSize = 28
     var foodIdx = _foodSpriteMap[food.type]
     var foodDrawn = false
-    if (_sprites) {
+    if (_sprites && typeof _sprites.drawFoodItem === 'function') {
       foodDrawn = _sprites.drawFoodItem(ctx, fx, drawY, foodSize, foodIdx)
     }
     if (!foodDrawn) {
@@ -207,7 +207,7 @@ GameGlobal.drawSurvivalScreen=function(){
       var kx=p.x+Math.cos(a)*w.range-cam.x, ky=p.y+Math.sin(a)*w.range-cam.y
       // Try dagger icon from Weapons.png (index 0)
       var daggerDrawn = false
-      if (_sprites) {
+      if (_sprites && typeof _sprites.drawWeaponIcon === 'function') {
         ctx.save(); ctx.translate(kx, ky); ctx.rotate(a + Math.PI / 2)
         daggerDrawn = _sprites.drawWeaponIcon(ctx, 0, 0, 22, 0)
         ctx.restore()
