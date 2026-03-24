@@ -370,34 +370,64 @@ GameGlobal.Survival = {
     for(var i=this.enemies.length-1;i>=0;i--){
       var e=this.enemies[i]
       if(e._slowed&&e._slowed>0) e._slowed-=dt
+      if(e._stunTimer&&e._stunTimer>0){e._stunTimer-=dt;continue}  // 被击退后停顿
       var dx=p.x-e.x,dy=p.y-e.y,dist=Math.sqrt(dx*dx+dy*dy)
       if(dist<1) continue
       var nx=dx/dist,ny=dy/dist, spd=e.speed
       if(e._slowed&&e._slowed>0) spd*=0.4
       if(e.type==='dash'&&dist<(ENEMY_TYPES.dash.dashRange||150)) spd=ENEMY_TYPES.dash.dashSpeed
-      e.x+=nx*spd*dt; e.y+=ny*spd*dt
-      // 无限地图：敌人不限边界
+      // 到达攻击距离后不再前进（防止贴脸）
+      var atkDist = _enemyRadius(e.type) + 18
+      if(dist > atkDist) {
+        e.x+=nx*spd*dt; e.y+=ny*spd*dt
+      }
+      // 怪物之间互推（防止重叠成一坨）
+      var er = _enemyRadius(e.type)
+      for(var j=i-1;j>=0;j--){
+        var e2=this.enemies[j]
+        var edx=e.x-e2.x,edy=e.y-e2.y,edist=Math.sqrt(edx*edx+edy*edy)
+        var minD=er+_enemyRadius(e2.type)
+        if(edist<minD&&edist>0.1){
+          var push=(minD-edist)*0.3
+          e.x+=edx/edist*push; e.y+=edy/edist*push
+          e2.x-=edx/edist*push; e2.y-=edy/edist*push
+        }
+      }
       if(e._flashTimer&&e._flashTimer>0) e._flashTimer-=dt
       if(Math.abs(e.x-p.x)+Math.abs(e.y-p.y)>1200) this.enemies.splice(i,1)
     }
   },
 
-  // ── 玩家碰敌人=受伤
+  // ── 玩家碰敌人=受伤 + 击退
   _checkPlayerHit: function() {
     var p=this.player; if(p._iFrames>0) return
     for(var i=0;i<this.enemies.length;i++){
       var e=this.enemies[i],dx=p.x-e.x,dy=p.y-e.y
-      if(Math.sqrt(dx*dx+dy*dy)<22+_enemyRadius(e.type)-4){
+      var dist=Math.sqrt(dx*dx+dy*dy)
+      if(dist<22+_enemyRadius(e.type)-4){
         var dmg=Math.max(1, Math.ceil(e.hp*0.5))
-        p.hp-=dmg; p._iFrames=0.5
+        p.hp-=dmg; p._iFrames=0.8  // 更长无敌时间
         _spawnP(p.x,p.y,'#e74c3c',6)
+        // 击退玩家（远离怪物方向）
+        if(dist>0.1){
+          var knockDist=60
+          p.x+=dx/dist*knockDist; p.y+=dy/dist*knockDist
+        }
+        // 击退怪物（反方向）
+        if(dist>0.1){
+          e.x-=dx/dist*30; e.y-=dy/dist*30
+          e._stunTimer=0.3  // 怪物短暂停顿
+        }
         break
       }
     }
     // Boss
     if(this.boss&&p._iFrames<=0){
-      var b=this.boss,dx=p.x-b.x,dy=p.y-b.y
-      if(Math.sqrt(dx*dx+dy*dy)<22+45){p.hp-=20;p._iFrames=0.8;_spawnP(p.x,p.y,'#e74c3c',10)}
+      var b=this.boss,dx=p.x-b.x,dy=p.y-b.y,dist=Math.sqrt(dx*dx+dy*dy)
+      if(dist<22+45){
+        p.hp-=20;p._iFrames=0.8;_spawnP(p.x,p.y,'#e74c3c',10)
+        if(dist>0.1){p.x+=dx/dist*80;p.y+=dy/dist*80}
+      }
     }
   },
 
