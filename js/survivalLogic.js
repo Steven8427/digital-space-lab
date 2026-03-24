@@ -69,7 +69,7 @@ var WEAPON_DEFS = {
   },
   aura: {
     name:'冰冻光环', desc:'减速并持续伤害', icon:'❄',
-    baseDmg:2, baseCD:0.5, count:1, range:100,
+    baseDmg:2, baseCD:0.5, count:1, range:55,
     upgrade: function(w) { w.dmg+=1; w.range+=20 }
   },
   ring: {
