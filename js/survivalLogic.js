@@ -406,18 +406,8 @@ GameGlobal.Survival = {
       var dist=Math.sqrt(dx*dx+dy*dy)
       if(dist<22+_enemyRadius(e.type)-4){
         var dmg=Math.max(1, Math.ceil(e.hp*0.5))
-        p.hp-=dmg; p._iFrames=0.8  // 更长无敌时间
+        p.hp-=dmg; p._iFrames=0.8
         _spawnP(p.x,p.y,'#e74c3c',6)
-        // 击退玩家（远离怪物方向）
-        if(dist>0.1){
-          var knockDist=60
-          p.x+=dx/dist*knockDist; p.y+=dy/dist*knockDist
-        }
-        // 击退怪物（反方向）
-        if(dist>0.1){
-          e.x-=dx/dist*30; e.y-=dy/dist*30
-          e._stunTimer=0.3  // 怪物短暂停顿
-        }
         break
       }
     }
@@ -426,7 +416,6 @@ GameGlobal.Survival = {
       var b=this.boss,dx=p.x-b.x,dy=p.y-b.y,dist=Math.sqrt(dx*dx+dy*dy)
       if(dist<22+45){
         p.hp-=20;p._iFrames=0.8;_spawnP(p.x,p.y,'#e74c3c',10)
-        if(dist>0.1){p.x+=dx/dist*80;p.y+=dy/dist*80}
       }
     }
   },
