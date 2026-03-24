@@ -399,10 +399,7 @@ function _drawHUD(S){
   var p=S.player
   var topOff = SH * 0.08  // 顶部偏移，避开微信胶囊
 
-  // 半透明背景
-  var g=ctx.createLinearGradient(0, topOff - SH*0.02, 0, topOff + SH*0.10)
-  g.addColorStop(0,'rgba(6,8,26,0.85)');g.addColorStop(1,'rgba(6,8,26,0)')
-  ctx.fillStyle=g;ctx.fillRect(0, topOff - SH*0.02, SW, SH*0.12)
+  // 无背景，直接画在游戏上面
 
   // HP
   var hpW=SW*0.35, hpH=8, hpX=PAD, hpY=topOff
@@ -413,24 +410,24 @@ function _drawHUD(S){
   setFont(SW*0.020,'700');ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle='#fff'
   ctx.fillText(Math.ceil(p.hp)+'/'+p.maxHp, hpX, hpY+hpH+SH*0.012)
 
-  // 等级
-  setFont(SW*0.024,'800');ctx.fillStyle='#f39c12'
-  ctx.fillText(p.level>=20?'Lv.MAX':'Lv.'+p.level, PAD+hpW+GAP, topOff+SH*0.005)
-
-  // XP条
+  // 等级 + XP（血条正下方）
+  setFont(SW*0.018,'800');ctx.fillStyle='#f39c12';ctx.textAlign='left';ctx.textBaseline='middle'
+  ctx.fillText(p.level>=20?'Lv.MAX':'Lv.'+p.level, hpX, hpY+hpH+SH*0.012)
+  // XP条（等级文字右边）
+  var lvTextW = SW * 0.08
   var xpN=(p.level<20)?LEVEL_XP_R[p.level]||999:1,xpR=p.level>=20?1:Math.min(1,p.xp/xpN)
-  var xpX=PAD+hpW+GAP,xpW=SW*0.18,xpH=4,xpY=topOff+SH*0.020
+  var xpX=hpX+lvTextW,xpW=hpW-lvTextW,xpH=3,xpY=hpY+hpH+SH*0.009
   ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(xpX,xpY,xpW,xpH)
   if(xpR>0){ctx.fillStyle='#f39c12';ctx.fillRect(xpX,xpY,xpW*xpR,xpH)}
 
-  // 时间（居中）
+  // 时间（居中，不跟等级重叠）
   var tl=Math.max(0,S.GAME_DURATION-S.elapsed),mm=Math.floor(tl/60),ss=Math.floor(tl%60)
-  setFont(SW*0.038,'900');ctx.textAlign='center';ctx.fillStyle=tl<60?'#e74c3c':'#fff'
-  ctx.fillText(String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0'),SW/2,topOff+SH*0.010)
+  setFont(SW*0.032,'900');ctx.textAlign='center';ctx.fillStyle=tl<60?'#e74c3c':'#fff'
+  ctx.fillText(String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0'),SW/2,topOff+SH*0.005)
 
-  // 击杀（右侧）
-  setFont(SW*0.022,'700');ctx.textAlign='right';ctx.fillStyle='rgba(255,255,255,0.5)'
-  ctx.fillText('击杀 '+p.kills, SW-PAD, topOff+SH*0.005)
+  // 击杀（时间下方）
+  setFont(SW*0.018,'700');ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,0.45)'
+  ctx.fillText('击杀 '+p.kills, SW/2, topOff+SH*0.028)
 
   // ── 武器图标栏（像素图标 + 等级）
   var _spr = GameGlobal.SurvivalSprites
@@ -442,9 +439,7 @@ function _drawHUD(S){
     var wix = PAD + wi * iconGap + iconSize/2
     var wiy = wBarY + iconSize/2
 
-    // 半透明背景框
-    ctx.fillStyle='rgba(0,0,0,0.35)'
-    roundRect(wix - iconSize/2 - 2, wiy - iconSize/2 - 2, iconSize + 4, iconSize + 4, 6, 'rgba(0,0,0,0.35)')
+    // 无背景，直接画图标
 
     // 画武器像素图标
     var wDrawn = false
