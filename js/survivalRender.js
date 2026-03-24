@@ -67,6 +67,12 @@ GameGlobal.drawSurvivalScreen=function(){
   S.update()
   var cam=S.camera, p=S.player
 
+  // 全局关闭平滑（像素风锐利渲染）
+  ctx.imageSmoothingEnabled = false
+  ctx.mozImageSmoothingEnabled = false
+  ctx.webkitImageSmoothingEnabled = false
+  ctx.msImageSmoothingEnabled = false
+
   // 背景 — 先填充草地基色，消除tile间隙
   ctx.fillStyle='#71d349';ctx.fillRect(0,0,SW,SH)
   var _sprites = GameGlobal.SurvivalSprites
@@ -263,7 +269,7 @@ function _drawEnemy(x,y,e){
   var flash=e._flashTimer&&e._flashTimer>0
   var t=Date.now()
   var _sprites = GameGlobal.SurvivalSprites
-  var spriteSize = r * 2.5
+  var spriteSize = r * 3.2  // 怪物更大更清晰
 
   // Try sprite drawing first
   var spriteDrawn = false
@@ -357,7 +363,7 @@ function _drawPlayer(x,y,p,cam){
   var isMoving = js && js.active && (Math.abs(js.dx) > 0.1 || Math.abs(js.dy) > 0.1)
   var isHurt = p._iFrames > 0
   var animState = isHurt ? 'hurt' : (isMoving ? 'run' : 'idle')
-  var spriteSize = r * 2.8
+  var spriteSize = r * 3.5  // 玩家更大更清晰
 
   // Try sprite drawing
   var spriteDrawn = false
