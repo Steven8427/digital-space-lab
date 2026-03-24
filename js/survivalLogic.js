@@ -119,8 +119,8 @@ GameGlobal.Survival = {
 
     // Set player skin from sprites module
     if(GameGlobal.SurvivalSprites) {
-      p.skin = GameGlobal.SurvivalSprites.getPlayerSkin()
-      GameGlobal.SurvivalSprites.setPlayerSkin(p.skin)
+      this.player.skin = GameGlobal.SurvivalSprites.getPlayerSkin()
+      GameGlobal.SurvivalSprites.setPlayerSkin(this.player.skin)
     }
 
     // 初始敌人

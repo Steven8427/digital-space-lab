@@ -23,9 +23,9 @@ var PLAYER_ANIMS = {
 
 // Monster sprite files
 var MONSTER_NAMES = [
-  'DeathSlime', 'BloodshotEye', 'BrawnyOgre', 'DarkDragon', 'DireBoar',
-  'FieryImp', 'GhostWarrior', 'GoblinKing', 'IceGolem', 'LavaWorm',
-  'NightStalker', 'PoisonSpider', 'ShadowBat', 'SkullKnight', 'VenomSnake'
+  'BlindedGrimlock', 'BloodshotEye', 'BrawnyOgre', 'CrimsonSlaad', 'CrushingCyclops',
+  'DeathSlime', 'FungalMyconid', 'HumongousEttin', 'MurkySlaad', 'OchreJelly',
+  'OcularWatcher', 'RedCap', 'ShriekerMushroom', 'StoneTroll', 'SwampTroll'
 ]
 var MONSTER_FILES = {}
 for (var _mi = 0; _mi < MONSTER_NAMES.length; _mi++) {
@@ -34,11 +34,11 @@ for (var _mi = 0; _mi < MONSTER_NAMES.length; _mi++) {
 
 // Map enemy types to monster sprites
 var ENEMY_SPRITE_MAP = {
-  walker: ['SkullKnight', 'GhostWarrior', 'NightStalker'],
-  swarm:  ['DeathSlime', 'ShadowBat', 'PoisonSpider'],
-  tank:   ['BrawnyOgre', 'IceGolem', 'GoblinKing'],
-  dash:   ['FieryImp', 'DireBoar', 'LavaWorm'],
-  split:  ['DarkDragon', 'BloodshotEye', 'VenomSnake']
+  walker: ['BlindedGrimlock', 'RedCap', 'StoneTroll'],
+  swarm:  ['DeathSlime', 'OchreJelly', 'ShriekerMushroom'],
+  tank:   ['BrawnyOgre', 'CrushingCyclops', 'HumongousEttin'],
+  dash:   ['CrimsonSlaad', 'MurkySlaad', 'SwampTroll'],
+  split:  ['BloodshotEye', 'FungalMyconid', 'OcularWatcher']
 }
 
 // Tileset
@@ -174,47 +174,43 @@ function drawMonster(ctx, x, y, size, monsterType, elapsed, flash) {
   var img = _spriteImages[key]
   if (!img || !_spriteLoaded[key]) return false
 
-  if (flash) {
-    // When flashing, draw white overlay
-    ctx.save()
-    ctx.globalAlpha = 0.7
-  }
-
   var frameDuration = 1.0 / 6  // 6 fps for monsters
   var frameIdx = Math.floor(elapsed / frameDuration) % 4
 
-  _drawSpriteFrame(ctx, img, frameIdx, 4, x, y, size, size, false)
-
   if (flash) {
-    ctx.restore()
-    // Draw white overlay on top
+    // 受伤闪白：先提高亮度
     ctx.save()
-    ctx.globalCompositeOperation = 'source-atop'
-    ctx.fillStyle = '#fff'
-    ctx.fillRect(x - size / 2, y - size / 2, size, size)
+    ctx.globalAlpha = 0.5
+    _drawSpriteFrame(ctx, img, frameIdx, 4, x, y, size, size, false)
+    ctx.globalAlpha = 1
     ctx.restore()
+  } else {
+    _drawSpriteFrame(ctx, img, frameIdx, 4, x, y, size, size, false)
   }
 
   return true
 }
 
-// Draw a tile from the tileset
-// tileIdx: index of tile in tileset (row-major, assuming 16px tiles)
-// x, y: top-left position, tileSize: draw size
-function drawTile(ctx, x, y, tileIdx) {
+// Grass tile source rectangles from Tileset.png (432x304)
+// These are hand-picked 16x16 grass regions
+var GRASS_TILES = [
+  { sx: 256, sy: 16, sw: 16, sh: 16 },   // 基础草地
+  { sx: 272, sy: 16, sw: 16, sh: 16 },   // 草地变体1
+  { sx: 256, sy: 32, sw: 16, sh: 16 },   // 草地变体2
+  { sx: 272, sy: 32, sw: 16, sh: 16 },   // 草地变体3
+]
+
+// Draw a ground tile
+// tileVariant: 0-3 for different grass variations
+// x, y: top-left position on canvas
+function drawTile(ctx, x, y, tileVariant) {
   var img = _spriteImages['tileset']
   if (!img || !_spriteLoaded['tileset']) return false
 
-  // Assume tileset is arranged in a grid of 16x16 px tiles
-  var tilePx = 16
-  var cols = Math.floor(img.width / tilePx)
-  if (cols < 1) cols = 1
-  var sx = (tileIdx % cols) * tilePx
-  var sy = Math.floor(tileIdx / cols) * tilePx
-
+  var t = GRASS_TILES[tileVariant % GRASS_TILES.length]
   ctx.save()
   ctx.imageSmoothingEnabled = false
-  ctx.drawImage(img, sx, sy, tilePx, tilePx, x, y, 80, 80)
+  ctx.drawImage(img, t.sx, t.sy, t.sw, t.sh, x, y, 80, 80)
   ctx.restore()
   return true
 }
@@ -258,7 +254,7 @@ GameGlobal.SurvivalSprites = {
   PLAYER_SKINS: PLAYER_SKINS,
   PLAYER_ANIMS: PLAYER_ANIMS,
   ENEMY_SPRITE_MAP: ENEMY_SPRITE_MAP,
-  GROUND_TILE_IDX: 0  // default ground tile index in tileset
+  GROUND_TILE_IDX: 43  // grass tile index in tileset (row 1, col 16 in 27-col grid)
 }
 
 // Start loading immediately

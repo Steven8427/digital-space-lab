@@ -83,9 +83,9 @@ GameGlobal.drawSurvivalScreen=function(){
         if (tcol < 0 || trow < 0 || tcol >= Math.ceil(S.MAP_W / gs) || trow >= Math.ceil(S.MAP_H / gs)) continue
         var tx = tcol * gs - cam.x
         var ty = trow * gs - cam.y
-        // Use a simple pattern: alternate between a few tile indices for variety
-        var tileIdx = ((tcol + trow) % 4 === 0) ? 1 : _sprites.GROUND_TILE_IDX
-        _sprites.drawTile(ctx, tx, ty, tileIdx)
+        // 用伪随机选草地变体，让地面不单调
+        var tileVariant = ((tcol * 7 + trow * 13) % 4)
+        _sprites.drawTile(ctx, tx, ty, tileVariant)
       }
     }
   } else {
