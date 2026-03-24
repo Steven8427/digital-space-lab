@@ -80,11 +80,11 @@ GameGlobal.drawSurvivalScreen=function(){
     var endRow = startRow + Math.ceil(SH / gs) + 1
     for (var trow = startRow; trow <= endRow; trow++) {
       for (var tcol = startCol; tcol <= endCol; tcol++) {
-        if (tcol < 0 || trow < 0 || tcol >= Math.ceil(S.MAP_W / gs) || trow >= Math.ceil(S.MAP_H / gs)) continue
         var tx = tcol * gs - cam.x
         var ty = trow * gs - cam.y
-        // 用伪随机选草地变体，让地面不单调
-        var tileVariant = ((tcol * 7 + trow * 13) % 4)
+        // 大部分用主色草地，偶尔深色变体点缀
+        var hash = ((tcol * 7 + trow * 13) & 0x7FFFFFFF) % 20
+        var tileVariant = hash < 14 ? 0 : (hash % 3) + 1
         _sprites.drawTile(ctx, tx, ty, tileVariant)
       }
     }
@@ -101,8 +101,7 @@ GameGlobal.drawSurvivalScreen=function(){
     ctx.setLineDash([])
   }
 
-  // 边界
-  _drawBorder(cam)
+  // 无限地图：不画边界
 
   // 粒子
   var pts=S.particles

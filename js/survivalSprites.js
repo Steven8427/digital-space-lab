@@ -194,10 +194,10 @@ function drawMonster(ctx, x, y, size, monsterType, elapsed, flash) {
 // Grass tile source rectangles from Tileset.png (432x304)
 // These are hand-picked 16x16 grass regions
 var GRASS_TILES = [
-  { sx: 256, sy: 16, sw: 16, sh: 16 },   // 基础草地
-  { sx: 272, sy: 16, sw: 16, sh: 16 },   // 草地变体1
-  { sx: 256, sy: 32, sw: 16, sh: 16 },   // 草地变体2
-  { sx: 272, sy: 32, sw: 16, sh: 16 },   // 草地变体3
+  { sx: 16,  sy: 16, sw: 16, sh: 16 },   // 亮草地（主色调）
+  { sx: 208, sy: 32, sw: 16, sh: 16 },   // 深草地变体1
+  { sx: 224, sy: 32, sw: 16, sh: 16 },   // 深草地变体2
+  { sx: 368, sy: 32, sw: 16, sh: 16 },   // 深草地变体3
 ]
 
 // Draw a ground tile

@@ -161,7 +161,7 @@ GameGlobal.Survival = {
       if(js.dx<-0.1) p.facingLeft=true
       else if(js.dx>0.1) p.facingLeft=false
     }
-    p.x=Math.max(22,Math.min(MAP_W-22,p.x)); p.y=Math.max(22,Math.min(MAP_H-22,p.y))
+    // 无限地图：不限制玩家位置
     p._trail.push({x:p.x,y:p.y}); while(p._trail.length>10) p._trail.shift()
     this.camera.x=p.x-SW/2; this.camera.y=p.y-SH/2
 
@@ -372,7 +372,7 @@ GameGlobal.Survival = {
       if(e._slowed&&e._slowed>0) spd*=0.4
       if(e.type==='dash'&&dist<(ENEMY_TYPES.dash.dashRange||150)) spd=ENEMY_TYPES.dash.dashSpeed
       e.x+=nx*spd*dt; e.y+=ny*spd*dt
-      e.x=Math.max(15,Math.min(MAP_W-15,e.x)); e.y=Math.max(15,Math.min(MAP_H-15,e.y))
+      // 无限地图：敌人不限边界
       if(e._flashTimer&&e._flashTimer>0) e._flashTimer-=dt
       if(Math.abs(e.x-p.x)+Math.abs(e.y-p.y)>1200) this.enemies.splice(i,1)
     }
@@ -441,8 +441,8 @@ GameGlobal.Survival = {
   // ── 生成
   _spawnEnemy: function() {
     var p=this.player,a=Math.random()*Math.PI*2,d=SPAWN_DIST+Math.random()*200
-    var x=Math.max(20,Math.min(MAP_W-20,p.x+Math.cos(a)*d))
-    var y=Math.max(20,Math.min(MAP_H-20,p.y+Math.sin(a)*d))
+    var x=p.x+Math.cos(a)*d
+    var y=p.y+Math.sin(a)*d
     var type=_pickType(this.elapsed), hp=_pickEnemyHP(this.elapsed)
     if(type==='tank') hp=Math.floor(hp*2.5)
     if(type==='swarm') hp=Math.max(1,Math.floor(hp*0.4))
