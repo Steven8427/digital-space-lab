@@ -50,6 +50,11 @@ var ICONS_WEAPONS_FILE = CLOUD_PREFIX + 'survival/icons/Weapons.png'
 var ICONS_FOOD_FILE = CLOUD_PREFIX + 'survival/icons/Food.png'
 var ICONS_POTIONS_FILE = CLOUD_PREFIX + 'survival/icons/PotionBottles.png'
 
+// VFX sprite sheets
+var VFX_LIGHTNING_FILE = CLOUD_PREFIX + 'survival/vfx/lightning_sheet.png'
+var VFX_SPELL_FILE = CLOUD_PREFIX + 'survival/vfx/01.png'
+var VFX_BULLET_FILE = CLOUD_PREFIX + 'survival/vfx/bullet_purple.png'
+
 // ── State
 var _spriteImages = {}   // key -> Image object
 var _spriteLoaded = {}   // key -> boolean
@@ -91,6 +96,14 @@ function _loadSprites() {
   fileKeys.push('icons_food')
   fileIDs.push(ICONS_POTIONS_FILE)
   fileKeys.push('icons_potions')
+
+  // VFX sprite sheets
+  fileIDs.push(VFX_LIGHTNING_FILE)
+  fileKeys.push('vfx_lightning')
+  fileIDs.push(VFX_SPELL_FILE)
+  fileKeys.push('vfx_spell')
+  fileIDs.push(VFX_BULLET_FILE)
+  fileKeys.push('vfx_bullet')
 
   // Batch request temp URLs (max 50 per call, we have ~21)
   wx.cloud.getTempFileURL({
@@ -454,6 +467,93 @@ function drawPotionIcon(ctx, x, y, size, potionIdx) {
   return true
 }
 
+// ── VFX draw functions
+
+// Draw lightning bolt animation between two points
+// Uses lightning_sheet.png: 1024x128, 4 frames (256x128 each), 12fps
+function drawLightningVFX(ctx, x1, y1, x2, y2, elapsed) {
+  var img = _spriteImages['vfx_lightning']
+  if (!img || !_spriteLoaded['vfx_lightning']) return false
+
+  var frameW = 256, frameH = 128
+  var totalFrames = 4, fps = 12
+  var frameIdx = Math.floor(elapsed * fps) % totalFrames
+  var sx = frameIdx * frameW
+
+  var dx = x2 - x1, dy = y2 - y1
+  var dist = Math.sqrt(dx * dx + dy * dy)
+  var angle = Math.atan2(dy, dx)
+
+  ctx.save()
+  ctx.translate(x1, y1)
+  ctx.rotate(angle)
+  ctx.imageSmoothingEnabled = false
+  // Stretch sprite to fit distance, keep proportional height
+  var drawH = frameH * (dist / frameW)
+  if (drawH < 20) drawH = 20
+  ctx.drawImage(img, sx, 0, frameW, frameH, 0, -drawH / 2, dist, drawH)
+  ctx.restore()
+  return true
+}
+
+// Draw fire ring animation at position
+// Uses row 10 of 01.png (sy=320, 32x32 frames, ~8 frames at 10fps)
+function drawFireRing(ctx, x, y, radius, elapsed) {
+  var img = _spriteImages['vfx_spell']
+  if (!img || !_spriteLoaded['vfx_spell']) return false
+
+  var frameW = 32, frameH = 32
+  var sy = 320
+  var totalFrames = 8, fps = 10
+  var frameIdx = Math.floor(elapsed * fps) % totalFrames
+  var sx = frameIdx * frameW
+
+  var drawSize = radius * 2
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(img, sx, sy, frameW, frameH, x - drawSize / 2, y - drawSize / 2, drawSize, drawSize)
+  ctx.restore()
+  return true
+}
+
+// Draw ice aura animation at position
+// Uses row 11 of 01.png (sy=352, 32x32 frames, ~8 frames at 10fps)
+function drawIceAura(ctx, x, y, radius, elapsed) {
+  var img = _spriteImages['vfx_spell']
+  if (!img || !_spriteLoaded['vfx_spell']) return false
+
+  var frameW = 32, frameH = 32
+  var sy = 352
+  var totalFrames = 8, fps = 10
+  var frameIdx = Math.floor(elapsed * fps) % totalFrames
+  var sx = frameIdx * frameW
+
+  var drawSize = radius * 2
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(img, sx, sy, frameW, frameH, x - drawSize / 2, y - drawSize / 2, drawSize, drawSize)
+  ctx.restore()
+  return true
+}
+
+// Draw energy bolt projectile
+// Uses row 0 of bullet_purple.png (24x24 frames, first 8 frames at 12fps)
+function drawEnergyBolt(ctx, x, y, size, elapsed) {
+  var img = _spriteImages['vfx_bullet']
+  if (!img || !_spriteLoaded['vfx_bullet']) return false
+
+  var frameW = 24, frameH = 24
+  var totalFrames = 8, fps = 12
+  var frameIdx = Math.floor(elapsed * fps) % totalFrames
+  var sx = frameIdx * frameW
+
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(img, sx, 0, frameW, frameH, x - size / 2, y - size / 2, size, size)
+  ctx.restore()
+  return true
+}
+
 function isLoaded() {
   return _allLoaded
 }
@@ -478,6 +578,10 @@ GameGlobal.SurvivalSprites = {
   drawFoodItem: drawFoodItem,
   drawPotionIcon: drawPotionIcon,
   isSpriteReady: isSpriteReady,
+  drawLightningVFX: drawLightningVFX,
+  drawFireRing: drawFireRing,
+  drawIceAura: drawIceAura,
+  drawEnergyBolt: drawEnergyBolt,
   PLAYER_SKINS: PLAYER_SKINS,
   PLAYER_ANIMS: PLAYER_ANIMS,
   ENEMY_SPRITE_MAP: ENEMY_SPRITE_MAP,

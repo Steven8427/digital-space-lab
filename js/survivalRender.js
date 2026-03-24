@@ -111,8 +111,14 @@ GameGlobal.drawSurvivalScreen=function(){
   // 火焰圈
   for(var ri=0;ri<S._rings.length;ri++){
     var rr=S._rings[ri],rx=rr.x-cam.x,ry=rr.y-cam.y
-    ctx.beginPath();ctx.arc(rx,ry,rr.r,0,Math.PI*2)
-    ctx.strokeStyle='rgba(231,76,60,'+(0.7*(1-rr.r/rr.maxR))+')';ctx.lineWidth=4;ctx.stroke()
+    var _fireDrawn = false
+    if (_sprites && typeof _sprites.drawFireRing === 'function') {
+      _fireDrawn = _sprites.drawFireRing(ctx, rx, ry, rr.r, S.elapsed)
+    }
+    if (!_fireDrawn) {
+      ctx.beginPath();ctx.arc(rx,ry,rr.r,0,Math.PI*2)
+      ctx.strokeStyle='rgba(231,76,60,'+(0.7*(1-rr.r/rr.maxR))+')';ctx.lineWidth=4;ctx.stroke()
+    }
   }
 
   // 冰冻光环
@@ -120,9 +126,15 @@ GameGlobal.drawSurvivalScreen=function(){
   for(var wi=0;wi<S.weapons.length;wi++){if(S.weapons[wi].id==='aura'){hasAura=S.weapons[wi];break}}
   if(hasAura){
     var px3=p.x-cam.x,py3=p.y-cam.y
-    ctx.beginPath();ctx.arc(px3,py3,hasAura.range,0,Math.PI*2)
-    ctx.fillStyle='rgba(93,173,226,0.06)';ctx.fill()
-    ctx.strokeStyle='rgba(93,173,226,0.2)';ctx.lineWidth=1.5;ctx.stroke()
+    var _iceDrawn = false
+    if (_sprites && typeof _sprites.drawIceAura === 'function') {
+      _iceDrawn = _sprites.drawIceAura(ctx, px3, py3, hasAura.range, S.elapsed)
+    }
+    if (!_iceDrawn) {
+      ctx.beginPath();ctx.arc(px3,py3,hasAura.range,0,Math.PI*2)
+      ctx.fillStyle='rgba(93,173,226,0.06)';ctx.fill()
+      ctx.strokeStyle='rgba(93,173,226,0.2)';ctx.lineWidth=1.5;ctx.stroke()
+    }
   }
 
   // 敌人
@@ -178,25 +190,40 @@ GameGlobal.drawSurvivalScreen=function(){
   // 投射物
   for(var i=0;i<S.projectiles.length;i++){
     var pr=S.projectiles[i],prx=pr.x-cam.x,pry=pr.y-cam.y
-    ctx.beginPath();ctx.arc(prx,pry,5,0,Math.PI*2)
-    ctx.fillStyle='#a29bfe';ctx.fill()
-    ctx.beginPath();ctx.arc(prx,pry,3,0,Math.PI*2)
-    ctx.fillStyle='#fff';ctx.fill()
+    var _boltDrawn = false
+    if (_sprites && typeof _sprites.drawEnergyBolt === 'function') {
+      _boltDrawn = _sprites.drawEnergyBolt(ctx, prx, pry, 16, S.elapsed)
+    }
+    if (!_boltDrawn) {
+      ctx.beginPath();ctx.arc(prx,pry,5,0,Math.PI*2)
+      ctx.fillStyle='#a29bfe';ctx.fill()
+      ctx.beginPath();ctx.arc(prx,pry,3,0,Math.PI*2)
+      ctx.fillStyle='#fff';ctx.fill()
+    }
   }
 
   // 闪电
   for(var li=0;li<S._lightnings.length;li++){
     var ln=S._lightnings[li],a2=ln.life/0.25
-    ctx.beginPath();ctx.moveTo(ln.x1-cam.x,ln.y1-cam.y)
-    // 锯齿闪电
-    var dx=ln.x2-ln.x1,dy=ln.y2-ln.y1,segs=5
-    for(var si2=1;si2<=segs;si2++){
-      var t=si2/segs, ox=(Math.random()-0.5)*20, oy=(Math.random()-0.5)*20
-      if(si2===segs){ox=0;oy=0}
-      ctx.lineTo(ln.x1+dx*t+ox-cam.x, ln.y1+dy*t+oy-cam.y)
+    var _lnDrawn = false
+    if (_sprites && typeof _sprites.drawLightningVFX === 'function') {
+      ctx.save()
+      ctx.globalAlpha = a2
+      _lnDrawn = _sprites.drawLightningVFX(ctx, ln.x1-cam.x, ln.y1-cam.y, ln.x2-cam.x, ln.y2-cam.y, S.elapsed)
+      ctx.restore()
     }
-    ctx.strokeStyle='rgba(93,173,226,'+a2+')';ctx.lineWidth=3;ctx.stroke()
-    ctx.strokeStyle='rgba(255,255,255,'+(a2*0.6)+')';ctx.lineWidth=1;ctx.stroke()
+    if (!_lnDrawn) {
+      ctx.beginPath();ctx.moveTo(ln.x1-cam.x,ln.y1-cam.y)
+      // 锯齿闪电
+      var dx=ln.x2-ln.x1,dy=ln.y2-ln.y1,segs=5
+      for(var si2=1;si2<=segs;si2++){
+        var t=si2/segs, ox=(Math.random()-0.5)*20, oy=(Math.random()-0.5)*20
+        if(si2===segs){ox=0;oy=0}
+        ctx.lineTo(ln.x1+dx*t+ox-cam.x, ln.y1+dy*t+oy-cam.y)
+      }
+      ctx.strokeStyle='rgba(93,173,226,'+a2+')';ctx.lineWidth=3;ctx.stroke()
+      ctx.strokeStyle='rgba(255,255,255,'+(a2*0.6)+')';ctx.lineWidth=1;ctx.stroke()
+    }
   }
 
   // 旋转飞刀
