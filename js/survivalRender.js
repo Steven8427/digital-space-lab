@@ -394,14 +394,18 @@ function _drawPlayer(x,y,p,cam){
   ctx.fillRect(hpX,hpY,hpW*hpRatio,hpH)
 }
 
-// ── HUD
+// ── HUD（下移避开顶部胶囊按钮）
 function _drawHUD(S){
   var p=S.player
-  var g=ctx.createLinearGradient(0,0,0,SH*0.11);g.addColorStop(0,'rgba(6,8,26,0.9)');g.addColorStop(1,'rgba(6,8,26,0)')
-  ctx.fillStyle=g;ctx.fillRect(0,0,SW,SH*0.11)
+  var topOff = SH * 0.08  // 顶部偏移，避开微信胶囊
+
+  // 半透明背景
+  var g=ctx.createLinearGradient(0, topOff - SH*0.02, 0, topOff + SH*0.10)
+  g.addColorStop(0,'rgba(6,8,26,0.85)');g.addColorStop(1,'rgba(6,8,26,0)')
+  ctx.fillStyle=g;ctx.fillRect(0, topOff - SH*0.02, SW, SH*0.12)
 
   // HP
-  var hpW=SW*0.35, hpH=8, hpX=PAD, hpY=SH*0.025
+  var hpW=SW*0.35, hpH=8, hpX=PAD, hpY=topOff
   ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect(hpX,hpY,hpW,hpH)
   var hpR=Math.max(0,p.hp/p.maxHp)
   ctx.fillStyle=hpR>0.5?'#2ecc71':hpR>0.25?'#f39c12':'#e74c3c'
@@ -411,29 +415,64 @@ function _drawHUD(S){
 
   // 等级
   setFont(SW*0.024,'800');ctx.fillStyle='#f39c12'
-  ctx.fillText(p.level>=20?'Lv.MAX':'Lv.'+p.level, PAD+hpW+GAP, SH*0.030)
+  ctx.fillText(p.level>=20?'Lv.MAX':'Lv.'+p.level, PAD+hpW+GAP, topOff+SH*0.005)
 
   // XP条
   var xpN=(p.level<20)?LEVEL_XP_R[p.level]||999:1,xpR=p.level>=20?1:Math.min(1,p.xp/xpN)
-  var xpX=PAD+hpW+GAP,xpW=SW*0.18,xpH=4,xpY=SH*0.045
+  var xpX=PAD+hpW+GAP,xpW=SW*0.18,xpH=4,xpY=topOff+SH*0.020
   ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(xpX,xpY,xpW,xpH)
   if(xpR>0){ctx.fillStyle='#f39c12';ctx.fillRect(xpX,xpY,xpW*xpR,xpH)}
 
-  // 时间
+  // 时间（居中）
   var tl=Math.max(0,S.GAME_DURATION-S.elapsed),mm=Math.floor(tl/60),ss=Math.floor(tl%60)
   setFont(SW*0.038,'900');ctx.textAlign='center';ctx.fillStyle=tl<60?'#e74c3c':'#fff'
-  ctx.fillText(String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0'),SW/2,SH*0.035)
+  ctx.fillText(String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0'),SW/2,topOff+SH*0.010)
 
-  // 击杀
+  // 击杀（右侧）
   setFont(SW*0.022,'700');ctx.textAlign='right';ctx.fillStyle='rgba(255,255,255,0.5)'
-  ctx.fillText('击杀 '+p.kills, SW-PAD, SH*0.028)
+  ctx.fillText('击杀 '+p.kills, SW-PAD, topOff+SH*0.005)
 
-  // 武器图标
-  var wIcons='';for(var i=0;i<S.weapons.length;i++){var def=_WDEFS[S.weapons[i].id];wIcons+=(def?def.icon:'?')+'Lv'+S.weapons[i].level+' '}
-  if(wIcons){setFont(SW*0.018,'600');ctx.fillStyle='rgba(255,255,255,0.4)';ctx.fillText(wIcons.trim(),SW-PAD,SH*0.058)}
+  // ── 武器图标栏（像素图标 + 等级）
+  var _spr = GameGlobal.SurvivalSprites
+  var wBarY = topOff + SH*0.038
+  var iconSize = SW * 0.065
+  var iconGap = iconSize + 4
+  for(var wi=0;wi<S.weapons.length;wi++){
+    var ww = S.weapons[wi]
+    var wix = PAD + wi * iconGap + iconSize/2
+    var wiy = wBarY + iconSize/2
 
-  // 设置按钮（右上，明显）
-  var stW=SW*0.13, stH=SW*0.075, stX=SW-PAD-stW, stY=SH*0.10
+    // 半透明背景框
+    ctx.fillStyle='rgba(0,0,0,0.35)'
+    roundRect(wix - iconSize/2 - 2, wiy - iconSize/2 - 2, iconSize + 4, iconSize + 4, 6, 'rgba(0,0,0,0.35)')
+
+    // 画武器像素图标
+    var wDrawn = false
+    if (_spr) {
+      if (ww.id === 'orbit' && typeof _spr.drawWeaponIcon === 'function')
+        wDrawn = _spr.drawWeaponIcon(ctx, wix, wiy, iconSize * 0.8, 0)
+      else if (ww.id === 'bolt' && typeof _spr.drawEnergyBolt === 'function')
+        wDrawn = _spr.drawEnergyBolt(ctx, wix, wiy, iconSize * 0.8, S.elapsed)
+      else if (ww.id === 'lightning' && typeof _spr.drawPotionIcon === 'function')
+        wDrawn = _spr.drawPotionIcon(ctx, wix, wiy, iconSize * 0.8, 0)
+      else if (ww.id === 'aura' && typeof _spr.drawIceAura === 'function')
+        wDrawn = _spr.drawIceAura(ctx, wix, wiy, iconSize * 0.4, 0)
+      else if (ww.id === 'ring' && typeof _spr.drawFireRing === 'function')
+        wDrawn = _spr.drawFireRing(ctx, wix, wiy, iconSize * 0.4, 0)
+    }
+    if (!wDrawn) {
+      var def=_WDEFS[ww.id]
+      setFont(iconSize*0.5,'700');ctx.textAlign='center';ctx.textBaseline='middle'
+      ctx.fillStyle='#fff';ctx.fillText(def?def.icon:'?', wix, wiy)
+    }
+
+    // 等级标签
+    setFont(SW*0.016,'800');ctx.textAlign='center';ctx.textBaseline='top'
+    ctx.fillStyle='#f39c12';ctx.fillText('Lv'+ww.level, wix, wiy + iconSize/2 + 1)
+  }
+
+  // 设置按钮（右上，在胶囊下方）
+  var stW=SW*0.13, stH=SW*0.075, stX=SW-PAD-stW, stY=topOff + SH*0.04
   roundRect(stX,stY,stW,stH,10,C.surface,'rgba(255,255,255,0.25)')
   setFont(stH*0.42,'700');ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#eee'
   ctx.fillText('⚙ 设置',stX+stW/2,stY+stH/2)
