@@ -233,7 +233,7 @@ GameGlobal.drawSurvivalScreen=function(){
       var daggerDrawn = false
       if (_sprites && typeof _sprites.drawWeaponIcon === 'function') {
         ctx.save(); ctx.translate(kx, ky); ctx.rotate(a + Math.PI / 2)
-        daggerDrawn = _sprites.drawWeaponIcon(ctx, 0, 0, 36, 0)
+        daggerDrawn = _sprites.drawWeaponIcon(ctx, 0, 0, 24, 0)
         ctx.restore()
       }
       if (!daggerDrawn) {
@@ -269,7 +269,7 @@ function _drawEnemy(x,y,e){
   var flash=e._flashTimer&&e._flashTimer>0
   var t=Date.now()
   var _sprites = GameGlobal.SurvivalSprites
-  var spriteSize = r * 2.0  // 缩小减少拉伸
+  var spriteSize = r * 1.6
 
   // Try sprite drawing first
   var spriteDrawn = false
@@ -363,7 +363,7 @@ function _drawPlayer(x,y,p,cam){
   var isMoving = js && js.active && (Math.abs(js.dx) > 0.1 || Math.abs(js.dy) > 0.1)
   var isHurt = p._iFrames > 0
   var animState = isHurt ? 'hurt' : (isMoving ? 'run' : 'idle')
-  var spriteSize = r * 2.2  // 缩小减少拉伸，像素更锐利
+  var spriteSize = r * 1.8
 
   // Try sprite drawing
   var spriteDrawn = false

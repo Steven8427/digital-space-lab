@@ -323,31 +323,28 @@ function drawDecorations(ctx, cam, screenW, screenH) {
       // 同一格子可能有第二个小装饰（30%概率）
       var h4 = _hashPos(cx + 1111, cy + 2222)
       if (h4 % 100 < 30) {
-        var deco2 = DECO_ITEMS[h4 % 6]  // 只用花和草
+        var deco2 = DECO_ITEMS[h4 % 6]
         var ox2 = (h4 % 71) * cellSize / 71
         var oy2 = (_hashPos(cx + 4444, cy + 8888) % 67) * cellSize / 67
-        var sx2 = cx * cellSize + ox2 - cam.x
-        var sy2 = cy * cellSize + oy2 - cam.y
+        var dx2 = Math.round(cx * cellSize + ox2 - cam.x - deco2.drawW/2)
+        var dy2 = Math.round(cy * cellSize + oy2 - cam.y - deco2.drawH/2)
         ctx.drawImage(img, deco2.sx, deco2.sy, deco2.sw, deco2.sh,
-          sx2 - deco2.drawW/2, sy2 - deco2.drawH/2, deco2.drawW, deco2.drawH)
+          dx2, dy2, deco2.drawW, deco2.drawH)
       }
       var wx = cx * cellSize + offsetX
       var wy = cy * cellSize + offsetY
-      var sx = wx - cam.x
-      var sy = wy - cam.y
+      var sx = Math.round(wx - cam.x)
+      var sy = Math.round(wy - cam.y)
 
-      // 选装饰类型
       var h3 = _hashPos(cx + 3333, cy + 5555)
       if (h3 % 100 < 8) {
-        // 8% 概率放树
         var tree = TREE_DEFS[h3 % TREE_DEFS.length]
         ctx.drawImage(img, tree.sx, tree.sy, tree.sw, tree.sh,
-          sx - tree.drawW/2, sy - tree.drawH/2, tree.drawW, tree.drawH)
+          Math.round(sx - tree.drawW/2), Math.round(sy - tree.drawH/2), tree.drawW, tree.drawH)
       } else {
-        // 小装饰
         var deco = DECO_ITEMS[h3 % DECO_ITEMS.length]
         ctx.drawImage(img, deco.sx, deco.sy, deco.sw, deco.sh,
-          sx - deco.drawW/2, sy - deco.drawH/2, deco.drawW, deco.drawH)
+          Math.round(sx - deco.drawW/2), Math.round(sy - deco.drawH/2), deco.drawW, deco.drawH)
       }
     }
   }
