@@ -321,6 +321,56 @@ function drawDecorations(ctx, cam, screenW, screenH) {
   ctx.restore()
 }
 
+// ── 树碰撞检测
+// 获取玩家周围的所有树的位置（碰撞体积为树干底部圆形）
+function getTreeColliders(px, py, radius) {
+  var cellSize = 90
+  var checkR = radius + 80  // 检查范围
+  var startCX = Math.floor((px - checkR) / cellSize)
+  var startCY = Math.floor((py - checkR) / cellSize)
+  var endCX = Math.ceil((px + checkR) / cellSize)
+  var endCY = Math.ceil((py + checkR) / cellSize)
+  var colliders = []
+
+  for (var cy = startCY; cy <= endCY; cy++) {
+    for (var cx = startCX; cx <= endCX; cx++) {
+      var h = _hashPos(cx, cy)
+      if (h % 100 > 60) continue
+      var h3 = _hashPos(cx + 3333, cy + 5555)
+      if (h3 % 100 >= 8) continue  // 只有树有碰撞
+
+      var h2 = _hashPos(cx + 9999, cy + 7777)
+      var offsetX = (h % 97) * cellSize / 97
+      var offsetY = (h2 % 89) * cellSize / 89
+      var wx = cx * cellSize + offsetX
+      var wy = cy * cellSize + offsetY
+      // 碰撞体在树干底部，半径20
+      colliders.push({ x: wx, y: wy + 20, r: 20 })
+    }
+  }
+  return colliders
+}
+
+// 推开玩家，防止穿过树
+// 返回修正后的位置 {x, y}
+function resolveTreeCollision(px, py, playerR) {
+  var trees = getTreeColliders(px, py, 60)
+  for (var i = 0; i < trees.length; i++) {
+    var t = trees[i]
+    var dx = px - t.x
+    var dy = py - t.y
+    var dist = Math.sqrt(dx * dx + dy * dy)
+    var minDist = playerR + t.r
+    if (dist < minDist && dist > 0.1) {
+      // 推出去
+      var push = minDist - dist
+      px += (dx / dist) * push
+      py += (dy / dist) * push
+    }
+  }
+  return { x: px, y: py }
+}
+
 // Pick a random monster sprite name for a given enemy type
 function pickMonsterSprite(enemyType) {
   var options = ENEMY_SPRITE_MAP[enemyType] || ENEMY_SPRITE_MAP.walker
@@ -353,6 +403,7 @@ GameGlobal.SurvivalSprites = {
   drawMonster: drawMonster,
   drawTile: drawTile,
   drawDecorations: drawDecorations,
+  resolveTreeCollision: resolveTreeCollision,
   pickMonsterSprite: pickMonsterSprite,
   setPlayerSkin: setPlayerSkin,
   getPlayerSkin: getPlayerSkin,

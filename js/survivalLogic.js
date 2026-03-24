@@ -161,7 +161,11 @@ GameGlobal.Survival = {
       if(js.dx<-0.1) p.facingLeft=true
       else if(js.dx>0.1) p.facingLeft=false
     }
-    // 无限地图：不限制玩家位置
+    // 树碰撞检测：推开玩家
+    if (GameGlobal.SurvivalSprites && GameGlobal.SurvivalSprites.resolveTreeCollision) {
+      var resolved = GameGlobal.SurvivalSprites.resolveTreeCollision(p.x, p.y, 18)
+      p.x = resolved.x; p.y = resolved.y
+    }
     p._trail.push({x:p.x,y:p.y}); while(p._trail.length>10) p._trail.shift()
     this.camera.x=p.x-SW/2; this.camera.y=p.y-SH/2
 
