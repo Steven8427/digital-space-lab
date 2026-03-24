@@ -248,37 +248,28 @@ function drawTile(ctx, x, y, tileVariant) {
 
 // ── 装饰物定义（从 Tileset.png 手动选取）
 var DECO_ITEMS = [
-  // 小花（高权重，多出现）
-  { sx: 0,   sy: 0,  sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 红花
-  { sx: 0,   sy: 0,  sw: 16, sh: 16, drawW: 20, drawH: 20 },   // 红花小
-  { sx: 96,  sy: 48, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 白花
-  { sx: 96,  sy: 48, sw: 16, sh: 16, drawW: 20, drawH: 20 },   // 白花小
-  { sx: 80,  sy: 48, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 紫花
-  { sx: 112, sy: 48, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 黄花
-  // 小草/叶子
-  { sx: 128, sy: 0,  sw: 16, sh: 16, drawW: 20, drawH: 20 },   // 草叶1
-  { sx: 144, sy: 0,  sw: 16, sh: 16, drawW: 20, drawH: 20 },   // 草叶2
-  { sx: 16,  sy: 0,  sw: 16, sh: 16, drawW: 32, drawH: 32 },   // 草丛
+  // 小花（已验证有内容）
+  { sx: 96,  sy: 48, sw: 16, sh: 16, drawW: 22, drawH: 22 },   // 白花
+  { sx: 96,  sy: 48, sw: 16, sh: 16, drawW: 18, drawH: 18 },   // 白花小
+  { sx: 80,  sy: 48, sw: 16, sh: 16, drawW: 22, drawH: 22 },   // 紫花
+  { sx: 112, sy: 48, sw: 16, sh: 16, drawW: 22, drawH: 22 },   // 黄花
+  { sx: 80,  sy: 48, sw: 16, sh: 16, drawW: 18, drawH: 18 },   // 紫花小
+  { sx: 112, sy: 48, sw: 16, sh: 16, drawW: 18, drawH: 18 },   // 黄花小
   // 石头
-  { sx: 64,  sy: 32, sw: 16, sh: 16, drawW: 30, drawH: 30 },   // 灰石头
-  { sx: 80,  sy: 32, sw: 16, sh: 16, drawW: 34, drawH: 34 },   // 大石头
-  { sx: 96,  sy: 32, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 深色石头
-  // 罐子/瓶子
-  { sx: 48,  sy: 16, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 棕罐子
-  { sx: 64,  sy: 16, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 深棕罐子
-  { sx: 96,  sy: 16, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 灰蓝罐子
-  { sx: 112, sy: 16, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 棕色罐子2
-  { sx: 48,  sy: 32, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 橙色罐子
-  { sx: 128, sy: 32, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 蓝色罐子
-  { sx: 32,  sy: 48, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 蓝色瓶子
-  { sx: 160, sy: 64, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 橙色大罐
-  // 额外石头
-  { sx: 48,  sy: 32, sw: 16, sh: 16, drawW: 26, drawH: 26 },   // 小橙罐
-  { sx: 80,  sy: 64, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 橙色石堆2
-  // 石堆/蘑菇
-  { sx: 32,  sy: 64, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 灰色石堆
-  { sx: 48,  sy: 64, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 橙色石堆
-  { sx: 32,  sy: 0,  sw: 16, sh: 16, drawW: 26, drawH: 26 },   // 蘑菇
+  { sx: 64,  sy: 32, sw: 16, sh: 16, drawW: 26, drawH: 26 },   // 灰石头
+  { sx: 80,  sy: 32, sw: 16, sh: 16, drawW: 28, drawH: 28 },   // 大石头
+  { sx: 96,  sy: 32, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 深色石头
+  // 罐子/瓶子（已验证有内容）
+  { sx: 48,  sy: 16, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 棕罐子
+  { sx: 64,  sy: 16, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 深棕罐子
+  { sx: 96,  sy: 16, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 灰蓝罐子
+  { sx: 112, sy: 16, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 棕色罐子2
+  { sx: 128, sy: 32, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 蓝色罐子
+  { sx: 32,  sy: 48, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 蓝色瓶子
+  // 石堆
+  { sx: 32,  sy: 64, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 灰色石堆
+  { sx: 48,  sy: 64, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 橙色石堆
+  { sx: 80,  sy: 64, sw: 16, sh: 16, drawW: 24, drawH: 24 },   // 橙色石堆2
 ]
 
 // 大树（精确定位完整树木）
@@ -324,7 +315,7 @@ function drawDecorations(ctx, cam, screenW, screenH) {
       // 同一格子可能有第二个小装饰（30%概率）
       var h4 = _hashPos(cx + 1111, cy + 2222)
       if (h4 % 100 < 30) {
-        var deco2 = DECO_ITEMS[h4 % 6]
+        var deco2 = DECO_ITEMS[h4 % DECO_ITEMS.length]
         var ox2 = (h4 % 71) * cellSize / 71
         var oy2 = (_hashPos(cx + 4444, cy + 8888) % 67) * cellSize / 67
         var dx2 = Math.round(cx * cellSize + ox2 - cam.x - deco2.drawW/2)
