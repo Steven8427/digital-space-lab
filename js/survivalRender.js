@@ -283,13 +283,13 @@ GameGlobal.drawSurvivalScreen=function(){
   for(var mi=0;mi<(S._meteors||[]).length;mi++){
     var mt=S._meteors[mi],mx=mt.x-cam.x,my=mt.y-cam.y
     if(mt.phase==='warn'){
-      var wa2=1-mt.delay/0.6
-      ctx.beginPath();ctx.arc(mx,my,mt.maxR*wa2,0,Math.PI*2)
+      var wa2=Math.max(0,1-mt.delay/0.6)
+      ctx.beginPath();ctx.arc(mx,my,Math.max(1,mt.maxR*wa2),0,Math.PI*2)
       ctx.strokeStyle='rgba(255,100,0,'+(0.3+wa2*0.4)+')';ctx.lineWidth=2
       ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([])
     } else {
       var ea=1-mt.r/mt.maxR
-      ctx.beginPath();ctx.arc(mx,my,mt.r,0,Math.PI*2)
+      ctx.beginPath();ctx.arc(mx,my,Math.max(1,mt.r),0,Math.PI*2)
       ctx.fillStyle='rgba(255,120,0,'+ea*0.4+')';ctx.fill()
       ctx.strokeStyle='rgba(255,200,50,'+ea*0.6+')';ctx.lineWidth=3;ctx.stroke()
     }
