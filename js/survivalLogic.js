@@ -894,10 +894,10 @@ GameGlobal.Survival = {
   _updateFood: function(dt) {
     var p = this.player
 
-    // Spawn timer: every 8-12 seconds
+    // Spawn timer: every 20-30 seconds
     this._foodTimer += dt
-    var spawnInterval = 8 + Math.random() * 4
-    if (this._foodTimer >= spawnInterval && this.foodItems.length < 5) {
+    var spawnInterval = 20 + Math.random() * 10
+    if (this._foodTimer >= spawnInterval && this.foodItems.length < 3) {
       this._foodTimer = 0
       // Spawn near player (100-300px away)
       var a = Math.random() * Math.PI * 2
