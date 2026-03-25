@@ -252,7 +252,16 @@ function _drawEnemy(x,y,e){
   var flash=e._flashTimer&&e._flashTimer>0
   var t=_drawNow
   var _sprites = GameGlobal.SurvivalSprites
-  var spriteSize = r * 1.6
+  var sizeMult = e.isElite ? (e.eliteSize || 1.5) : 1
+  var spriteSize = r * 1.6 * sizeMult
+
+  // 精英怪光环
+  if (e.isElite) {
+    var pulseR = spriteSize * 0.7 + Math.sin(t / 300) * 4
+    ctx.beginPath(); ctx.arc(x, y, pulseR, 0, Math.PI * 2)
+    ctx.strokeStyle = (e.eliteColor || '#e74c3c')
+    ctx.lineWidth = 2; ctx.globalAlpha = 0.5; ctx.stroke(); ctx.globalAlpha = 1
+  }
 
   // Try sprite drawing first
   var spriteDrawn = false
@@ -297,9 +306,17 @@ function _drawEnemy(x,y,e){
 
   // 血条
   if(e.hp<e.maxHp){
-    var bw=r*2.2, bh=3, bx=x-bw/2, by=y-r-6
+    var bw=r*2.2*sizeMult, bh=3, bx=x-bw/2, by=y-r*sizeMult-6
     ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(bx,by,bw,bh)
-    ctx.fillStyle='#2ecc71';ctx.fillRect(bx,by,bw*(e.hp/e.maxHp),bh)
+    ctx.fillStyle=e.isElite?(e.eliteColor||'#e74c3c'):'#2ecc71'
+    ctx.fillRect(bx,by,bw*(e.hp/e.maxHp),bh)
+  }
+
+  // 精英怪名称
+  if(e.isElite && e.eliteName){
+    setFont(SW*0.022,'900');ctx.textAlign='center';ctx.textBaseline='middle'
+    ctx.fillStyle=e.eliteColor||'#e74c3c'
+    ctx.fillText(e.eliteName, x, y-r*sizeMult-14)
   }
 }
 

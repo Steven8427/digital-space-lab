@@ -95,6 +95,7 @@ GameGlobal.Survival = {
   _waveActive:false, _waveEnd:0,
   joystick:null, camera:{x:0,y:0},
   boss:null, eliteSpawned:false,
+  _eliteTimer:0, _eliteCount:0,
   levelUp:false, weaponChoices:[],
   weapons:[], // {id, dmg, cd, count, range, level, _timer}
   particles:_particles,
@@ -107,6 +108,7 @@ GameGlobal.Survival = {
     this.elapsed=0; this._lastTick=Date.now(); this._spawnTimer=0
     this._waveActive=false; this._waveEnd=0
     this.boss=null; this.eliteSpawned=false
+    this._eliteTimer=0; this._eliteCount=0
     this.levelUp=false; this.weaponChoices=[]
     this.weapons=[]; this.enemies=[]; this.projectiles=[]
     _particles.length=0; this._rings=[]; this._lightnings=[]
@@ -196,7 +198,12 @@ GameGlobal.Survival = {
     while(this._spawnTimer>=si){this._spawnTimer-=si;if(this.enemies.length<this.maxEnemies)this._spawnEnemy()}
     this._checkWaves()
 
-    if(this.elapsed>=540&&!this.eliteSpawned){this.eliteSpawned=true;this._spawnElite()}
+    // 精英怪：60秒后开始，每45秒生成一只，越来越强
+    if(this.elapsed>=60){
+      this._eliteTimer+=dt
+      var eliteInterval=Math.max(25, 45-this._eliteCount*3) // 间隔逐渐缩短
+      if(this._eliteTimer>=eliteInterval){this._eliteTimer=0;this._spawnElite();this._eliteCount++}
+    }
     if(this.elapsed>=GAME_DURATION&&!this.boss&&!this.victory) this._spawnBoss()
     if(this.boss) this._updateBoss(dt)
 
@@ -494,8 +501,25 @@ GameGlobal.Survival = {
 
   _spawnElite: function() {
     var p=this.player,a=Math.random()*Math.PI*2
-    var _ps4=GameGlobal.SurvivalSprites?GameGlobal.SurvivalSprites.pickMonsterSprite:null
-    this.enemies.push({x:p.x+Math.cos(a)*400,y:p.y+Math.sin(a)*400,hp:150,maxHp:150,type:'tank',speed:18,spriteType:_ps4?_ps4('tank'):null})
+    var _ps=GameGlobal.SurvivalSprites?GameGlobal.SurvivalSprites.pickMonsterSprite:null
+    var n=this._eliteCount||0
+    // 3种精英怪轮流出现，随次数增强
+    var eliteTypes=[
+      {type:'tank',  hp:80+n*25,  speed:28+n*1.5, size:1.6, color:'#e74c3c', name:'重甲'},   // 高血高防
+      {type:'dash',  hp:50+n*15,  speed:60+n*3,   size:1.3, color:'#9b59b6', name:'疾风'},   // 高速冲刺
+      {type:'split', hp:60+n*20,  speed:35+n*2,   size:1.5, color:'#f39c12', name:'裂变'},   // 死后分裂更多
+    ]
+    var elite=eliteTypes[n%3]
+    var ex=p.x+Math.cos(a)*450,ey=p.y+Math.sin(a)*450
+    this.enemies.push({
+      x:ex,y:ey,hp:elite.hp,maxHp:elite.hp,
+      type:elite.type,speed:elite.speed,
+      spriteType:_ps?_ps(elite.type):null,
+      isElite:true,           // 标记为精英
+      eliteSize:elite.size,   // 放大倍数
+      eliteColor:elite.color, // 光环颜色
+      eliteName:elite.name    // 名称
+    })
   },
 
   _spawnBoss: function() {
