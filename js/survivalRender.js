@@ -120,6 +120,68 @@ GameGlobal.drawSurvivalScreen=function(){
     }
   }
 
+  // 毒雾区域
+  for(var pzi=0;pzi<(S._poisonZones||[]).length;pzi++){
+    var pz=S._poisonZones[pzi],pzx=pz.x-cam.x,pzy=pz.y-cam.y
+    var pza=Math.min(1,pz.life/pz.maxLife)*0.25
+    ctx.beginPath();ctx.arc(pzx,pzy,pz.r,0,Math.PI*2)
+    ctx.fillStyle='rgba(100,220,60,'+pza+')';ctx.fill()
+    ctx.strokeStyle='rgba(50,180,30,'+pza*1.5+')';ctx.lineWidth=2;ctx.stroke()
+  }
+
+  // 陨石警告+爆炸
+  for(var mi=0;mi<(S._meteors||[]).length;mi++){
+    var mt=S._meteors[mi],mx=mt.x-cam.x,my=mt.y-cam.y
+    if(mt.phase==='warn'){
+      var wa2=1-mt.delay/0.6
+      ctx.beginPath();ctx.arc(mx,my,mt.maxR*wa2,0,Math.PI*2)
+      ctx.strokeStyle='rgba(255,100,0,'+(0.3+wa2*0.4)+')';ctx.lineWidth=2
+      ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([])
+    } else {
+      var ea=1-mt.r/mt.maxR
+      ctx.beginPath();ctx.arc(mx,my,mt.r,0,Math.PI*2)
+      ctx.fillStyle='rgba(255,120,0,'+ea*0.4+')';ctx.fill()
+      ctx.strokeStyle='rgba(255,200,50,'+ea*0.6+')';ctx.lineWidth=3;ctx.stroke()
+    }
+  }
+
+  // 回旋镖
+  for(var bi=0;bi<(S._boomerangs||[]).length;bi++){
+    var bm=S._boomerangs[bi],bmx=bm.x-cam.x,bmy=bm.y-cam.y
+    ctx.save();ctx.translate(bmx,bmy);ctx.rotate(S.elapsed*12)
+    ctx.fillStyle='#f1c40f'
+    ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(12,0);ctx.lineTo(0,3);ctx.lineTo(-12,0);ctx.closePath();ctx.fill()
+    ctx.strokeStyle='#e67e22';ctx.lineWidth=1.5;ctx.stroke()
+    ctx.restore()
+  }
+
+  // 龙卷风
+  for(var ti=0;ti<(S._tornadoes||[]).length;ti++){
+    var tn=S._tornadoes[ti],tnx=tn.x-cam.x,tny=tn.y-cam.y
+    var ta=tn.life/0.8
+    for(var tr=0;tr<3;tr++){
+      var tAngle=S.elapsed*10+tr*2.1
+      var tDist=10+tr*8
+      ctx.beginPath();ctx.arc(tnx+Math.cos(tAngle)*tDist,tny+Math.sin(tAngle)*tDist,6-tr,0,Math.PI*2)
+      ctx.fillStyle='rgba(200,230,255,'+ta*(0.5-tr*0.1)+')';ctx.fill()
+    }
+  }
+
+  // 护盾球
+  var hasShield=false
+  for(var wi=0;wi<S.weapons.length;wi++){if(S.weapons[wi].id==='shield'){hasShield=S.weapons[wi];break}}
+  if(hasShield){
+    var shP=p, shT=S.elapsed
+    for(var sk=0;sk<hasShield.count;sk++){
+      var shA=shT*1.8+sk*(Math.PI*2/hasShield.count)
+      var shx=shP.x+Math.cos(shA)*hasShield.range-cam.x
+      var shy=shP.y+Math.sin(shA)*hasShield.range-cam.y
+      ctx.beginPath();ctx.arc(shx,shy,10,0,Math.PI*2)
+      ctx.fillStyle='rgba(52,152,219,0.6)';ctx.fill()
+      ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=2;ctx.stroke()
+    }
+  }
+
   // 敌人
   for(var i=0;i<S.enemies.length;i++){
     var e=S.enemies[i],ex=e.x-cam.x,ey=e.y-cam.y

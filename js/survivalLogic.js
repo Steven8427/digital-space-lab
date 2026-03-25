@@ -81,6 +81,36 @@ var WEAPON_DEFS = {
     name:'火焰圈', desc:'周期性火焰扩散', icon:'🔥',
     baseDmg:8, baseCD:3.0, count:1, range:180,
     upgrade: function(w) { w.dmg+=4; w.cd*=0.88 }
+  },
+  boomerang: {
+    name:'回旋镖', desc:'飞出再飞回，穿透敌人', icon:'🪃',
+    baseDmg:6, baseCD:1.8, count:1, range:220,
+    upgrade: function(w) { w.dmg+=3; w.count++; w.cd*=0.9 }
+  },
+  meteor: {
+    name:'陨石', desc:'随机砸落范围爆炸', icon:'☄',
+    baseDmg:15, baseCD:3.5, count:1, range:250,
+    upgrade: function(w) { w.dmg+=6; w.count++; w.cd*=0.9 }
+  },
+  shield: {
+    name:'护盾球', desc:'旋转护盾挡住敌人', icon:'🛡',
+    baseDmg:4, baseCD:0, count:3, range:80,
+    upgrade: function(w) { w.dmg+=2; w.count++; w.range+=10 }
+  },
+  vampire: {
+    name:'吸血刃', desc:'近战攻击回血', icon:'💉',
+    baseDmg:7, baseCD:1.2, count:1, range:70,
+    upgrade: function(w) { w.dmg+=4; w.cd*=0.85 }
+  },
+  tornado: {
+    name:'龙卷风', desc:'向前方推开敌人', icon:'🌪',
+    baseDmg:5, baseCD:2.5, count:1, range:200,
+    upgrade: function(w) { w.dmg+=3; w.cd*=0.88; w.range+=30 }
+  },
+  poison: {
+    name:'毒雾', desc:'留下毒区域持续伤害', icon:'☢',
+    baseDmg:3, baseCD:4.0, count:1, range:80,
+    upgrade: function(w) { w.dmg+=2; w.count++; w.range+=15 }
   }
 }
 
@@ -112,6 +142,7 @@ GameGlobal.Survival = {
     this.levelUp=false; this.weaponChoices=[]
     this.weapons=[]; this.enemies=[]; this.projectiles=[]
     _particles.length=0; this._rings=[]; this._lightnings=[]
+    this._boomerangs=[]; this._meteors=[]; this._poisonZones=[]; this._tornadoes=[]
     this.foodItems=[]; this._foodTimer=0
 
     this.player = {
@@ -238,7 +269,33 @@ GameGlobal.Survival = {
       else if(w.id==='ring' && w._timer>=w.cd) {
         w._timer=0; this._weaponRing(w)
       }
+      else if(w.id==='boomerang' && w._timer>=w.cd) {
+        w._timer=0; this._weaponBoomerang(w)
+      }
+      else if(w.id==='meteor' && w._timer>=w.cd) {
+        w._timer=0; this._weaponMeteor(w)
+      }
+      else if(w.id==='shield') {
+        this._weaponShield(w)
+      }
+      else if(w.id==='vampire' && w._timer>=w.cd) {
+        w._timer=0; this._weaponVampire(w)
+      }
+      else if(w.id==='tornado' && w._timer>=w.cd) {
+        w._timer=0; this._weaponTornado(w)
+      }
+      else if(w.id==='poison' && w._timer>=w.cd) {
+        w._timer=0; this._weaponPoison(w)
+      }
     }
+    // 更新毒雾区域
+    this._updatePoison(dt)
+    // 更新回旋镖
+    this._updateBoomerangs(dt)
+    // 更新陨石
+    this._updateMeteors(dt)
+    // 更新龙卷风
+    this._updateTornadoes(dt)
   },
 
   // ── 旋转飞刀
@@ -334,6 +391,146 @@ GameGlobal.Survival = {
 
   _updateLightnings: function(dt) {
     for(var i=this._lightnings.length-1;i>=0;i--){this._lightnings[i].life-=dt;if(this._lightnings[i].life<=0){this._lightnings[i]=this._lightnings[this._lightnings.length-1];this._lightnings.pop()}}
+  },
+
+  // ── 回旋镖
+  _weaponBoomerang: function(w) {
+    var p=this.player
+    for(var c=0;c<w.count;c++){
+      var a=Math.random()*Math.PI*2
+      this._boomerangs.push({x:p.x,y:p.y,ox:p.x,oy:p.y,
+        vx:Math.cos(a)*300,vy:Math.sin(a)*300,
+        dmg:w.dmg,life:0,maxLife:1.2,returning:false,hit:{}})
+    }
+  },
+  _updateBoomerangs: function(dt) {
+    var p=this.player
+    for(var i=this._boomerangs.length-1;i>=0;i--){
+      var b=this._boomerangs[i]; b.life+=dt
+      if(b.life>b.maxLife*0.5&&!b.returning){b.returning=true;b.hit={}}
+      if(b.returning){
+        var dx=p.x-b.x,dy=p.y-b.y,d=Math.sqrt(dx*dx+dy*dy)
+        if(d>1){b.vx=dx/d*350;b.vy=dy/d*350}
+        if(d<30){this._boomerangs.splice(i,1);continue}
+      }
+      b.x+=b.vx*dt;b.y+=b.vy*dt
+      for(var ei=this.enemies.length-1;ei>=0;ei--){
+        if(b.hit[ei])continue
+        var e=this.enemies[ei],edx=b.x-e.x,edy=b.y-e.y
+        if(edx*edx+edy*edy<25*25){b.hit[ei]=true;this._damageEnemy(ei,b.dmg)}
+      }
+      if(this.boss&&!b.hit['boss']){var bdx=b.x-this.boss.x,bdy=b.y-this.boss.y;if(bdx*bdx+bdy*bdy<50*50){b.hit['boss']=true;this._damageBoss(b.dmg)}}
+    }
+  },
+
+  // ── 陨石
+  _weaponMeteor: function(w) {
+    var p=this.player
+    for(var c=0;c<w.count;c++){
+      var tx=p.x+(Math.random()-0.5)*w.range*2
+      var ty=p.y+(Math.random()-0.5)*w.range*2
+      this._meteors.push({x:tx,y:ty,delay:0.6+c*0.3,r:0,maxR:60,dmg:w.dmg,phase:'warn'})
+    }
+  },
+  _updateMeteors: function(dt) {
+    for(var i=this._meteors.length-1;i>=0;i--){
+      var m=this._meteors[i]
+      if(m.phase==='warn'){m.delay-=dt;if(m.delay<=0){m.phase='explode';m.r=0;_spawnP(m.x,m.y,'#ff6600',6)}}
+      else if(m.phase==='explode'){
+        m.r+=300*dt
+        for(var ei=this.enemies.length-1;ei>=0;ei--){
+          var e=this.enemies[ei],dx=e.x-m.x,dy=e.y-m.y
+          if(dx*dx+dy*dy<m.r*m.r){this._damageEnemy(ei,m.dmg*dt*3)}
+        }
+        if(this.boss){var bdx=this.boss.x-m.x,bdy=this.boss.y-m.y;if(bdx*bdx+bdy*bdy<m.r*m.r)this._damageBoss(m.dmg*dt*3)}
+        if(m.r>=m.maxR){this._meteors.splice(i,1)}
+      }
+    }
+  },
+
+  // ── 护盾球（旋转护盾，和orbit类似但更大更慢）
+  _weaponShield: function(w) {
+    var p=this.player,t=this.elapsed
+    for(var k=0;k<w.count;k++){
+      var a=t*1.8+k*(Math.PI*2/w.count)
+      var ox=p.x+Math.cos(a)*w.range,oy=p.y+Math.sin(a)*w.range
+      for(var i=this.enemies.length-1;i>=0;i--){
+        var e=this.enemies[i],dx=ox-e.x,dy=oy-e.y
+        if(dx*dx+dy*dy<20*20){
+          this._damageEnemy(i,w.dmg*0.05)
+          // 推开敌人
+          var d=Math.sqrt(dx*dx+dy*dy)||1
+          e.x-=(dx/d)*3;e.y-=(dy/d)*3
+        }
+      }
+    }
+  },
+
+  // ── 吸血刃
+  _weaponVampire: function(w) {
+    var p=this.player,hitAny=false
+    for(var i=this.enemies.length-1;i>=0;i--){
+      var e=this.enemies[i],dx=e.x-p.x,dy=e.y-p.y
+      if(dx*dx+dy*dy<w.range*w.range){
+        this._damageEnemy(i,w.dmg);hitAny=true
+        _spawnP(e.x,e.y,'#e74c3c',3)
+      }
+    }
+    if(this.boss){var bdx=this.boss.x-p.x,bdy=this.boss.y-p.y;if(bdx*bdx+bdy*bdy<w.range*w.range){this._damageBoss(w.dmg);hitAny=true}}
+    if(hitAny){
+      var heal=Math.ceil(w.dmg*0.3)
+      p.hp=Math.min(p.maxHp,p.hp+heal)
+      _spawnP(p.x,p.y,'#2ecc71',3)
+    }
+  },
+
+  // ── 龙卷风
+  _weaponTornado: function(w) {
+    var p=this.player,js=this.joystick
+    var dx=js&&js.active?js.dx:0,dy=js&&js.active?js.dy:1
+    var d=Math.sqrt(dx*dx+dy*dy)||1
+    this._tornadoes.push({x:p.x,y:p.y,vx:(dx/d)*250,vy:(dy/d)*250,
+      dmg:w.dmg,life:0.8,range:w.range,hit:{}})
+  },
+  _updateTornadoes: function(dt) {
+    for(var i=this._tornadoes.length-1;i>=0;i--){
+      var t=this._tornadoes[i];t.x+=t.vx*dt;t.y+=t.vy*dt;t.life-=dt
+      if(t.life<=0){this._tornadoes.splice(i,1);continue}
+      for(var ei=this.enemies.length-1;ei>=0;ei--){
+        var e=this.enemies[ei],dx=e.x-t.x,dy=e.y-t.y
+        if(dx*dx+dy*dy<40*40){
+          if(!t.hit[ei]){t.hit[ei]=true;this._damageEnemy(ei,t.dmg)}
+          // 推开
+          var d2=Math.sqrt(dx*dx+dy*dy)||1
+          e.x+=(dx/d2)*5;e.y+=(dy/d2)*5
+        }
+      }
+      if(this.boss){var bdx=this.boss.x-t.x,bdy=this.boss.y-t.y;if(bdx*bdx+bdy*bdy<50*50&&!t.hit['boss']){t.hit['boss']=true;this._damageBoss(t.dmg)}}
+    }
+  },
+
+  // ── 毒雾
+  _weaponPoison: function(w) {
+    var p=this.player
+    for(var c=0;c<w.count;c++){
+      var a=Math.random()*Math.PI*2,d=30+Math.random()*60
+      this._poisonZones.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,
+        r:w.range,dmg:w.dmg,life:4,maxLife:4})
+    }
+  },
+  _updatePoison: function(dt) {
+    for(var i=this._poisonZones.length-1;i>=0;i--){
+      var pz=this._poisonZones[i];pz.life-=dt
+      if(pz.life<=0){this._poisonZones.splice(i,1);continue}
+      for(var ei=0;ei<this.enemies.length;ei++){
+        var e=this.enemies[ei],dx=e.x-pz.x,dy=e.y-pz.y
+        if(dx*dx+dy*dy<pz.r*pz.r){
+          this._damageEnemy(ei,pz.dmg*dt)
+          e._slowed=0.5
+        }
+      }
+      if(this.boss){var bdx=this.boss.x-pz.x,bdy=this.boss.y-pz.y;if(bdx*bdx+bdy*bdy<pz.r*pz.r)this._damageBoss(pz.dmg*dt)}
+    }
   },
 
   // ── 伤害敌人
