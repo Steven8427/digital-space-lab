@@ -312,7 +312,7 @@ GameGlobal.drawSurvivalScreen=function(){
     for(var tr=0;tr<3;tr++){
       var tAngle=S.elapsed*10+tr*2.1
       var tDist=10+tr*8
-      ctx.beginPath();ctx.arc(tnx+Math.cos(tAngle)*tDist,tny+Math.sin(tAngle)*tDist,6-tr,0,Math.PI*2)
+      ctx.beginPath();ctx.arc(tnx+Math.cos(tAngle)*tDist,tny+Math.sin(tAngle)*tDist,Math.max(0.5,6-tr),0,Math.PI*2)
       ctx.fillStyle='rgba(200,230,255,'+ta*(0.5-tr*0.1)+')';ctx.fill()
     }
   }
@@ -488,7 +488,7 @@ function _drawEnemy(x,y,e){
 
   // 精英怪光环
   if (e.isElite) {
-    var pulseR = spriteSize * 0.7 + Math.sin(t / 300) * 4
+    var pulseR = Math.max(1, spriteSize * 0.7 + Math.sin(t / 300) * 4)
     ctx.beginPath(); ctx.arc(x, y, pulseR, 0, Math.PI * 2)
     ctx.strokeStyle = (e.eliteColor || '#e74c3c')
     ctx.lineWidth = 2; ctx.globalAlpha = 0.5; ctx.stroke(); ctx.globalAlpha = 1
