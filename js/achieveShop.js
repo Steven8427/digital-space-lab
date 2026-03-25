@@ -37,6 +37,15 @@ var ACHIEVEMENTS = [
   { id:'a_sdk_chg200',  game:'sudoku', name:'闯关达人',  desc:'闯关达到第200关',   icon:'🎖', reward:400 },
   { id:'a_sdk_chg500',  game:'sudoku', name:'闯关大师',  desc:'闯关达到第500关',   icon:'👑', reward:800 },
 
+  // ── 生存模式
+  { id:'a_sv_kill100',  game:'survival', name:'初级猎手',  desc:'单局击杀100个怪物',   icon:'⚔', reward:50  },
+  { id:'a_sv_kill500',  game:'survival', name:'高级猎手',  desc:'单局击杀500个怪物',   icon:'🗡', reward:150 },
+  { id:'a_sv_kill1000', game:'survival', name:'屠魔者',    desc:'单局击杀1000个怪物',  icon:'💀', reward:300 },
+  { id:'a_sv_boss',     game:'survival', name:'弑神者',    desc:'击败Boss',            icon:'👹', reward:200 },
+  { id:'a_sv_maxlv',    game:'survival', name:'满级战士',  desc:'达到最高等级',        icon:'🔱', reward:100 },
+  { id:'a_sv_play10',   game:'survival', name:'生存老手',  desc:'累计游玩10局生存',    icon:'🎮', reward:80  },
+  { id:'a_sv_win5',     game:'survival', name:'常胜将军',  desc:'击败Boss5次',         icon:'🏅', reward:500 },
+
   // ── 全局
   { id:'a_g_allplay',  game:'global', name:'全能玩家',  desc:'玩过所有3个游戏',    icon:'🌟', reward:100 },
   { id:'a_g_play50',   game:'global', name:'忠实玩家',  desc:'累计游戏50局',       icon:'💝', reward:200 },
@@ -75,7 +84,10 @@ var COIN_RULES = {
   'sudoku_win':     15,    // 完成数独
   'sudoku_chg':     10,    // 闯关过一关
   'daily_login':    30,    // 每日登录
-  'ad_bonus':        2     // 看广告倍率
+  'ad_bonus':        2,    // 看广告倍率
+  'survival_play':   5,    // 完成一局生存
+  'survival_win':   30,    // 击败Boss
+  'survival_kill_bonus': 0.1  // 每击杀1个怪得0.1金币
 }
 
 // ================================================
@@ -370,6 +382,37 @@ GameGlobal.AchieveShop = {
       if (data.level >= 50)  this.unlock('a_sdk_chg50')
       if (data.level >= 200) this.unlock('a_sdk_chg200')
       if (data.level >= 500) this.unlock('a_sdk_chg500')
+    }
+
+    if (event === 'survival_play') {
+      s.plays_survival = (s.plays_survival||0) + 1
+      s.plays_total++; s.played_survival = true
+      // 基础奖励
+      this.addCoins(COIN_RULES['survival_play'])
+      // 击杀奖励（每10击杀=1金币）
+      var killCoins = Math.floor((data.kills||0) * COIN_RULES['survival_kill_bonus'])
+      if(killCoins>0) this.addCoins(killCoins)
+      // 存活时间奖励（每分钟2金币）
+      var timeCoins = Math.floor((data.time||0) / 60) * 2
+      if(timeCoins>0) this.addCoins(timeCoins)
+      // 等级奖励（每级1金币）
+      var lvCoins = (data.level||1) - 1
+      if(lvCoins>0) this.addCoins(lvCoins)
+      // 击败Boss
+      if(data.won) {
+        this.addCoins(COIN_RULES['survival_win'])
+        s.wins_survival = (s.wins_survival||0) + 1
+      }
+      // 记录最高击杀
+      s.best_kills = Math.max(s.best_kills||0, data.kills||0)
+      // 里程碑成就
+      if((data.kills||0) >= 100)  this.unlock('a_sv_kill100')
+      if((data.kills||0) >= 500)  this.unlock('a_sv_kill500')
+      if((data.kills||0) >= 1000) this.unlock('a_sv_kill1000')
+      if(data.won) this.unlock('a_sv_boss')
+      if((data.level||0) >= 20) this.unlock('a_sv_maxlv')
+      if((s.plays_survival||0) >= 10) this.unlock('a_sv_play10')
+      if((s.wins_survival||0) >= 5)  this.unlock('a_sv_win5')
     }
 
     this._checkGlobalAchievements()

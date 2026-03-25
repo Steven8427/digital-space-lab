@@ -925,6 +925,25 @@ GameGlobal.Survival = {
     if(score>best) wx.setStorageSync('survivalBest',score)
     var info=wx.getStorageSync('userInfo')||{}
     wx.cloud.callFunction({name:'leaderboard',data:{action:'upload',type:'survival',nickname:info.nickName||'神秘玩家',avatarUrl:info.avatarUrl||'',score:score,time:Math.floor(this.elapsed)},fail:function(){}})
+
+    // 结算金币奖励
+    var killCoins = Math.floor(p.kills * 0.1)
+    var timeCoins = Math.floor(this.elapsed / 60) * 2
+    var lvCoins = p.level - 1
+    var bossCoins = this.victory ? 30 : 0
+    this._lastReward = {
+      kills: p.kills, time: Math.floor(this.elapsed),
+      level: p.level, won: this.victory,
+      coinKills: killCoins, coinTime: timeCoins,
+      coinLevel: lvCoins, coinBoss: bossCoins,
+      coinTotal: 5 + killCoins + timeCoins + lvCoins + bossCoins
+    }
+    if(GameGlobal.AchieveShop) {
+      GameGlobal.AchieveShop.onGameEvent('survival_play', {
+        kills:p.kills, time:Math.floor(this.elapsed),
+        level:p.level, won:this.victory
+      })
+    }
   },
 
   // 摇杆

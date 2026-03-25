@@ -712,6 +712,34 @@ function _drawGameOver(S){
   var ih=cdH/4
   for(var i=0;i<items.length;i++){var iy=cdY+ih*i+ih/2;setFont(SW*0.028,'700');ctx.textAlign='left';ctx.fillStyle=C.textDim;ctx.fillText(items[i].l,BOARD_X+PAD*2,iy);setFont(SW*0.040,'900');ctx.textAlign='right';ctx.fillStyle=items[i].c;ctx.fillText(items[i].v,BOARD_X+BOARD_W-PAD*2,iy)}
 
+  // 金币奖励明细
+  var rw=S._lastReward
+  if(rw){
+    var coinY=cdY+cdH+GAP
+    var coinH=SH*0.18
+    roundRect(BOARD_X,coinY,BOARD_W,coinH,12,'rgba(243,156,18,0.1)','rgba(243,156,18,0.3)')
+    setFont(SW*0.030,'900');ctx.textAlign='center';ctx.fillStyle='#f39c12'
+    ctx.fillText('💰 金币奖励',cx,coinY+coinH*0.13)
+
+    var coinItems=[
+      {l:'基础奖励',v:'+5'},{l:'击杀('+rw.kills+')',v:'+'+rw.coinKills},
+      {l:'存活('+Math.floor(rw.time/60)+'分钟)',v:'+'+rw.coinTime},
+      {l:'等级(Lv.'+rw.level+')',v:'+'+rw.coinLevel}
+    ]
+    if(rw.coinBoss>0) coinItems.push({l:'击败Boss',v:'+'+rw.coinBoss})
+    var cih=coinH*0.65/coinItems.length
+    for(var ci=0;ci<coinItems.length;ci++){
+      var ciy=coinY+coinH*0.25+cih*ci+cih/2
+      setFont(SW*0.022,'600');ctx.textAlign='left';ctx.fillStyle='rgba(255,255,255,0.5)'
+      ctx.fillText(coinItems[ci].l,BOARD_X+PAD*2,ciy)
+      ctx.textAlign='right';ctx.fillStyle='#f1c40f'
+      ctx.fillText(coinItems[ci].v,BOARD_X+BOARD_W-PAD*2,ciy)
+    }
+    setFont(SW*0.032,'900');ctx.textAlign='center';ctx.fillStyle='#f39c12'
+    ctx.fillText('合计: +'+rw.coinTotal+' 💰',cx,coinY+coinH*0.92)
+    cdH+=coinH+GAP  // 调整按钮位置
+  }
+
   var bY1=cdY+cdH+GAP*2;var bg2=ctx.createLinearGradient(BOARD_X,0,BOARD_X+BOARD_W,0);bg2.addColorStop(0,'#e74c3c');bg2.addColorStop(1,'#f39c12')
   roundRect(BOARD_X,bY1,BOARD_W,BTN_H*1.1,14,bg2);setFont(BTN_H*0.38,'900');ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText('再来一局',cx,bY1+BTN_H*0.55)
   GameGlobal.SurvivalUI.retryBtn={x:BOARD_X,y:bY1,w:BOARD_W,h:BTN_H*1.1}
