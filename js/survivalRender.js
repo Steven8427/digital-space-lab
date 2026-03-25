@@ -333,9 +333,13 @@ function _drawBoss(x,y,b){
 // ── 玩家
 function _drawPlayer(x,y,p,cam){
   var r=22
-  // 拖尾
-  var tr=p._trail||[]
-  for(var i=0;i<tr.length;i++){var a2=(i+1)/tr.length*0.2;ctx.beginPath();ctx.arc(tr[i].x-cam.x,tr[i].y-cam.y,r*(0.3+i/tr.length*0.5),0,Math.PI*2);ctx.fillStyle='rgba(52,152,219,'+a2+')';ctx.fill()}
+  // 拖尾（只在移动时显示，缩小尺寸）
+  var js0=GameGlobal.Survival.joystick
+  var isMoving0=js0&&js0.active&&(Math.abs(js0.dx)>0.1||Math.abs(js0.dy)>0.1)
+  if(isMoving0){
+    var tr=p._trail||[]
+    for(var i=0;i<tr.length;i++){var a2=(i+1)/tr.length*0.12;ctx.beginPath();ctx.arc(tr[i].x-cam.x,tr[i].y-cam.y,r*(0.2+i/tr.length*0.3),0,Math.PI*2);ctx.fillStyle='rgba(52,152,219,'+a2+')';ctx.fill()}
+  }
 
   // 无敌闪烁
   if(p._iFrames>0 && Math.floor(Date.now()/80)%2===0) return
