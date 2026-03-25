@@ -67,7 +67,10 @@ GameGlobal.drawSurvivalScreen=function(){
   S.update()
   var cam=S.camera, p=S.player
 
-  // 全局关闭平滑（像素风锐利渲染）
+  // Cache timestamp for this frame (avoid per-element Date.now() calls)
+  _drawNow = Date.now()
+
+  // 全局关闭平滑（像素风锐利渲染）— set once per frame
   ctx.imageSmoothingEnabled = false
   ctx.mozImageSmoothingEnabled = false
   ctx.webkitImageSmoothingEnabled = false
@@ -133,12 +136,10 @@ GameGlobal.drawSurvivalScreen=function(){
     // Floating bob animation (sine wave on Y)
     var bobY = Math.sin(S.elapsed * 2.5 + fi * 1.7) * 4
     var drawY = fy + bobY
-    // Glow/sparkle effect
+    // Glow/sparkle effect (no save/restore needed)
     var glowAlpha = 0.15 + Math.sin(S.elapsed * 3 + fi * 2.3) * 0.08
-    ctx.save()
     ctx.beginPath(); ctx.arc(fx, drawY, 18, 0, Math.PI * 2)
     ctx.fillStyle = 'rgba(46,204,113,' + glowAlpha + ')'; ctx.fill()
-    ctx.restore()
     // Draw food sprite or fallback
     var foodSize = 28
     var foodIdx = _foodSpriteMap[food.type]
@@ -153,14 +154,11 @@ GameGlobal.drawSurvivalScreen=function(){
       ctx.fill()
       ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1.5; ctx.stroke()
     }
-    // Despawn fade (last 3 seconds)
+    // Despawn fade (last 3 seconds) — use rgba alpha instead of globalAlpha
     if (food.age > 12) {
-      var fadeAlpha = 1 - (food.age - 12) / 3
-      ctx.save()
-      ctx.globalAlpha = 1 - fadeAlpha
+      var fadeProgress = (food.age - 12) / 3
       ctx.beginPath(); ctx.arc(fx, drawY, 16, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(6,8,26,0.6)'; ctx.fill()
-      ctx.restore()
+      ctx.fillStyle = 'rgba(6,8,26,' + (0.6 * fadeProgress).toFixed(2) + ')'; ctx.fill()
     }
   }
 
@@ -247,10 +245,12 @@ GameGlobal.drawSurvivalScreen=function(){
 function _ah(a){var h=Math.round(Math.max(0,Math.min(1,a))*255).toString(16);return h.length<2?'0'+h:h}
 
 // ── 敌人（sprite or fallback shapes + 血条）
+// _drawNow is set once per frame to avoid per-enemy Date.now() calls
+var _drawNow = 0
 function _drawEnemy(x,y,e){
   var r=GameGlobal.Survival.enemyRadius(e.type)
   var flash=e._flashTimer&&e._flashTimer>0
-  var t=Date.now()
+  var t=_drawNow
   var _sprites = GameGlobal.SurvivalSprites
   var spriteSize = r * 1.6
 
@@ -310,21 +310,37 @@ function _drawHex2(x,y,r,fill){
 
 // ── Boss
 function _drawBoss(x,y,b){
-  var r=42,t=Date.now()
+  var r=42
+  var flash=b._flashTimer&&b._flashTimer>0
+  var _sprites = GameGlobal.SurvivalSprites
+
+  // Determine if boss is moving (check velocity via distance to player)
+  var p = GameGlobal.Survival.player
+  var bdx = p.x - b.x, bdy = p.y - b.y
+  var bossMoving = Math.sqrt(bdx*bdx + bdy*bdy) > 50
+  var bossState = bossMoving ? 'run' : 'idle'
+
+  // Pulsing aura rings (lightweight, no save/restore)
+  var t = Date.now()
   for(var rn=3;rn>=1;rn--){var pulse=0.7+Math.sin(t/300+rn)*0.3;ctx.beginPath();ctx.arc(x,y,r+rn*8,0,Math.PI*2);ctx.fillStyle='rgba(231,76,60,'+(0.05*pulse)+')';ctx.fill()}
 
-  ctx.save();ctx.translate(x,y);ctx.rotate(t/1500)
-  ctx.beginPath();for(var i=0;i<8;i++){var a=i*Math.PI/4;ctx.moveTo(Math.cos(a)*(r+4),Math.sin(a)*(r+4));ctx.lineTo(Math.cos(a)*(r+14),Math.sin(a)*(r+14))}
-  ctx.strokeStyle='rgba(243,156,18,0.4)';ctx.lineWidth=3;ctx.stroke();ctx.restore()
+  // Try sprite drawing
+  var spriteDrawn = false
+  if (_sprites && typeof _sprites.drawBossSprite === 'function') {
+    spriteDrawn = _sprites.drawBossSprite(ctx, x, y, r * 2.5, bossState, GameGlobal.Survival.elapsed, flash)
+  }
 
-  var flash=b._flashTimer&&b._flashTimer>0
-  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2)
-  ctx.fillStyle=flash?'#fff':'#c0392b';ctx.fill();ctx.strokeStyle='#f39c12';ctx.lineWidth=3;ctx.stroke()
+  if (!spriteDrawn) {
+    // Fallback: original red circle
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2)
+    ctx.fillStyle=flash?'#fff':'#c0392b';ctx.fill();ctx.strokeStyle='#f39c12';ctx.lineWidth=3;ctx.stroke()
+  }
 
+  // Boss label + HP text
   setFont(14,'900');ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff'
-  ctx.fillText('👑BOSS',x,y-8);setFont(12,'800');ctx.fillText(Math.ceil(b.hp),x,y+10)
+  ctx.fillText('BOSS',x,y-r-18);setFont(12,'800');ctx.fillText(Math.ceil(b.hp),x,y+r+10)
 
-  // Boss血条
+  // Boss HP bar
   var bw=r*2.5,bh=5,bx=x-bw/2,by=y-r-12
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(bx,by,bw,bh)
   ctx.fillStyle='#e74c3c';ctx.fillRect(bx,by,bw*(b.hp/b.maxHp),bh)

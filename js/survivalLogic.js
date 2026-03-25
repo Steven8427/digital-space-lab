@@ -49,7 +49,8 @@ function _spawnP(x,y,color,n) {
     _particles.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:0.35+Math.random()*0.25,age:0,color:color,r:2+Math.random()*3})}
 }
 function _updateP(dt) {
-  for(var i=_particles.length-1;i>=0;i--){var p=_particles[i];p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=0.94;p.vy*=0.94;if(p.age>=p.life)_particles.splice(i,1)}
+  for(var i=_particles.length-1;i>=0;i--){var p=_particles[i];p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=0.94;p.vy*=0.94
+    if(p.age>=p.life){_particles[i]=_particles[_particles.length-1];_particles.pop()}}
 }
 
 // ================================================
@@ -239,14 +240,15 @@ GameGlobal.Survival = {
     for(var k=0;k<w.count;k++){
       var a = t*2.5 + k*(Math.PI*2/w.count)
       var ox = p.x+Math.cos(a)*w.range, oy = p.y+Math.sin(a)*w.range
-      // 检测碰撞
+      // 检测碰撞 — use squared distance to avoid sqrt
       for(var i=this.enemies.length-1;i>=0;i--){
         var e=this.enemies[i], dx=ox-e.x, dy=oy-e.y
-        if(Math.sqrt(dx*dx+dy*dy) < _enemyRadius(e.type)+10){
+        var hitR = _enemyRadius(e.type)+10
+        if(dx*dx+dy*dy < hitR*hitR){
           this._damageEnemy(i, w.dmg*0.05) // 每帧小伤害（持续接触）
         }
       }
-      if(this.boss){var dx=ox-this.boss.x,dy=oy-this.boss.y;if(Math.sqrt(dx*dx+dy*dy)<45) this._damageBoss(w.dmg*0.05)}
+      if(this.boss){var dx=ox-this.boss.x,dy=oy-this.boss.y;if(dx*dx+dy*dy<45*45) this._damageBoss(w.dmg*0.05)}
     }
   },
 
@@ -286,17 +288,17 @@ GameGlobal.Survival = {
     }
   },
 
-  // ── 冰冻光环
+  // ── 冰冻光环 — squared distance
   _weaponAura: function(w) {
-    var p=this.player
+    var p=this.player, r2=w.range*w.range
     for(var i=0;i<this.enemies.length;i++){
       var e=this.enemies[i],dx=e.x-p.x,dy=e.y-p.y
-      if(Math.sqrt(dx*dx+dy*dy)<w.range){
+      if(dx*dx+dy*dy<r2){
         this._damageEnemy(i, w.dmg)
         e._slowed=1.5 // 减速1.5秒
       }
     }
-    if(this.boss){var dx=this.boss.x-p.x,dy=this.boss.y-p.y;if(Math.sqrt(dx*dx+dy*dy)<w.range)this._damageBoss(w.dmg)}
+    if(this.boss){var dx=this.boss.x-p.x,dy=this.boss.y-p.y;if(dx*dx+dy*dy<r2)this._damageBoss(w.dmg)}
   },
 
   // ── 火焰圈
@@ -324,7 +326,7 @@ GameGlobal.Survival = {
   },
 
   _updateLightnings: function(dt) {
-    for(var i=this._lightnings.length-1;i>=0;i--){this._lightnings[i].life-=dt;if(this._lightnings[i].life<=0)this._lightnings.splice(i,1)}
+    for(var i=this._lightnings.length-1;i>=0;i--){this._lightnings[i].life-=dt;if(this._lightnings[i].life<=0){this._lightnings[i]=this._lightnings[this._lightnings.length-1];this._lightnings.pop()}}
   },
 
   // ── 伤害敌人
@@ -363,10 +365,11 @@ GameGlobal.Survival = {
       var pr=this.projectiles[i]
       pr.x+=pr.vx*dt; pr.y+=pr.vy*dt; pr.life-=dt
       if(pr.life<=0){this.projectiles.splice(i,1);continue}
-      // 碰撞敌人
+      // 碰撞敌人 — squared distance to avoid sqrt
       for(var ei=this.enemies.length-1;ei>=0;ei--){
         var e=this.enemies[ei],dx=pr.x-e.x,dy=pr.y-e.y
-        if(Math.sqrt(dx*dx+dy*dy)<_enemyRadius(e.type)+6){
+        var hitR=_enemyRadius(e.type)+6
+        if(dx*dx+dy*dy<hitR*hitR){
           this._damageEnemy(ei,pr.dmg)
           this.projectiles.splice(i,1); break
         }
@@ -391,13 +394,19 @@ GameGlobal.Survival = {
       if(dist > atkDist) {
         e.x+=nx*spd*dt; e.y+=ny*spd*dt
       }
-      // 怪物之间互推（防止重叠成一坨）
+      // 怪物之间互推（防止重叠成一坨）— skip distant pairs with Manhattan check
       var er = _enemyRadius(e.type)
+      var maxPushDist = er + 24 + 2  // max possible minD (er + tank radius 24 + margin)
       for(var j=i-1;j>=0;j--){
         var e2=this.enemies[j]
-        var edx=e.x-e2.x,edy=e.y-e2.y,edist=Math.sqrt(edx*edx+edy*edy)
+        // Quick Manhattan distance reject
+        var edx=e.x-e2.x,edy=e.y-e2.y
+        if(edx>maxPushDist||edx<-maxPushDist||edy>maxPushDist||edy<-maxPushDist) continue
+        var edist2=edx*edx+edy*edy
         var minD=er+_enemyRadius(e2.type)
-        if(edist<minD&&edist>0.1){
+        var minD2=minD*minD
+        if(edist2<minD2&&edist2>0.01){
+          var edist=Math.sqrt(edist2)
           var push=(minD-edist)*0.3
           e.x+=edx/edist*push; e.y+=edy/edist*push
           e2.x-=edx/edist*push; e2.y-=edy/edist*push
@@ -413,8 +422,8 @@ GameGlobal.Survival = {
     var p=this.player; if(p._iFrames>0) return
     for(var i=0;i<this.enemies.length;i++){
       var e=this.enemies[i],dx=p.x-e.x,dy=p.y-e.y
-      var dist=Math.sqrt(dx*dx+dy*dy)
-      if(dist<22+_enemyRadius(e.type)-4){
+      var hitR=22+_enemyRadius(e.type)-4
+      if(dx*dx+dy*dy<hitR*hitR){
         var dmg=Math.max(1, Math.ceil(e.hp*0.5))
         p.hp-=dmg; p._iFrames=0.8
         _spawnP(p.x,p.y,'#e74c3c',6)
@@ -423,8 +432,8 @@ GameGlobal.Survival = {
     }
     // Boss
     if(this.boss&&p._iFrames<=0){
-      var b=this.boss,dx=p.x-b.x,dy=p.y-b.y,dist=Math.sqrt(dx*dx+dy*dy)
-      if(dist<22+45){
+      var b=this.boss,dx=p.x-b.x,dy=p.y-b.y
+      if(dx*dx+dy*dy<67*67){
         p.hp-=20;p._iFrames=0.8;_spawnP(p.x,p.y,'#e74c3c',10)
       }
     }

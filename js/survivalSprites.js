@@ -50,6 +50,10 @@ var ICONS_WEAPONS_FILE = CLOUD_PREFIX + 'survival/icons/Weapons.png'
 var ICONS_FOOD_FILE = CLOUD_PREFIX + 'survival/icons/Food.png'
 var ICONS_POTIONS_FILE = CLOUD_PREFIX + 'survival/icons/PotionBottles.png'
 
+// Boss sprite sheets
+var BOSS_IDLE_FILE = CLOUD_PREFIX + 'survival/boss/boss_idle.png'
+var BOSS_RUN_FILE = CLOUD_PREFIX + 'survival/boss/boss_run.png'
+
 // VFX sprite sheets
 var VFX_LIGHTNING_FILE = CLOUD_PREFIX + 'survival/vfx/lightning_sheet.png'
 var VFX_SPELL_FILE = CLOUD_PREFIX + 'survival/vfx/01.png'
@@ -96,6 +100,12 @@ function _loadSprites() {
   fileKeys.push('icons_food')
   fileIDs.push(ICONS_POTIONS_FILE)
   fileKeys.push('icons_potions')
+
+  // Boss sprites
+  fileIDs.push(BOSS_IDLE_FILE)
+  fileKeys.push('boss_idle')
+  fileIDs.push(BOSS_RUN_FILE)
+  fileKeys.push('boss_run')
 
   // VFX sprite sheets
   fileIDs.push(VFX_LIGHTNING_FILE)
@@ -169,14 +179,15 @@ function _drawSpriteFrame(ctx, img, frameIdx, totalFrames, x, y, w, h, flipX) {
   var fh = img.height
   var sx = frameIdx * fw
 
-  ctx.save()
-  ctx.translate(x, y)
   if (flipX) {
+    ctx.save()
+    ctx.translate(x, y)
     ctx.scale(-1, 1)
+    ctx.drawImage(img, sx, 0, fw, fh, -w / 2, -h / 2, w, h)
+    ctx.restore()
+  } else {
+    ctx.drawImage(img, sx, 0, fw, fh, x - w / 2, y - h / 2, w, h)
   }
-  ctx.imageSmoothingEnabled = false
-  ctx.drawImage(img, sx, 0, fw, fh, -w / 2, -h / 2, w, h)
-  ctx.restore()
 }
 
 // ── Public API
@@ -211,12 +222,10 @@ function drawMonster(ctx, x, y, size, monsterType, elapsed, flash) {
   var frameIdx = Math.floor(elapsed / frameDuration) % 4
 
   if (flash) {
-    // 受伤闪白：先提高亮度
-    ctx.save()
+    var prevAlpha = ctx.globalAlpha
     ctx.globalAlpha = 0.5
     _drawSpriteFrame(ctx, img, frameIdx, 4, x, y, size, size, false)
-    ctx.globalAlpha = 1
-    ctx.restore()
+    ctx.globalAlpha = prevAlpha
   } else {
     _drawSpriteFrame(ctx, img, frameIdx, 4, x, y, size, size, false)
   }
@@ -238,11 +247,8 @@ function drawTile(ctx, x, y, tileVariant) {
   if (!img || !_spriteLoaded['tileset']) return false
 
   var t = GRASS_TILES[tileVariant % GRASS_TILES.length]
-  ctx.save()
-  ctx.imageSmoothingEnabled = false
   // +2像素消除高DPR设备的拼接间隙
   ctx.drawImage(img, t.sx, t.sy, t.sw, t.sh, Math.round(x) - 1, Math.round(y) - 1, 82, 82)
-  ctx.restore()
   return true
 }
 
@@ -416,7 +422,8 @@ function getTreeColliders(px, py, radius) {
 }
 
 // 推开玩家，防止穿过树
-// 返回修正后的位置 {x, y}
+// 返回修正后的位置 {x, y} — reuses a single object to avoid GC pressure
+var _resolveResult = { x: 0, y: 0 }
 function resolveTreeCollision(px, py, playerR) {
   var trees = getTreeColliders(px, py, 60)
   for (var i = 0; i < trees.length; i++) {
@@ -432,7 +439,9 @@ function resolveTreeCollision(px, py, playerR) {
       py += (dy / dist) * push
     }
   }
-  return { x: px, y: py }
+  _resolveResult.x = px
+  _resolveResult.y = py
+  return _resolveResult
 }
 
 // Pick a random monster sprite name for a given enemy type
@@ -460,10 +469,7 @@ function drawWeaponIcon(ctx, x, y, size, iconIdx) {
   var frameW = img.width / 5
   var frameH = img.height
   var sx = iconIdx * frameW
-  ctx.save()
-  ctx.imageSmoothingEnabled = false
   ctx.drawImage(img, sx, 0, frameW, frameH, x - size / 2, y - size / 2, size, size)
-  ctx.restore()
   return true
 }
 
@@ -475,10 +481,7 @@ function drawFoodItem(ctx, x, y, size, foodType) {
   var frameW = img.width / 5
   var frameH = img.height
   var sx = foodType * frameW
-  ctx.save()
-  ctx.imageSmoothingEnabled = false
   ctx.drawImage(img, sx, 0, frameW, frameH, x - size / 2, y - size / 2, size, size)
-  ctx.restore()
   return true
 }
 
@@ -490,10 +493,7 @@ function drawPotionIcon(ctx, x, y, size, potionIdx) {
   var frameW = img.width / 5
   var frameH = img.height
   var sx = potionIdx * frameW
-  ctx.save()
-  ctx.imageSmoothingEnabled = false
   ctx.drawImage(img, sx, 0, frameW, frameH, x - size / 2, y - size / 2, size, size)
-  ctx.restore()
   return true
 }
 
@@ -538,10 +538,7 @@ function drawFireRing(ctx, x, y, radius, elapsed) {
   var sx = frameIdx * frameW
 
   var drawSize = radius * 2
-  ctx.save()
-  ctx.imageSmoothingEnabled = false
   ctx.drawImage(img, sx, sy, frameW, frameH, x - drawSize / 2, y - drawSize / 2, drawSize, drawSize)
-  ctx.restore()
   return true
 }
 
@@ -557,10 +554,7 @@ function drawIceAura(ctx, x, y, radius, elapsed) {
   var sx = 0
 
   var drawSize = radius * 2
-  ctx.save()
-  ctx.imageSmoothingEnabled = false
   ctx.drawImage(img, sx, sy, frameW, frameH, x - drawSize / 2, y - drawSize / 2, drawSize, drawSize)
-  ctx.restore()
   return true
 }
 
@@ -575,10 +569,44 @@ function drawEnergyBolt(ctx, x, y, size, elapsed) {
   var frameIdx = Math.floor(elapsed * fps) % totalFrames
   var sx = frameIdx * frameW
 
-  ctx.save()
-  ctx.imageSmoothingEnabled = false
   ctx.drawImage(img, sx, 0, frameW, frameH, x - size / 2, y - size / 2, size, size)
-  ctx.restore()
+  return true
+}
+
+// Draw boss sprite with idle/run animation
+// state: 'idle' or 'run'
+// elapsed: total game elapsed time in seconds
+// flash: boolean (damage flash)
+function drawBossSprite(ctx, x, y, size, state, elapsed, flash) {
+  var key, totalFrames, frameW, frameH, fps
+  if (state === 'run') {
+    key = 'boss_run'
+    totalFrames = 6
+    frameW = 66
+    frameH = 45
+    fps = 10
+  } else {
+    key = 'boss_idle'
+    totalFrames = 16
+    frameW = 61
+    frameH = 46
+    fps = 8
+  }
+  var img = _spriteImages[key]
+  if (!img || !_spriteLoaded[key]) return false
+
+  var frameDuration = 1.0 / fps
+  var frameIdx = Math.floor(elapsed / frameDuration) % totalFrames
+
+  if (flash) {
+    ctx.save()
+    ctx.globalAlpha = 0.5
+    _drawSpriteFrame(ctx, img, frameIdx, totalFrames, x, y, size, size * (frameH / frameW), false)
+    ctx.globalAlpha = 1
+    ctx.restore()
+  } else {
+    _drawSpriteFrame(ctx, img, frameIdx, totalFrames, x, y, size, size * (frameH / frameW), false)
+  }
   return true
 }
 
@@ -610,6 +638,7 @@ GameGlobal.SurvivalSprites = {
   drawFireRing: drawFireRing,
   drawIceAura: drawIceAura,
   drawEnergyBolt: drawEnergyBolt,
+  drawBossSprite: drawBossSprite,
   PLAYER_SKINS: PLAYER_SKINS,
   PLAYER_ANIMS: PLAYER_ANIMS,
   ENEMY_SPRITE_MAP: ENEMY_SPRITE_MAP,
