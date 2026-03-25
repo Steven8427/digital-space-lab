@@ -368,17 +368,30 @@ GameGlobal.Survival = {
 
   // ── 投射物
   _updateProjectiles: function(dt) {
+    var p=this.player
     for(var i=this.projectiles.length-1;i>=0;i--){
       var pr=this.projectiles[i]
       pr.x+=pr.vx*dt; pr.y+=pr.vy*dt; pr.life-=dt
-      if(pr.life<=0){this.projectiles.splice(i,1);continue}
-      // 碰撞敌人 — squared distance to avoid sqrt
-      for(var ei=this.enemies.length-1;ei>=0;ei--){
-        var e=this.enemies[ei],dx=pr.x-e.x,dy=pr.y-e.y
-        var hitR=_enemyRadius(e.type)+6
-        if(dx*dx+dy*dy<hitR*hitR){
-          this._damageEnemy(ei,pr.dmg)
-          this.projectiles.splice(i,1); break
+      if(pr.life<=0){this.projectiles[i]=this.projectiles[this.projectiles.length-1];this.projectiles.pop();continue}
+
+      if(pr.targets==='player') {
+        // Boss弹幕 → 碰撞玩家
+        var pdx=pr.x-p.x, pdy=pr.y-p.y
+        if(pdx*pdx+pdy*pdy < 20*20 && p._iFrames<=0) {
+          p.hp-=pr.dmg; p._iFrames=0.5
+          _spawnP(p.x,p.y,'#ff4444',3)
+          this.projectiles[i]=this.projectiles[this.projectiles.length-1];this.projectiles.pop()
+          continue
+        }
+      } else {
+        // 玩家弹幕 → 碰撞敌人
+        for(var ei=this.enemies.length-1;ei>=0;ei--){
+          var e=this.enemies[ei],dx=pr.x-e.x,dy=pr.y-e.y
+          var hitR=_enemyRadius(e.type)+6
+          if(dx*dx+dy*dy<hitR*hitR){
+            this._damageEnemy(ei,pr.dmg)
+            this.projectiles[i]=this.projectiles[this.projectiles.length-1];this.projectiles.pop();break
+          }
         }
       }
     }
@@ -524,23 +537,138 @@ GameGlobal.Survival = {
 
   _spawnBoss: function() {
     var p=this.player
-    this.boss={x:p.x+500,y:p.y,hp:500,maxHp:500,speed:18,_spawnTimer:0,_flashTimer:0}
+    this.boss={
+      x:p.x+500, y:p.y, hp:800, maxHp:800, speed:22,
+      _spawnTimer:0, _flashTimer:0,
+      // 阶段系统
+      phase:1,           // 1=普通, 2=狂暴(50%HP), 3=绝望(25%HP)
+      // 冲刺攻击
+      _chargeCD:0, _charging:false, _chargeDir:{x:0,y:0},
+      _chargeSpeed:0, _chargeDur:0, _chargeWarn:0,
+      // 范围冲击波
+      _waveCD:0,
+      // 弹幕
+      _bulletCD:0,
+      // 召唤
+      _summonCD:0
+    }
   },
 
   _updateBoss: function(dt) {
-    var b=this.boss,p=this.player
-    var dx=p.x-b.x,dy=p.y-b.y,dist=Math.sqrt(dx*dx+dy*dy)
-    if(dist>1){b.x+=(dx/dist)*b.speed*dt;b.y+=(dy/dist)*b.speed*dt}
+    var b=this.boss, p=this.player
+    var dx=p.x-b.x, dy=p.y-b.y
+    var dist2=dx*dx+dy*dy, dist=Math.sqrt(dist2)
     if(b._flashTimer>0) b._flashTimer-=dt
-    b._spawnTimer+=dt
-    if(b._spawnTimer>=4){
-      b._spawnTimer=0
-      for(var i=0;i<3;i++){
-        var hp=5+Math.floor(this.elapsed/60)*2
-        var _ps5=GameGlobal.SurvivalSprites?GameGlobal.SurvivalSprites.pickMonsterSprite:null
-        this.enemies.push({x:b.x+(Math.random()-0.5)*100,y:b.y+(Math.random()-0.5)*100,hp:hp,maxHp:hp,type:'walker',speed:ENEMY_TYPES.walker.speed,spriteType:_ps5?_ps5('walker'):null})
+
+    // ── 阶段切换
+    var hpRatio = b.hp / b.maxHp
+    if(hpRatio<=0.25 && b.phase<3) {
+      b.phase=3; b.speed=35
+      // 绝望阶段：全屏警告 + 爆发召唤
+      this._bossWarn='绝望狂暴！'; this._bossWarnT=2
+      for(var i=0;i<5;i++) this._bossSpawnMinion(b, true)
+    } else if(hpRatio<=0.5 && b.phase<2) {
+      b.phase=2; b.speed=28
+      this._bossWarn='Boss 狂暴化！'; this._bossWarnT=2
+    }
+
+    // ── 冲刺攻击
+    b._chargeCD+=dt
+    var chargeInterval = b.phase>=3 ? 3 : (b.phase>=2 ? 5 : 7)
+    if(b._charging) {
+      // 蓄力阶段
+      if(b._chargeWarn>0) {
+        b._chargeWarn-=dt
+        if(b._chargeWarn<=0) {
+          // 开始冲刺
+          b._chargeSpeed = b.phase>=3 ? 600 : (b.phase>=2 ? 450 : 350)
+          b._chargeDur = 0.5
+        }
+        return // 蓄力时不移动
+      }
+      // 冲刺移动
+      b.x += b._chargeDir.x * b._chargeSpeed * dt
+      b.y += b._chargeDir.y * b._chargeSpeed * dt
+      b._chargeDur -= dt
+      // 冲刺碰撞检测
+      var cdx=p.x-b.x, cdy=p.y-b.y
+      if(cdx*cdx+cdy*cdy < 45*45) {
+        var dmg = b.phase>=3 ? 25 : (b.phase>=2 ? 18 : 12)
+        if(p._iFrames<=0) { p.hp-=dmg; p._iFrames=0.8; _spawnP(p.x,p.y,'#e74c3c',5) }
+      }
+      if(b._chargeDur<=0) { b._charging=false; b._chargeCD=0 }
+      return
+    }
+    if(b._chargeCD>=chargeInterval && dist<400) {
+      // 开始蓄力
+      b._charging=true
+      b._chargeWarn=0.8  // 0.8秒蓄力警告
+      var nd=dist>1?dist:1
+      b._chargeDir={x:dx/nd, y:dy/nd}
+      b._chargeCD=0
+    }
+
+    // ── 普通追踪移动
+    if(dist>1){b.x+=(dx/dist)*b.speed*dt; b.y+=(dy/dist)*b.speed*dt}
+
+    // ── 范围冲击波
+    b._waveCD+=dt
+    var waveInterval = b.phase>=3 ? 2.5 : (b.phase>=2 ? 4 : 6)
+    if(b._waveCD>=waveInterval) {
+      b._waveCD=0
+      var waveR = b.phase>=3 ? 200 : (b.phase>=2 ? 160 : 120)
+      // 用 _rings 系统显示冲击波
+      this._rings.push({x:b.x, y:b.y, r:0, maxR:waveR, dmg:0, isBossWave:true})
+      // 对玩家造成伤害（在范围内）
+      if(dist<waveR && p._iFrames<=0) {
+        var waveDmg = b.phase>=3 ? 15 : (b.phase>=2 ? 10 : 6)
+        p.hp-=waveDmg; p._iFrames=0.5; _spawnP(p.x,p.y,'#ff6600',4)
       }
     }
+
+    // ── 弹幕攻击
+    b._bulletCD+=dt
+    var bulletInterval = b.phase>=3 ? 1.5 : (b.phase>=2 ? 2.5 : 4)
+    if(b._bulletCD>=bulletInterval) {
+      b._bulletCD=0
+      var numBullets = b.phase>=3 ? 12 : (b.phase>=2 ? 8 : 5)
+      var bulletDmg = b.phase>=3 ? 10 : (b.phase>=2 ? 7 : 5)
+      for(var bi=0;bi<numBullets;bi++) {
+        var ba = (bi/numBullets)*Math.PI*2 + this.elapsed*0.5  // 旋转偏移
+        var bvx=Math.cos(ba)*200, bvy=Math.sin(ba)*200
+        this.projectiles.push({
+          x:b.x, y:b.y, vx:bvx, vy:bvy,
+          dmg:bulletDmg, life:2, type:'bossBullet',
+          targets:'player', r:6
+        })
+      }
+    }
+
+    // ── 召唤小怪
+    b._summonCD+=dt
+    var summonInterval = b.phase>=3 ? 3 : (b.phase>=2 ? 5 : 8)
+    if(b._summonCD>=summonInterval) {
+      b._summonCD=0
+      var summonCount = b.phase>=3 ? 4 : (b.phase>=2 ? 3 : 2)
+      var summonElite = b.phase>=3  // 绝望阶段召唤精英
+      for(var si=0;si<summonCount;si++) this._bossSpawnMinion(b, summonElite)
+    }
+  },
+
+  _bossSpawnMinion: function(b, isElite) {
+    var hp = isElite ? 40 : (8+Math.floor(this.elapsed/60)*2)
+    var spd = isElite ? 50 : ENEMY_TYPES.walker.speed
+    var _ps5=GameGlobal.SurvivalSprites?GameGlobal.SurvivalSprites.pickMonsterSprite:null
+    var type = isElite ? 'dash' : 'walker'
+    var e = {
+      x:b.x+(Math.random()-0.5)*120, y:b.y+(Math.random()-0.5)*120,
+      hp:hp, maxHp:hp, type:type, speed:spd,
+      spriteType:_ps5?_ps5(type):null
+    }
+    if(isElite) {
+      e.isElite=true; e.eliteSize=1.3; e.eliteColor='#e74c3c'; e.eliteName='守卫'
+    }
+    if(this.enemies.length<this.maxEnemies+10) this.enemies.push(e)
   },
 
   // ── 食物掉落系统

@@ -168,16 +168,35 @@ GameGlobal.drawSurvivalScreen=function(){
   // 投射物
   for(var i=0;i<S.projectiles.length;i++){
     var pr=S.projectiles[i],prx=pr.x-cam.x,pry=pr.y-cam.y
-    var _boltDrawn = false
-    if (_sprites && typeof _sprites.drawEnergyBolt === 'function') {
-      _boltDrawn = _sprites.drawEnergyBolt(ctx, prx, pry, 16, S.elapsed)
+    if(prx<-30||prx>SW+30||pry<-30||pry>SH+30) continue
+    if(pr.targets==='player') {
+      // Boss弹幕：红色旋转弹
+      var ba2=S.elapsed*8+i
+      ctx.beginPath();ctx.arc(prx,pry,pr.r||6,0,Math.PI*2)
+      ctx.fillStyle='#ff3333';ctx.fill()
+      ctx.beginPath();ctx.arc(prx,pry,(pr.r||6)*0.5,0,Math.PI*2)
+      ctx.fillStyle='#ffaa00';ctx.fill()
+    } else {
+      var _boltDrawn = false
+      if (_sprites && typeof _sprites.drawEnergyBolt === 'function') {
+        _boltDrawn = _sprites.drawEnergyBolt(ctx, prx, pry, 16, S.elapsed)
+      }
+      if (!_boltDrawn) {
+        ctx.beginPath();ctx.arc(prx,pry,5,0,Math.PI*2)
+        ctx.fillStyle='#a29bfe';ctx.fill()
+        ctx.beginPath();ctx.arc(prx,pry,3,0,Math.PI*2)
+        ctx.fillStyle='#fff';ctx.fill()
+      }
     }
-    if (!_boltDrawn) {
-      ctx.beginPath();ctx.arc(prx,pry,5,0,Math.PI*2)
-      ctx.fillStyle='#a29bfe';ctx.fill()
-      ctx.beginPath();ctx.arc(prx,pry,3,0,Math.PI*2)
-      ctx.fillStyle='#fff';ctx.fill()
-    }
+  }
+
+  // Boss阶段警告文字
+  if(S._bossWarnT && S._bossWarnT>0) {
+    S._bossWarnT -= 1/60
+    var wa=Math.min(1, S._bossWarnT)
+    setFont(SW*0.05,'900');ctx.textAlign='center';ctx.textBaseline='middle'
+    ctx.fillStyle='rgba(255,50,50,'+wa+')'
+    ctx.fillText(S._bossWarn||'', SW/2, SH*0.35)
   }
 
   // 闪电
@@ -353,14 +372,31 @@ function _drawBoss(x,y,b){
     ctx.fillStyle=flash?'#fff':'#c0392b';ctx.fill();ctx.strokeStyle='#f39c12';ctx.lineWidth=3;ctx.stroke()
   }
 
+  // 冲刺蓄力警告线
+  if(b._charging && b._chargeWarn>0) {
+    var warn = 1 - b._chargeWarn / 0.8
+    ctx.strokeStyle='rgba(255,50,50,'+(0.3+warn*0.5)+')'
+    ctx.lineWidth=2+warn*4
+    ctx.setLineDash([8,6])
+    ctx.beginPath(); ctx.moveTo(x,y)
+    ctx.lineTo(x+b._chargeDir.x*300, y+b._chargeDir.y*300)
+    ctx.stroke(); ctx.setLineDash([])
+  }
+
+  // 阶段颜色
+  var phaseColor = b.phase>=3 ? '#ff2222' : (b.phase>=2 ? '#ff6600' : '#e74c3c')
+  var phaseText = b.phase>=3 ? 'BOSS [绝望]' : (b.phase>=2 ? 'BOSS [狂暴]' : 'BOSS')
+
   // Boss label + HP text
-  setFont(14,'900');ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff'
-  ctx.fillText('BOSS',x,y-r-18);setFont(12,'800');ctx.fillText(Math.ceil(b.hp),x,y+r+10)
+  setFont(14,'900');ctx.textAlign='center';ctx.textBaseline='middle'
+  ctx.fillStyle=phaseColor
+  ctx.fillText(phaseText,x,y-r-22);setFont(12,'800');ctx.fillStyle='#fff'
+  ctx.fillText(Math.ceil(b.hp),x,y+r+10)
 
   // Boss HP bar
-  var bw=r*2.5,bh=5,bx=x-bw/2,by=y-r-12
+  var bw=r*2.5,bh=5,bx=x-bw/2,by=y-r-14
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(bx,by,bw,bh)
-  ctx.fillStyle='#e74c3c';ctx.fillRect(bx,by,bw*(b.hp/b.maxHp),bh)
+  ctx.fillStyle=phaseColor;ctx.fillRect(bx,by,bw*(b.hp/b.maxHp),bh)
 }
 
 // ── 玩家
