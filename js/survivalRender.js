@@ -387,12 +387,12 @@ function _drawHUD(S){
   var hpR=Math.max(0,p.hp/p.maxHp)
   ctx.fillStyle=hpR>0.5?'#2ecc71':hpR>0.25?'#f39c12':'#e74c3c'
   ctx.fillRect(hpX,hpY,hpW*hpR,hpH)
-  setFont(SW*0.020,'700');ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle='#fff'
-  ctx.fillText(Math.ceil(p.hp)+'/'+p.maxHp, hpX, hpY+hpH+SH*0.012)
+  setFont(SW*0.018,'700');ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle='#fff'
+  ctx.fillText(Math.ceil(p.hp)+'/'+p.maxHp, hpX+4, hpY+hpH/2)
 
   // 等级 + XP（血条正下方）
   setFont(SW*0.018,'800');ctx.fillStyle='#f39c12';ctx.textAlign='left';ctx.textBaseline='middle'
-  ctx.fillText(p.level>=20?'Lv.MAX':'Lv.'+p.level, hpX, hpY+hpH+SH*0.012)
+  ctx.fillText(p.level>=20?'Lv.MAX':'Lv.'+p.level, hpX, hpY+hpH+SH*0.010)
   // XP条（等级文字右边）
   var lvTextW = SW * 0.08
   var xpN=(p.level<20)?LEVEL_XP_R[p.level]||999:1,xpR=p.level>=20?1:Math.min(1,p.xp/xpN)
