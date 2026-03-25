@@ -41,7 +41,11 @@ function _enemyRadius(type) {
 // ── 粒子
 var _particles = []
 function _spawnP(x,y,color,n) {
-  for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,sp=40+Math.random()*120
+  // 限制粒子总数，防止手机掉帧
+  var maxP = 80
+  if (_particles.length > maxP) return
+  var actual = Math.min(n, maxP - _particles.length)
+  for(var i=0;i<actual;i++){var a=Math.random()*Math.PI*2,sp=40+Math.random()*120
     _particles.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:0.35+Math.random()*0.25,age:0,color:color,r:2+Math.random()*3})}
 }
 function _updateP(dt) {

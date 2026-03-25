@@ -287,59 +287,101 @@ function _hashPos(x, y) {
   return (h ^ (h >> 16)) & 0x7FFFFFFF
 }
 
-// 绘制装饰物层
-// cam: {x, y}, screenW, screenH
-function drawDecorations(ctx, cam, screenW, screenH) {
+// ── 离屏缓存装饰物（性能优化）
+var _decoCache = null   // offscreen canvas
+var _decoCacheX = null   // 缓存对应的 chunk X
+var _decoCacheY = null
+var _decoCacheSW = 0
+var _decoCacheSH = 0
+var CHUNK = 90 * 3       // 每移动 3 格 cell 才重绘缓存
+
+function _renderDecoChunk(offCtx, camX, camY, w, h) {
   var img = _spriteImages['tileset']
-  if (!img || !_spriteLoaded['tileset']) return
+  if (!img) return
+  offCtx.clearRect(0, 0, w, h)
+  offCtx.imageSmoothingEnabled = false
 
-  ctx.save()
-  ctx.imageSmoothingEnabled = false
-
-  var cellSize = 90  // 每 90px 区域最多放一个装饰（更密集）
-  var startCX = Math.floor((cam.x - 60) / cellSize)
-  var startCY = Math.floor((cam.y - 60) / cellSize)
-  var endCX = Math.ceil((cam.x + screenW + 60) / cellSize)
-  var endCY = Math.ceil((cam.y + screenH + 60) / cellSize)
+  var cellSize = 90
+  var pad = 80  // 树的尺寸可能超出格子
+  var startCX = Math.floor((camX - pad) / cellSize)
+  var startCY = Math.floor((camY - pad) / cellSize)
+  var endCX = Math.ceil((camX + w + pad) / cellSize)
+  var endCY = Math.ceil((camY + h + pad) / cellSize)
 
   for (var cy = startCY; cy <= endCY; cy++) {
     for (var cx = startCX; cx <= endCX; cx++) {
-      var h = _hashPos(cx, cy)
-      // 约60%的格子有装饰
-      if (h % 100 > 60) continue
+      var h2 = _hashPos(cx, cy)
+      if (h2 % 100 > 60) continue
 
-      var h2 = _hashPos(cx + 9999, cy + 7777)
-      var offsetX = (h % 97) * cellSize / 97
-      var offsetY = (h2 % 89) * cellSize / 89
-      // 同一格子可能有第二个小装饰（30%概率）
+      var h2b = _hashPos(cx + 9999, cy + 7777)
+      var offsetX = (h2 % 97) * cellSize / 97
+      var offsetY = (h2b % 89) * cellSize / 89
+
+      // 第二个小装饰（30%概率）
       var h4 = _hashPos(cx + 1111, cy + 2222)
       if (h4 % 100 < 30) {
         var deco2 = DECO_ITEMS[h4 % DECO_ITEMS.length]
         var ox2 = (h4 % 71) * cellSize / 71
         var oy2 = (_hashPos(cx + 4444, cy + 8888) % 67) * cellSize / 67
-        var dx2 = Math.round(cx * cellSize + ox2 - cam.x - deco2.drawW/2)
-        var dy2 = Math.round(cy * cellSize + oy2 - cam.y - deco2.drawH/2)
-        ctx.drawImage(img, deco2.sx, deco2.sy, deco2.sw, deco2.sh,
-          dx2, dy2, deco2.drawW, deco2.drawH)
+        offCtx.drawImage(img, deco2.sx, deco2.sy, deco2.sw, deco2.sh,
+          Math.round(cx * cellSize + ox2 - camX - deco2.drawW/2),
+          Math.round(cy * cellSize + oy2 - camY - deco2.drawH/2),
+          deco2.drawW, deco2.drawH)
       }
+
       var wx = cx * cellSize + offsetX
       var wy = cy * cellSize + offsetY
-      var sx = Math.round(wx - cam.x)
-      var sy = Math.round(wy - cam.y)
+      var sx = Math.round(wx - camX)
+      var sy = Math.round(wy - camY)
 
       var h3 = _hashPos(cx + 3333, cy + 5555)
       if (h3 % 100 < 8) {
         var tree = TREE_DEFS[h3 % TREE_DEFS.length]
-        ctx.drawImage(img, tree.sx, tree.sy, tree.sw, tree.sh,
+        offCtx.drawImage(img, tree.sx, tree.sy, tree.sw, tree.sh,
           Math.round(sx - tree.drawW/2), Math.round(sy - tree.drawH/2), tree.drawW, tree.drawH)
       } else {
         var deco = DECO_ITEMS[h3 % DECO_ITEMS.length]
-        ctx.drawImage(img, deco.sx, deco.sy, deco.sw, deco.sh,
+        offCtx.drawImage(img, deco.sx, deco.sy, deco.sw, deco.sh,
           Math.round(sx - deco.drawW/2), Math.round(sy - deco.drawH/2), deco.drawW, deco.drawH)
       }
     }
   }
-  ctx.restore()
+}
+
+// 绘制装饰物层（带离屏缓存）
+function drawDecorations(ctx, cam, screenW, screenH) {
+  var img = _spriteImages['tileset']
+  if (!img || !_spriteLoaded['tileset']) return
+
+  // 计算当前 chunk 坐标
+  var chunkX = Math.floor(cam.x / CHUNK) * CHUNK
+  var chunkY = Math.floor(cam.y / CHUNK) * CHUNK
+
+  // 检查是否需要重新渲染离屏 canvas
+  var needRedraw = !_decoCache ||
+    _decoCacheX !== chunkX || _decoCacheY !== chunkY ||
+    _decoCacheSW !== screenW || _decoCacheSH !== screenH
+
+  if (needRedraw) {
+    var cw = screenW + CHUNK * 2  // 缓存比屏幕大，减少重绘
+    var ch = screenH + CHUNK * 2
+    if (!_decoCache || _decoCache.width !== cw || _decoCache.height !== ch) {
+      _decoCache = wx.createCanvas()
+      _decoCache.width = cw
+      _decoCache.height = ch
+    }
+    var offCtx = _decoCache.getContext('2d')
+    _renderDecoChunk(offCtx, chunkX - CHUNK/2, chunkY - CHUNK/2, cw, ch)
+    _decoCacheX = chunkX
+    _decoCacheY = chunkY
+    _decoCacheSW = screenW
+    _decoCacheSH = screenH
+  }
+
+  // 从缓存绘制到主 canvas（只需一次 drawImage）
+  var drawX = (_decoCacheX - CHUNK/2) - cam.x
+  var drawY = (_decoCacheY - CHUNK/2) - cam.y
+  ctx.drawImage(_decoCache, -drawX, -drawY, screenW, screenH, 0, 0, screenW, screenH)
 }
 
 // ── 树碰撞检测
