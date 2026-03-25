@@ -30,8 +30,12 @@ GameGlobal.drawLobbySurvivalScreen=function(){
   roundRect(BOARD_X,cardY,BOARD_W,cardH,14,C.surface,'rgba(231,76,60,0.18)')
   setFont(SW*0.026,'700');ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=C.textDim
   ctx.fillText('最佳击杀记录',cx,cardY+cardH*0.30)
-  setFont(best>0?SW*0.065:SW*0.035,'900');ctx.fillStyle=best>0?'#e74c3c':C.textDim
-  ctx.fillText(best>0?best+'击杀':'暂无记录',cx,cardY+cardH*0.72)
+  setFont(best>0?SW*0.055:SW*0.035,'900');ctx.fillStyle=best>0?'#e74c3c':C.textDim
+  ctx.fillText(best>0?best+'击杀':'暂无记录',cx,cardY+cardH*0.62)
+  // 金币显示
+  var coins=GameGlobal.AchieveShop?GameGlobal.AchieveShop.coins:0
+  setFont(SW*0.024,'700');ctx.fillStyle='#f1c40f'
+  ctx.fillText('💰 '+coins,cx,cardY+cardH*0.88)
 
   var infoY=cardY+cardH+GAP*2
   setFont(SW*0.024,'600');ctx.fillStyle='rgba(255,255,255,0.35)';ctx.textAlign='center'
@@ -57,12 +61,7 @@ GameGlobal.drawLobbySurvivalScreen=function(){
   setFont(BTN_H*0.34,'700');ctx.fillStyle='#f39c12';ctx.fillText('💰 强化',BOARD_X+halfW+GAP+halfW/2,rkY+BTN_H/2)
   L.shopBtn={x:BOARD_X+halfW+GAP,y:rkY,w:halfW,h:BTN_H}
 
-  // 显示金币
-  var coins=GameGlobal.AchieveShop?GameGlobal.AchieveShop.coins:0
-  setFont(SW*0.022,'700');ctx.textAlign='center';ctx.fillStyle='#f1c40f'
-  ctx.fillText('💰 '+coins,cx,rkY+BTN_H+SH*0.02)
-
-  var bkY=rkY+BTN_H+GAP*1.5
+  var bkY=rkY+BTN_H+GAP
   roundRect(BOARD_X,bkY,BOARD_W,BTN_H*0.85,12,C.surface,'rgba(255,255,255,0.06)')
   setFont(BTN_H*0.34,'700');ctx.fillStyle=C.textDim;ctx.fillText('← 返回主页',cx,bkY+BTN_H*0.425)
   L.backBtn={x:BOARD_X,y:bkY,w:BOARD_W,h:BTN_H*0.85}
