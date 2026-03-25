@@ -13,7 +13,7 @@ var _bgStars=[]
 for(var _si=0;_si<100;_si++) _bgStars.push({x:Math.random()*3000,y:Math.random()*3000,r:0.5+Math.random()*1.5,b:0.2+Math.random()*0.4})
 
 // ── 大厅
-GameGlobal.LobbySurvivalUI={startBtn:null,rankBtn:null,backBtn:null}
+GameGlobal.LobbySurvivalUI={startBtn:null,rankBtn:null,backBtn:null,shopBtn:null}
 GameGlobal.drawLobbySurvivalScreen=function(){
   drawBg(); var cx=SW/2,L=GameGlobal.LobbySurvivalUI
   setFont(SW*0.080,'900');ctx.textAlign='center';ctx.textBaseline='middle'
@@ -47,14 +47,165 @@ GameGlobal.drawLobbySurvivalScreen=function(){
   L.startBtn={x:BOARD_X,y:btnY,w:BOARD_W,h:BTN_H*1.3}
 
   var rkY=btnY+BTN_H*1.3+GAP
-  roundRect(BOARD_X,rkY,BOARD_W,BTN_H,12,C.surface,'rgba(255,255,255,0.08)')
-  setFont(BTN_H*0.36,'700');ctx.fillStyle=C.textLight;ctx.fillText('🏆  排 行 榜',cx,rkY+BTN_H/2)
-  L.rankBtn={x:BOARD_X,y:rkY,w:BOARD_W,h:BTN_H}
+  // 排行榜和商店并排
+  var halfW=(BOARD_W-GAP)/2
+  roundRect(BOARD_X,rkY,halfW,BTN_H,12,C.surface,'rgba(255,255,255,0.08)')
+  setFont(BTN_H*0.34,'700');ctx.fillStyle=C.textLight;ctx.fillText('🏆 排行榜',BOARD_X+halfW/2,rkY+BTN_H/2)
+  L.rankBtn={x:BOARD_X,y:rkY,w:halfW,h:BTN_H}
+
+  roundRect(BOARD_X+halfW+GAP,rkY,halfW,BTN_H,12,'rgba(243,156,18,0.15)','rgba(243,156,18,0.4)')
+  setFont(BTN_H*0.34,'700');ctx.fillStyle='#f39c12';ctx.fillText('💰 强化',BOARD_X+halfW+GAP+halfW/2,rkY+BTN_H/2)
+  L.shopBtn={x:BOARD_X+halfW+GAP,y:rkY,w:halfW,h:BTN_H}
+
+  // 显示金币
+  var coins=GameGlobal.AchieveShop?GameGlobal.AchieveShop.coins:0
+  setFont(SW*0.022,'700');ctx.textAlign='center';ctx.fillStyle='#f1c40f'
+  ctx.fillText('💰 '+coins,cx,rkY+BTN_H+SH*0.02)
 
   var bkY=rkY+BTN_H+GAP*1.5
   roundRect(BOARD_X,bkY,BOARD_W,BTN_H*0.85,12,C.surface,'rgba(255,255,255,0.06)')
   setFont(BTN_H*0.34,'700');ctx.fillStyle=C.textDim;ctx.fillText('← 返回主页',cx,bkY+BTN_H*0.425)
   L.backBtn={x:BOARD_X,y:bkY,w:BOARD_W,h:BTN_H*0.85}
+}
+
+// ================================================
+//  永久强化商店
+// ================================================
+var UPGRADES = [
+  { id:'hp',    name:'生命上限', icon:'❤', desc:'初始HP+10',     base:100, step:10, max:200, price:50, priceStep:30 },
+  { id:'speed', name:'移动速度', icon:'👟', desc:'移速+5%',       base:160, step:8,  max:240, price:60, priceStep:40 },
+  { id:'dmg',   name:'攻击加成', icon:'⚔', desc:'伤害+8%',       base:0,   step:8,  max:80,  price:80, priceStep:50 },
+  { id:'armor', name:'减伤护甲', icon:'🛡', desc:'受伤-5%',       base:0,   step:5,  max:40,  price:70, priceStep:45 },
+  { id:'xp',    name:'经验加成', icon:'⭐', desc:'经验+10%',      base:0,   step:10, max:80,  price:40, priceStep:25 },
+  { id:'regen', name:'生命恢复', icon:'💚', desc:'每10秒回1HP',   base:0,   step:1,  max:5,   price:100,priceStep:60 },
+]
+
+function _getUpgrades() {
+  var data = wx.getStorageSync('survivalUpgrades') || {}
+  return data
+}
+function _saveUpgrades(data) {
+  wx.setStorageSync('survivalUpgrades', data)
+}
+function _getUpgradeLevel(id) {
+  var data = _getUpgrades()
+  return data[id] || 0
+}
+function _getUpgradePrice(upg, lv) {
+  return upg.price + lv * upg.priceStep
+}
+
+// 应用永久升级到玩家（游戏init时调用）
+GameGlobal.applySurvivalUpgrades = function(player) {
+  var data = _getUpgrades()
+  for (var i = 0; i < UPGRADES.length; i++) {
+    var u = UPGRADES[i], lv = data[u.id] || 0
+    if (lv <= 0) continue
+    if (u.id === 'hp')    { player.maxHp += u.step * lv; player.hp = player.maxHp }
+    if (u.id === 'speed') { player.speed += u.step * lv }
+    if (u.id === 'dmg')   { player._dmgBonus = (player._dmgBonus||0) + u.step * lv }
+    if (u.id === 'armor') { player._armor = (player._armor||0) + u.step * lv }
+    if (u.id === 'xp')    { player._xpBonus = (player._xpBonus||0) + u.step * lv }
+    if (u.id === 'regen') { player._regen = (player._regen||0) + u.step * lv }
+  }
+}
+
+GameGlobal.SurvivalShopUI = { items: [], backBtn: null }
+GameGlobal.drawSurvivalShopScreen = function() {
+  drawBg(); var cx = SW / 2, UI = GameGlobal.SurvivalShopUI
+  var coins = GameGlobal.AchieveShop ? GameGlobal.AchieveShop.coins : 0
+  UI.items = []
+
+  // 标题
+  setFont(SW * 0.055, '900'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#f39c12'; ctx.fillText('永久强化', cx, SH * 0.08)
+  setFont(SW * 0.028, '700'); ctx.fillStyle = '#f1c40f'
+  ctx.fillText('💰 ' + coins, cx, SH * 0.125)
+
+  var data = _getUpgrades()
+  var cardH = SH * 0.09
+  var startY = SH * 0.17
+
+  for (var i = 0; i < UPGRADES.length; i++) {
+    var u = UPGRADES[i]
+    var lv = data[u.id] || 0
+    var maxLv = Math.floor((u.max - u.base) / u.step)
+    var isMax = lv >= maxLv
+    var price = isMax ? 0 : _getUpgradePrice(u, lv)
+    var canBuy = !isMax && coins >= price
+    var cy = startY + i * (cardH + GAP * 0.6)
+
+    // 卡片背景
+    var cardColor = canBuy ? 'rgba(243,156,18,0.12)' : 'rgba(255,255,255,0.04)'
+    var borderColor = canBuy ? 'rgba(243,156,18,0.3)' : 'rgba(255,255,255,0.06)'
+    roundRect(BOARD_X, cy, BOARD_W, cardH, 10, cardColor, borderColor)
+
+    // 图标
+    setFont(SW * 0.040, '700'); ctx.textAlign = 'left'
+    ctx.fillText(u.icon, BOARD_X + PAD, cy + cardH / 2)
+
+    // 名称 + 描述
+    setFont(SW * 0.028, '800'); ctx.fillStyle = '#fff'
+    ctx.fillText(u.name, BOARD_X + PAD * 3.5, cy + cardH * 0.35)
+    setFont(SW * 0.020, '600'); ctx.fillStyle = 'rgba(255,255,255,0.45)'
+    ctx.fillText(u.desc, BOARD_X + PAD * 3.5, cy + cardH * 0.7)
+
+    // 等级条
+    var barX = BOARD_X + BOARD_W * 0.52, barW = BOARD_W * 0.18, barH = 6
+    var barY = cy + cardH / 2 - barH / 2
+    ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(barX, barY, barW, barH)
+    var fillR = maxLv > 0 ? lv / maxLv : 1
+    ctx.fillStyle = isMax ? '#2ecc71' : '#f39c12'; ctx.fillRect(barX, barY, barW * fillR, barH)
+    setFont(SW * 0.018, '700'); ctx.textAlign = 'center'
+    ctx.fillStyle = isMax ? '#2ecc71' : '#f1c40f'
+    ctx.fillText(isMax ? 'MAX' : ('Lv.' + lv + '/' + maxLv), barX + barW / 2, barY + barH + SH * 0.012)
+
+    // 购买按钮
+    var btnW = BOARD_W * 0.18, btnH = cardH * 0.55
+    var btnX = BOARD_X + BOARD_W - btnW - PAD, btnY2 = cy + (cardH - btnH) / 2
+    if (isMax) {
+      roundRect(btnX, btnY2, btnW, btnH, 8, 'rgba(46,204,113,0.2)')
+      setFont(SW * 0.022, '800'); ctx.textAlign = 'center'; ctx.fillStyle = '#2ecc71'
+      ctx.fillText('已满级', btnX + btnW / 2, btnY2 + btnH / 2)
+    } else {
+      roundRect(btnX, btnY2, btnW, btnH, 8, canBuy ? 'rgba(243,156,18,0.8)' : 'rgba(100,100,100,0.3)')
+      setFont(SW * 0.022, '800'); ctx.textAlign = 'center'
+      ctx.fillStyle = canBuy ? '#fff' : 'rgba(255,255,255,0.3)'
+      ctx.fillText('💰' + price, btnX + btnW / 2, btnY2 + btnH / 2)
+    }
+    UI.items.push({ x: btnX, y: btnY2, w: btnW, h: btnH, id: u.id, price: price, canBuy: canBuy, isMax: isMax })
+  }
+
+  // 返回按钮
+  var bkY = startY + UPGRADES.length * (cardH + GAP * 0.6) + GAP * 2
+  roundRect(BOARD_X, bkY, BOARD_W, BTN_H * 0.85, 12, C.surface, 'rgba(255,255,255,0.06)')
+  setFont(BTN_H * 0.34, '700'); ctx.textAlign = 'center'; ctx.fillStyle = C.textDim
+  ctx.fillText('← 返回', cx, bkY + BTN_H * 0.425)
+  UI.backBtn = { x: BOARD_X, y: bkY, w: BOARD_W, h: BTN_H * 0.85 }
+}
+
+// 商店点击处理
+GameGlobal.handleSurvivalShopTap = function(x, y) {
+  var UI = GameGlobal.SurvivalShopUI
+  if (UI.backBtn && inRect(x, y, UI.backBtn)) {
+    GameGlobal.Sound.play('click')
+    GameGlobal.setScreen('lobbySurvival')
+    return
+  }
+  for (var i = 0; i < UI.items.length; i++) {
+    var item = UI.items[i]
+    if (inRect(x, y, item) && item.canBuy && !item.isMax) {
+      GameGlobal.Sound.play('click')
+      var data = _getUpgrades()
+      data[item.id] = (data[item.id] || 0) + 1
+      _saveUpgrades(data)
+      if (GameGlobal.AchieveShop) {
+        GameGlobal.AchieveShop.coins -= item.price
+        GameGlobal.AchieveShop._save()
+      }
+      return
+    }
+  }
 }
 
 // ================================================
@@ -588,7 +739,7 @@ function _drawHUD(S){
   ctx.fillText('⚙ 设置',stX+stW/2,stY+stH/2)
   GameGlobal.SurvivalUI.settingBtn={x:stX,y:stY,w:stW,h:stH}
 }
-var _WDEFS={orbit:{icon:'🔪'},bolt:{icon:'🔮'},lightning:{icon:'⚡'},aura:{icon:'❄'},ring:{icon:'🔥'}}
+var _WDEFS={orbit:{icon:'🔪'},bolt:{icon:'🔮'},lightning:{icon:'⚡'},aura:{icon:'❄'},ring:{icon:'🔥'},boomerang:{icon:'🪃'},meteor:{icon:'☄'},shield:{icon:'🛡'},vampire:{icon:'💉'},tornado:{icon:'🌪'},poison:{icon:'☢'}}
 var LEVEL_XP_R=[0,25,60,110,180,270,380,510,660,830,1020,1230,1460,1710,1980,2270,2580,2910,3260,3630]
 
 // ── 摇杆

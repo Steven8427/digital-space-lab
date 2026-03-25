@@ -1026,6 +1026,9 @@ function handleTap(x, y) {
       GameGlobal.setScreen('survival')
     } else if (LS.rankBtn && inRect(x, y, LS.rankBtn)) {
       GameGlobal.setScreen('survivalRank')
+    } else if (LS.shopBtn && inRect(x, y, LS.shopBtn)) {
+      GameGlobal.Sound.play('click')
+      GameGlobal.setScreen('survivalShop')
     } else if (LS.backBtn && inRect(x, y, LS.backBtn)) {
       GameGlobal.setScreen('home')
     }
@@ -1072,6 +1075,10 @@ function handleTap(x, y) {
       GameGlobal.Sound.play('click')
       currentScreen = 'lobbySurvival'
     }
+
+  // ──────────── 生存商店 ────────────
+  } else if (currentScreen === 'survivalShop') {
+    if (GameGlobal.handleSurvivalShopTap) GameGlobal.handleSurvivalShopTap(x, y)
 
   // ──────────── 三消大厅 ────────────
   } else if (currentScreen === 'lobbyTile') {
@@ -1397,6 +1404,7 @@ function loop(ts) {
     else if (currentScreen === 'lobbySurvival')        { if (GameGlobal.drawLobbySurvivalScreen)   GameGlobal.drawLobbySurvivalScreen() }
     else if (currentScreen === 'survival')             { if (GameGlobal.drawSurvivalScreen)        GameGlobal.drawSurvivalScreen() }
     else if (currentScreen === 'survivalRank')         { if (GameGlobal.drawSurvivalRankScreen)    GameGlobal.drawSurvivalRankScreen() }
+    else if (currentScreen === 'survivalShop')         { if (GameGlobal.drawSurvivalShopScreen)    GameGlobal.drawSurvivalShopScreen() }
     else if (currentScreen === 'lobbyTile')            { if (GameGlobal.drawLobbyTileScreen)       GameGlobal.drawLobbyTileScreen() }
     else if (currentScreen === 'tileMatch')            { if (GameGlobal.drawTileMatchScreen)       GameGlobal.drawTileMatchScreen() }
     else if (currentScreen === 'tileMatchRank')        { if (GameGlobal.drawTileMatchRankScreen)   GameGlobal.drawTileMatchRankScreen() }

@@ -153,6 +153,9 @@ GameGlobal.Survival = {
     }
     this.joystick={active:false,baseX:0,baseY:0,stickX:0,stickY:0,dx:0,dy:0}
 
+    // 应用永久升级
+    if(GameGlobal.applySurvivalUpgrades) GameGlobal.applySurvivalUpgrades(this.player)
+
     // 初始武器：旋转飞刀
     this._addWeapon('orbit')
 
@@ -237,6 +240,16 @@ GameGlobal.Survival = {
     }
     if(this.elapsed>=GAME_DURATION&&!this.boss&&!this.victory) this._spawnBoss()
     if(this.boss) this._updateBoss(dt)
+
+    // 生命恢复（每10秒回 _regen 点HP）
+    var regen = p._regen || 0
+    if(regen > 0) {
+      p._regenTimer = (p._regenTimer||0) + dt
+      if(p._regenTimer >= 10) { p._regenTimer = 0; p.hp = Math.min(p.maxHp, p.hp + regen) }
+    }
+
+    // 护甲减伤（统一处理：在受伤前修改hp，这里用被动方式）
+    // 实际减伤在 _applyArmor 里处理
 
     // 死亡
     if(p.hp<=0){this.gameOver=true;this.running=false;_spawnP(p.x,p.y,'#e74c3c',20);GameGlobal.Sound.play('lose');this._saveResult()}
@@ -536,10 +549,14 @@ GameGlobal.Survival = {
   // ── 伤害敌人
   _damageEnemy: function(idx, dmg) {
     var e=this.enemies[idx]; if(!e) return
-    e.hp-=dmg; e._flashTimer=0.1
+    // 攻击加成
+    var bonusPct = (this.player._dmgBonus||0) / 100
+    var actualDmg = dmg * (1 + bonusPct)
+    e.hp-=actualDmg; e._flashTimer=0.1
     if(e.hp<=0){
-      // 死亡
-      this.player.xp+=e.maxHp; this.player.kills++; this.player.dmgDealt+=e.maxHp
+      // 死亡 — 经验加成
+      var xpMult = 1 + (this.player._xpBonus||0) / 100
+      this.player.xp+=Math.floor(e.maxHp * xpMult); this.player.kills++; this.player.dmgDealt+=e.maxHp
       _spawnP(e.x,e.y,'#f39c12',5)
       GameGlobal.Sound.play('merge')
       // 分裂怪
@@ -635,13 +652,18 @@ GameGlobal.Survival = {
   },
 
   // ── 玩家碰敌人=受伤 + 击退
+  _applyDmgToPlayer: function(rawDmg) {
+    var armor = this.player._armor || 0
+    return Math.max(1, Math.ceil(rawDmg * (1 - armor/100)))
+  },
+
   _checkPlayerHit: function() {
     var p=this.player; if(p._iFrames>0) return
     for(var i=0;i<this.enemies.length;i++){
       var e=this.enemies[i],dx=p.x-e.x,dy=p.y-e.y
       var hitR=22+_enemyRadius(e.type)-4
       if(dx*dx+dy*dy<hitR*hitR){
-        var dmg=Math.max(1, Math.ceil(e.hp*0.5))
+        var dmg=this._applyDmgToPlayer(Math.max(1, Math.ceil(e.hp*0.5)))
         p.hp-=dmg; p._iFrames=0.8
         _spawnP(p.x,p.y,'#e74c3c',6)
         break
