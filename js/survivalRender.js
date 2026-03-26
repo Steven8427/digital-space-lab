@@ -900,8 +900,13 @@ function _drawWeaponSelect(S){
   ctx.fillStyle='rgba(6,8,26,0.93)';ctx.fillRect(0,0,SW,SH)
   var cx=SW/2
   setFont(SW*0.055,'900');ctx.textAlign='center';ctx.textBaseline='middle'
-  ctx.fillStyle='#f39c12';ctx.fillText('升级！',cx,SH*0.16)
-  setFont(SW*0.030,'700');ctx.fillStyle='#fff';ctx.fillText('等级 '+S.player.level+' — 选择一项',cx,SH*0.23)
+  if(S._pickingStart){
+    ctx.fillStyle='#2ecc71';ctx.fillText('选择初始武器',cx,SH*0.16)
+    setFont(SW*0.030,'700');ctx.fillStyle='#fff';ctx.fillText('选择你的起始武器',cx,SH*0.23)
+  } else {
+    ctx.fillStyle='#f39c12';ctx.fillText('升级！',cx,SH*0.16)
+    setFont(SW*0.030,'700');ctx.fillStyle='#fff';ctx.fillText('等级 '+S.player.level+' — 选择一项'+(S.weapons.length>=(S.maxWeapons||6)?' (武器已满)':''),cx,SH*0.23)
+  }
 
   var UI=GameGlobal.SurvivalUI;UI.skillBtns=[]
   var chs=S.weaponChoices, cardW=BOARD_W*0.90, cardH=SH*0.13, startY=SH*0.30

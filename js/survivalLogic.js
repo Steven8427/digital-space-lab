@@ -117,7 +117,7 @@ var WEAPON_DEFS = {
     upgrade: function(w) { w.dmg+=4; w.count++; w.range+=20; w.cd*=0.92 }
   },
   chain: {
-    name:'锁链', desc:'拉拽最近敌人到身边', icon:'⛓',
+    name:'锁链', desc:'定住敌人无法移动', icon:'⛓',
     baseDmg:6, baseCD:1.8, count:1, range:250,
     upgrade: function(w) { w.dmg+=4; w.count++; w.cd*=0.88; w.range+=20 }
   }
@@ -179,8 +179,18 @@ GameGlobal.Survival = {
     // 应用永久升级
     if(GameGlobal.applySurvivalUpgrades) GameGlobal.applySurvivalUpgrades(this.player)
 
-    // 初始武器：旋转飞刀
-    this._addWeapon('orbit')
+    // 初始武器：3选1
+    this.maxWeapons = 6
+    this._pickingStart = true
+    var allIds = Object.keys(WEAPON_DEFS)
+    // 随机选3个不同的武器
+    allIds.sort(function(){return Math.random()-0.5})
+    this.weaponChoices = [
+      {type:'new', id:allIds[0]},
+      {type:'new', id:allIds[1]},
+      {type:'new', id:allIds[2]}
+    ]
+    this.levelUp = true
 
     // Set player skin from sprites module
     if(GameGlobal.SurvivalSprites) {
@@ -645,7 +655,7 @@ GameGlobal.Survival = {
     }
   },
 
-  // ── 锁链武器
+  // ── 锁链武器（定身）
   _weaponChain: function(w) {
     var p=this.player
     // 找最近的count个敌人
@@ -658,24 +668,32 @@ GameGlobal.Survival = {
     var targets=Math.min(w.count,sorted.length)
     for(var c=0;c<targets;c++){
       var t=sorted[c]
-      // 拉拽敌人到玩家附近
-      var dx2=p.x-t.e.x,dy2=p.y-t.e.y
-      var dist=Math.sqrt(dx2*dx2+dy2*dy2)||1
-      var pullDist=Math.min(dist-20, 80)
-      if(pullDist>0){
-        t.e.x+=dx2/dist*pullDist
-        t.e.y+=dy2/dist*pullDist
-      }
-      this._damageEnemy(t.i-c,w.dmg) // -c因为前面可能splice了
-      // 锁链视觉
-      this._chains.push({x:p.x,y:p.y,tx:t.e.x,ty:t.e.y,life:0.3})
+      // 定身敌人（钉住1.5秒不能动）
+      t.e._stunTimer = 1.5
+      t.e._chained = true
+      this._damageEnemy(t.i,w.dmg)
+      // 锁链视觉（从玩家连到敌人，持续定身时间）
+      this._chains.push({x:p.x,y:p.y,tx:t.e.x,ty:t.e.y,life:1.5,eid:t.e._uid})
       _spawnP(t.e.x,t.e.y,'#95a5a6',3)
     }
   },
   _updateChains: function(dt) {
+    var p=this.player
     for(var i=this._chains.length-1;i>=0;i--){
-      this._chains[i].life-=dt
-      if(this._chains[i].life<=0){this._chains.splice(i,1)}
+      var ch=this._chains[i]
+      ch.life-=dt
+      ch.x=p.x // 锁链起点跟随玩家
+      // 找到被锁的敌人更新终点
+      if(ch.eid){
+        var found=false
+        for(var ei=0;ei<this.enemies.length;ei++){
+          if(this.enemies[ei]._uid===ch.eid){
+            ch.tx=this.enemies[ei].x; ch.ty=this.enemies[ei].y; found=true; break
+          }
+        }
+        if(!found) ch.life=0 // 敌人死了，锁链消失
+      }
+      if(ch.life<=0){this._chains.splice(i,1)}
     }
   },
 
@@ -974,7 +992,6 @@ GameGlobal.Survival = {
     var evolvedAway = {} // 被进化掉的源武器不能再选
     for(var i=0;i<this.weapons.length;i++){
       if(this.weapons[i].evolved){
-        // 找到对应的进化定义，标记源武器
         for(var eid in EVOLUTION_DEFS){
           if(eid===this.weapons[i].id){
             evolvedAway[EVOLUTION_DEFS[eid].a]=true
@@ -983,8 +1000,12 @@ GameGlobal.Survival = {
         }
       }
     }
-    for(var id in WEAPON_DEFS){
-      if(!owned[id] && !evolvedAway[id]) choices.push({type:'new',id:id})
+    // 只有武器未满时才提供新武器选项
+    var atMax = this.weapons.length >= (this.maxWeapons || 6)
+    if(!atMax){
+      for(var id in WEAPON_DEFS){
+        if(!owned[id] && !evolvedAway[id]) choices.push({type:'new',id:id})
+      }
     }
     // 特殊选项
     choices.push({type:'heal',id:'heal'})
@@ -1027,6 +1048,7 @@ GameGlobal.Survival = {
       this._evoFlash = { time: this.elapsed, name: evo.name }
     }
     this.levelUp=false; this.weaponChoices=[]
+    if(this._pickingStart) this._pickingStart=false
   },
 
   // ── 生成
