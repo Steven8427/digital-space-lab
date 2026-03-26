@@ -481,16 +481,9 @@ function drawAxeIcon(ctx, x, y, size) {
   return _drawIconAt(ctx, x, y, size, 5, 3)
 }
 
-// Draw a food item from Food.png sprite sheet
-// foodType: 0=apple, 1=bread, 3=chicken leg (indices into Food.png)
+// Draw food item from 30Icons spritesheet row 4 (apple=0, bread=1, cheese=2, drumstick=3, fish=4)
 function drawFoodItem(ctx, x, y, size, foodType) {
-  var img = _spriteImages['icons_food']
-  if (!img || !_spriteLoaded['icons_food']) return false
-  var frameW = img.width / 5
-  var frameH = img.height
-  var sx = foodType * frameW
-  ctx.drawImage(img, sx, 0, frameW, frameH, x - size / 2, y - size / 2, size, size)
-  return true
+  return _drawIconAt(ctx, x, y, size, 4, foodType)
 }
 
 // Draw a potion icon from PotionBottles.png sprite sheet
