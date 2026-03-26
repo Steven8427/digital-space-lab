@@ -276,11 +276,11 @@ GameGlobal.Survival = {
     if(this.elapsed>=GAME_DURATION&&!this.boss&&!this.victory) this._spawnBoss()
     if(this.boss) this._updateBoss(dt)
 
-    // 生命恢复（每10秒回 _regen 点HP）
+    // 生命恢复（每秒回 _regen 点HP）
     var regen = p._regen || 0
     if(regen > 0) {
       p._regenTimer = (p._regenTimer||0) + dt
-      if(p._regenTimer >= 10) { p._regenTimer = 0; p.hp = Math.min(p.maxHp, p.hp + regen) }
+      if(p._regenTimer >= 1) { p._regenTimer = 0; p.hp = Math.min(p.maxHp, p.hp + regen) }
     }
 
     // 护甲减伤（统一处理：在受伤前修改hp，这里用被动方式）
@@ -906,6 +906,12 @@ GameGlobal.Survival = {
     // 攻击加成
     var bonusPct = (this.player._dmgBonus||0) / 100
     var actualDmg = dmg * (1 + bonusPct)
+    // 暴击
+    var critChance = (this.player._critChance||0) / 100
+    if(critChance > 0 && Math.random() < critChance){
+      actualDmg *= 2
+      _spawnP(e.x, e.y-10, '#ffd700', 3) // 金色暴击粒子
+    }
     e.hp-=actualDmg; e._flashTimer=0.1
     if(e.hp<=0){
       // 死亡 — 经验加成
@@ -1056,12 +1062,17 @@ GameGlobal.Survival = {
       }
     }
 
-    // 已有武器升级选项（满级的不再显示）
+    // 已有武器升级选项（普通武器<5级，进化武器<8级）
     for(var id in owned){
-      if(!owned[id].evolved && owned[id].level<5) choices.push({type:'upgrade',id:id,w:owned[id]})
+      var w=owned[id]
+      if(w.evolved){
+        if(w.level<8) choices.push({type:'upgrade',id:id,w:w})
+      } else {
+        if(w.level<5) choices.push({type:'upgrade',id:id,w:w})
+      }
     }
-    // 新武器选项（不包括已拥有的、进化武器ID、和已进化掉的源武器）
-    var evolvedAway = {} // 被进化掉的源武器不能再选
+    // 新武器选项
+    var evolvedAway = {}
     for(var i=0;i<this.weapons.length;i++){
       if(this.weapons[i].evolved){
         for(var eid in EVOLUTION_DEFS){
@@ -1072,22 +1083,34 @@ GameGlobal.Survival = {
         }
       }
     }
-    // 用已使用槽数判断（进化合并后不会释放槽）
     var atMax = (this._weaponSlotUsed || 0) >= (this.maxWeapons || 6)
     if(!atMax){
       for(var id in WEAPON_DEFS){
         if(!owned[id] && !evolvedAway[id]) choices.push({type:'new',id:id})
       }
     }
-    // 特殊选项
+    // 基础特殊选项
     choices.push({type:'heal',id:'heal'})
     choices.push({type:'speed',id:'speed'})
+    // 高级特殊选项（全武器满级后解锁更多buff）
+    var allMaxed = true
+    for(var id in owned){
+      if((!owned[id].evolved && owned[id].level<5)||(owned[id].evolved && owned[id].level<8)) allMaxed=false
+    }
+    if(this.player.level>=15){
+      choices.push({type:'buff',id:'maxhp',name:'生命上限+20',desc:'永久增加最大HP'})
+      choices.push({type:'buff',id:'dmgbonus',name:'伤害+10%',desc:'所有武器伤害提升'})
+      choices.push({type:'buff',id:'xpbonus',name:'经验+15%',desc:'获得更多经验值'})
+    }
+    if(allMaxed){
+      choices.push({type:'buff',id:'crit',name:'暴击率+5%',desc:'攻击有几率双倍伤害'})
+      choices.push({type:'buff',id:'regen',name:'生命回复',desc:'每秒恢复1HP'})
+    }
 
     // 如果有进化可选，强制放第一个
     if(evolveChoices.length>0){
       choices.sort(function(){return Math.random()-0.5})
       var result=[evolveChoices[0]]
-      // 补充2个普通选项
       for(var i=0;i<choices.length&&result.length<3;i++) result.push(choices[i])
       this.weaponChoices=result
     } else {
@@ -1096,16 +1119,42 @@ GameGlobal.Survival = {
     }
   },
 
+  // 刷新武器选项（花金币）
+  refreshChoices: function() {
+    if(!this.levelUp) return false
+    var coins = GameGlobal.AchieveShop ? GameGlobal.AchieveShop.coins : 0
+    if(coins < 200) return false
+    GameGlobal.AchieveShop.coins -= 200
+    if(GameGlobal.AchieveShop._save) GameGlobal.AchieveShop._save()
+    this._genWeaponChoices()
+    return true
+  },
+
   selectWeapon: function(idx) {
     if(!this.levelUp||idx<0||idx>=this.weaponChoices.length) return
     var ch=this.weaponChoices[idx], p=this.player
     if(ch.type==='new') this._addWeapon(ch.id)
     else if(ch.type==='upgrade'){
       var w=ch.w; w.level++
-      var def=WEAPON_DEFS[w.id]; if(def&&def.upgrade) def.upgrade(w)
+      if(w.evolved){
+        // 进化武器升级：每级+15%伤害，+10%范围，-5%CD
+        w.dmg=Math.floor(w.dmg*1.15)
+        w.range=Math.floor(w.range*1.1)
+        if(w.cd>0) w.cd=w.cd*0.95
+        if(w.level%2===0 && w.count<10) w.count++
+      } else {
+        var def=WEAPON_DEFS[w.id]; if(def&&def.upgrade) def.upgrade(w)
+      }
     }
     else if(ch.type==='heal') { p.hp=Math.min(p.maxHp, p.hp+30) }
     else if(ch.type==='speed') { p.speed+=30 }
+    else if(ch.type==='buff') {
+      if(ch.id==='maxhp') { p.maxHp+=20; p.hp=Math.min(p.maxHp,p.hp+20) }
+      else if(ch.id==='dmgbonus') { p._dmgBonus=(p._dmgBonus||0)+10 }
+      else if(ch.id==='xpbonus') { p._xpBonus=(p._xpBonus||0)+15 }
+      else if(ch.id==='crit') { p._critChance=(p._critChance||0)+5 }
+      else if(ch.id==='regen') { p._regen=(p._regen||0)+1 }
+    }
     else if(ch.type==='evolve') {
       // 进化！移除两把源武器，添加进化武器
       var evo=ch.evo

@@ -1048,6 +1048,13 @@ function handleTap(x, y) {
           return
         }
       }
+      // 刷新按钮
+      if (SUI.refreshBtn && inRect(x, y, SUI.refreshBtn)) {
+        if (SV.refreshChoices()) {
+          GameGlobal.Sound.play('click')
+        }
+        return
+      }
     }
 
     // 游戏结束按钮

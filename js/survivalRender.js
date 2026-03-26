@@ -1015,6 +1015,16 @@ function _drawWeaponSelect(S){
       }
       setFont(cardH*0.20,'800');ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle='#2ecc71'
       ctx.fillText('回复30HP',cardX+PAD+cardH*0.5,cy+cardH*0.45)
+    }else if(ch.type==='buff'){
+      // 高级buff选项 - 紫色
+      var buffIcons={maxhp:'❤',dmgbonus:'⚔',xpbonus:'📈',crit:'💎',regen:'💗'}
+      roundRect(cardX,cy,cardW,cardH,14,'rgba(155,89,182,0.1)','rgba(155,89,182,0.3)')
+      setFont(cardH*0.35,'700');ctx.textAlign='left';ctx.textBaseline='middle'
+      ctx.fillStyle='#fff';ctx.fillText(buffIcons[ch.id]||'✨',cardX+PAD,cy+cardH*0.4)
+      setFont(cardH*0.20,'800');ctx.fillStyle='#bb8fce'
+      ctx.fillText(ch.name,cardX+PAD+cardH*0.5,cy+cardH*0.32)
+      setFont(cardH*0.14,'600');ctx.fillStyle=C.textDim
+      ctx.fillText(ch.desc,cardX+PAD+cardH*0.5,cy+cardH*0.58)
     }else{
       roundRect(cardX,cy,cardW,cardH,14,'rgba(52,152,219,0.08)','rgba(52,152,219,0.2)')
       setFont(cardH*0.35,'700');ctx.textAlign='left';ctx.textBaseline='middle'
@@ -1022,7 +1032,25 @@ function _drawWeaponSelect(S){
       setFont(cardH*0.20,'800');ctx.fillStyle='#5dade2'
       ctx.fillText('移速提升',cardX+PAD+cardH*0.5,cy+cardH*0.45)
     }
+    // 进化武器升级显示当前等级
+    if(ch.type==='upgrade'&&ch.w&&ch.w.evolved){
+      setFont(cardH*0.13,'700');ctx.textAlign='right';ctx.fillStyle='#ffd700'
+      ctx.fillText('Lv'+(ch.w.level+1)+'/8',cardX+cardW-PAD,cy+cardH*0.5)
+    }
     UI.skillBtns.push({x:cardX,y:cy,w:cardW,h:cardH})
+  }
+
+  // 刷新按钮（非初始选择时显示）
+  if(!S._pickingStart){
+    var coins=GameGlobal.AchieveShop?GameGlobal.AchieveShop.coins:0
+    var rfW=cardW*0.5, rfH=SH*0.055
+    var rfX=cx-rfW/2, rfY=startY+chs.length*(cardH+GAP)+GAP
+    var canRefresh=coins>=200
+    roundRect(rfX,rfY,rfW,rfH,10,canRefresh?'rgba(243,156,18,0.1)':'rgba(100,100,100,0.1)',canRefresh?'rgba(243,156,18,0.4)':'rgba(100,100,100,0.2)')
+    setFont(rfH*0.4,'700');ctx.textAlign='center';ctx.textBaseline='middle'
+    ctx.fillStyle=canRefresh?'#f39c12':'#666'
+    ctx.fillText('🔄 刷新 (💰200)',cx,rfY+rfH/2)
+    UI.refreshBtn={x:rfX,y:rfY,w:rfW,h:rfH}
   }
 }
 
