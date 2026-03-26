@@ -430,10 +430,27 @@ GameGlobal.drawSurvivalScreen=function(){
     }
     if(ww.id==='elemental'){
       var px3=p.x-cam.x,py3=p.y-cam.y
-      // 冰圈
-      ctx.beginPath();ctx.arc(px3,py3,Math.max(1,ww.range),0,Math.PI*2)
-      ctx.strokeStyle='rgba(93,173,226,0.3)';ctx.lineWidth=2;ctx.stroke()
-      ctx.fillStyle='rgba(93,173,226,0.05)';ctx.fill()
+      var iceR=ww.range*0.5
+      // 冰冻内圈（冰蓝色旋转六角形）
+      var iceAlpha=0.25+Math.sin(S.elapsed*3)*0.1
+      ctx.beginPath();ctx.arc(px3,py3,Math.max(1,iceR),0,Math.PI*2)
+      ctx.fillStyle='rgba(93,173,226,'+iceAlpha*0.15+')';ctx.fill()
+      ctx.strokeStyle='rgba(174,214,241,'+iceAlpha+')';ctx.lineWidth=2;ctx.stroke()
+      // 冰晶粒子绕圈
+      for(var ip=0;ip<6;ip++){
+        var ia=S.elapsed*2+ip*(Math.PI*2/6)
+        var ix=px3+Math.cos(ia)*iceR*0.8,iy=py3+Math.sin(ia)*iceR*0.8
+        ctx.fillStyle='rgba(174,214,241,0.6)'
+        ctx.fillRect(ix-2,iy-2,4,4)
+      }
+      // 火焰外爆倒计时指示（CD进度环）
+      if(ww._timer!==undefined && ww.cd>0){
+        var prog=ww._timer/ww.cd
+        ctx.beginPath()
+        ctx.arc(px3,py3,Math.max(1,iceR+8),-Math.PI/2,-Math.PI/2+prog*Math.PI*2)
+        ctx.strokeStyle='rgba(231,76,60,'+(0.3+prog*0.5)+')'
+        ctx.lineWidth=3;ctx.stroke()
+      }
     }
   }
 
@@ -508,15 +525,37 @@ GameGlobal.drawSurvivalScreen=function(){
       ctx.fillStyle='#ff3333';ctx.fill()
       ctx.beginPath();ctx.arc(prx,pry,(pr.r||6)*0.5,0,Math.PI*2)
       ctx.fillStyle='#ffaa00';ctx.fill()
+    } else if(pr.type==='fireball') {
+      // 元素爆裂火球：橙红色+拖尾
+      ctx.beginPath();ctx.arc(prx,pry,Math.max(1,6),0,Math.PI*2)
+      ctx.fillStyle='#e74c3c';ctx.fill()
+      ctx.beginPath();ctx.arc(prx,pry,Math.max(1,3.5),0,Math.PI*2)
+      ctx.fillStyle='#f39c12';ctx.fill()
+      // 拖尾
+      ctx.beginPath();ctx.arc(prx-pr.vx*0.015,pry-pr.vy*0.015,Math.max(1,4),0,Math.PI*2)
+      ctx.fillStyle='rgba(231,76,60,0.4)';ctx.fill()
+    } else if(pr.type==='thunderball') {
+      // 雷球：蓝紫色+电弧
+      ctx.beginPath();ctx.arc(prx,pry,Math.max(1,7),0,Math.PI*2)
+      ctx.fillStyle='#3498db';ctx.fill()
+      ctx.beginPath();ctx.arc(prx,pry,Math.max(1,4),0,Math.PI*2)
+      ctx.fillStyle='#fff';ctx.fill()
+      // 小电弧
+      for(var sp=0;sp<3;sp++){
+        var sa=S.elapsed*15+sp*2.1
+        var sx2=prx+Math.cos(sa)*10,sy2=pry+Math.sin(sa)*10
+        ctx.beginPath();ctx.moveTo(prx,pry);ctx.lineTo(sx2,sy2)
+        ctx.strokeStyle='rgba(52,152,219,0.5)';ctx.lineWidth=1;ctx.stroke()
+      }
     } else {
       var _boltDrawn = false
       if (_sprites && typeof _sprites.drawEnergyBolt === 'function') {
         _boltDrawn = _sprites.drawEnergyBolt(ctx, prx, pry, 16, S.elapsed)
       }
       if (!_boltDrawn) {
-        ctx.beginPath();ctx.arc(prx,pry,5,0,Math.PI*2)
+        ctx.beginPath();ctx.arc(prx,pry,Math.max(1,5),0,Math.PI*2)
         ctx.fillStyle='#a29bfe';ctx.fill()
-        ctx.beginPath();ctx.arc(prx,pry,3,0,Math.PI*2)
+        ctx.beginPath();ctx.arc(prx,pry,Math.max(1,3),0,Math.PI*2)
         ctx.fillStyle='#fff';ctx.fill()
       }
     }

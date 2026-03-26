@@ -744,23 +744,36 @@ GameGlobal.Survival = {
       this.projectiles.push({x:p.x,y:p.y,vx:dx2/d*sp,vy:dy2/d*sp,dmg:w.dmg,life:1.2,type:'thunderball',targets:{},chainLeft:3})
     }
   },
-  // 元素爆裂: 冰火交替脉冲
+  // 元素爆裂: 冰冻内圈 + 火焰外爆，交替节奏
   _evoElemental: function(w,dt) {
     w._timer=(w._timer||0)+dt
     var p=this.player
-    // 冰冻光环持续
-    for(var i=0;i<this.enemies.length;i++){
-      var e=this.enemies[i],dx=e.x-p.x,dy=e.y-p.y
-      if(dx*dx+dy*dy<w.range*w.range){
-        e._slowed=0.3
-        this._damageEnemy(i,w.dmg*dt*0.5)
+    var iceR = w.range * 0.5  // 冰冻内圈（小范围贴身）
+    // 冰冻内圈：持续减速+伤害
+    for(var i=this.enemies.length-1;i>=0;i--){
+      var e=this.enemies[i],dx=e.x-p.x,dy=e.y-p.y,d2=dx*dx+dy*dy
+      if(d2<iceR*iceR){
+        e._slowed=0.2  // 强减速
+        e._frozen=true  // 标记冻住用于视觉
+        this._damageEnemy(i,w.dmg*dt)
+      } else {
+        if(e._frozen) e._frozen=false
       }
     }
-    // 周期性火焰爆发
+    // 火焰外爆：每次CD到了，从玩家位置爆出8个火球向外飞
     if(w._timer>=w.cd){
       w._timer=0
-      this._rings.push({x:p.x,y:p.y,r:20,maxR:w.range,dmg:w.dmg*2,hit:{},follow:true})
-      _spawnP(p.x,p.y,'#e74c3c',6)
+      for(var f=0;f<8;f++){
+        var a=f*(Math.PI*2/8)+this.elapsed*0.5
+        var sp=300
+        this.projectiles.push({
+          x:p.x, y:p.y,
+          vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
+          dmg:w.dmg*1.5, life:0.6, type:'fireball'
+        })
+      }
+      _spawnP(p.x,p.y,'#e74c3c',8)
+      _spawnP(p.x,p.y,'#f39c12',6)
     }
   },
   // 弹射护盾: 发射护盾弹自动追踪+弹射多个敌人
