@@ -103,8 +103,8 @@ var WEAPON_DEFS = {
   },
   vampire: {
     name:'吸血刃', desc:'近战攻击回血', icon:'💉',
-    baseDmg:10, baseCD:1.0, count:1, range:75,
-    upgrade: function(w) { w.dmg+=6; w.cd*=0.82 }
+    baseDmg:10, baseCD:0.8, count:1, range:120,
+    upgrade: function(w) { w.dmg+=6; w.cd*=0.82; w.range+=15 }
   },
   tornado: {
     name:'龙卷风', desc:'向前方推开敌人', icon:'🌪',
@@ -494,6 +494,8 @@ GameGlobal.Survival = {
       }
     }
     if(this.boss){var bdx=this.boss.x-p.x,bdy=this.boss.y-p.y;if(bdx*bdx+bdy*bdy<w.range*w.range){this._damageBoss(w.dmg);hitAny=true}}
+    // 挥砍视觉特效
+    this._vampSlash = { time: this.elapsed, range: w.range, hit: hitAny }
     if(hitAny){
       var heal=Math.ceil(w.dmg*0.3)
       p.hp=Math.min(p.maxHp,p.hp+heal)

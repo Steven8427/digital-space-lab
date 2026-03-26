@@ -279,6 +279,21 @@ GameGlobal.drawSurvivalScreen=function(){
     ctx.strokeStyle='rgba(50,180,30,'+pza*1.5+')';ctx.lineWidth=2;ctx.stroke()
   }
 
+  // 吸血刃挥砍特效
+  if(S._vampSlash && S.elapsed - S._vampSlash.time < 0.3){
+    var vs=S._vampSlash, va=(S.elapsed-vs.time)/0.3
+    var vr=Math.max(1,vs.range*(0.5+va*0.5))
+    var px4=p.x-cam.x, py4=p.y-cam.y
+    ctx.beginPath()
+    ctx.arc(px4,py4,vr, -Math.PI*0.3+va*Math.PI*0.5, Math.PI*0.3+va*Math.PI*0.5)
+    ctx.strokeStyle=vs.hit?'rgba(231,76,60,'+(1-va)*0.8+')':'rgba(200,200,200,'+(1-va)*0.4+')'
+    ctx.lineWidth=vs.hit?4:2; ctx.stroke()
+    if(vs.hit){
+      ctx.beginPath();ctx.arc(px4,py4,vr*0.6,0,Math.PI*2)
+      ctx.fillStyle='rgba(46,204,113,'+(1-va)*0.15+')';ctx.fill()
+    }
+  }
+
   // 陨石警告+爆炸
   for(var mi=0;mi<(S._meteors||[]).length;mi++){
     var mt=S._meteors[mi],mx=mt.x-cam.x,my=mt.y-cam.y
