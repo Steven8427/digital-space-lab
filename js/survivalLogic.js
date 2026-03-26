@@ -440,12 +440,28 @@ GameGlobal.Survival = {
     }
   },
 
-  // ── 陨石
+  // ── 陨石（优先砸怪物位置）
   _weaponMeteor: function(w) {
     var p=this.player
+    // 收集附近的怪物，按距离排序
+    var targets=[]
+    for(var i=0;i<this.enemies.length;i++){
+      var e=this.enemies[i],dx=e.x-p.x,dy=e.y-p.y
+      targets.push({x:e.x,y:e.y,dist:dx*dx+dy*dy})
+    }
+    if(this.boss){var bdx=this.boss.x-p.x,bdy=this.boss.y-p.y;targets.push({x:this.boss.x,y:this.boss.y,dist:bdx*bdx+bdy*bdy})}
+    targets.sort(function(a,b){return a.dist-b.dist})
     for(var c=0;c<w.count;c++){
-      var tx=p.x+(Math.random()-0.5)*w.range*2
-      var ty=p.y+(Math.random()-0.5)*w.range*2
+      var tx,ty
+      if(c<targets.length){
+        // 砸怪物位置，加小范围偏移
+        tx=targets[c].x+(Math.random()-0.5)*20
+        ty=targets[c].y+(Math.random()-0.5)*20
+      } else {
+        // 多出来的随机砸玩家周围
+        tx=p.x+(Math.random()-0.5)*w.range*2
+        ty=p.y+(Math.random()-0.5)*w.range*2
+      }
       this._meteors.push({x:tx,y:ty,delay:0.6+c*0.3,r:0,maxR:60,dmg:w.dmg,phase:'warn'})
     }
   },
