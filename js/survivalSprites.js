@@ -461,21 +461,24 @@ function getPlayerSkin() {
   return _currentSkin
 }
 
-// Draw a weapon icon from Weapons.png sprite sheet (128x32, 4 icons of 32x32)
-// iconIdx: 0=dagger, 1=sword, 2=axe, 3=staff
-function drawWeaponIcon(ctx, x, y, size, iconIdx) {
+// Draw icon from 30Icons spritesheet (128x160, 8col x 10row, 16x16 each)
+// row/col index into grid
+function _drawIconAt(ctx, x, y, size, row, col) {
   var img = _spriteImages['icons_weapons']
   if (!img || !_spriteLoaded['icons_weapons']) return false
-  var frameW = 32
-  var frameH = 32
-  var sx = iconIdx * frameW
-  ctx.drawImage(img, sx, 0, frameW, frameH, x - size / 2, y - size / 2, size, size)
+  var sx = col * 16, sy = row * 16
+  ctx.drawImage(img, sx, sy, 16, 16, x - size / 2, y - size / 2, size, size)
   return true
 }
 
-// Draw axe icon specifically (for vampire axe weapon)
+// Draw weapon icon: row 5 has weapons (0=短剑, 1=长剑, 2=弓, 3=斧头, 4=法杖)
+function drawWeaponIcon(ctx, x, y, size, weaponCol) {
+  return _drawIconAt(ctx, x, y, size, 5, weaponCol)
+}
+
+// Draw axe icon (row 5, col 3)
 function drawAxeIcon(ctx, x, y, size) {
-  return drawWeaponIcon(ctx, x, y, size, 2)
+  return _drawIconAt(ctx, x, y, size, 5, 3)
 }
 
 // Draw a food item from Food.png sprite sheet
