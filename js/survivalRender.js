@@ -391,24 +391,41 @@ GameGlobal.drawSurvivalScreen=function(){
     var ww=S.weapons[wi]
     if(ww.id==='bloodstorm'){
       var px3=p.x-cam.x,py3=p.y-cam.y
-      for(var k=0;k<ww.count;k++){
-        var ba=S.elapsed*3+k*(Math.PI*2/ww.count)
-        var bx=px3+Math.cos(ba)*ww.range,by=py3+Math.sin(ba)*ww.range
-        // 红色刀刃
-        ctx.save();ctx.translate(bx,by);ctx.rotate(ba+Math.PI/2)
-        ctx.fillStyle='#e74c3c';ctx.fillRect(-6,-2,12,4)
-        ctx.fillStyle='#c0392b';ctx.fillRect(-4,-1,8,2)
-        ctx.restore()
+      // 双层旋转飞刀
+      var layers=[
+        {count:ww.count, range:ww.range, speed:4, size:8, color:'#e74c3c'},
+        {count:Math.max(3,ww.count-2), range:ww.range*1.6, speed:2.5, size:10, color:'#c0392b'}
+      ]
+      for(var L=0;L<layers.length;L++){
+        var ly=layers[L]
+        for(var k=0;k<ly.count;k++){
+          var ba=S.elapsed*ly.speed+k*(Math.PI*2/ly.count)+(L*Math.PI/ly.count)
+          var bx=px3+Math.cos(ba)*ly.range,by=py3+Math.sin(ba)*ly.range
+          ctx.save();ctx.translate(bx,by);ctx.rotate(ba+Math.PI/2)
+          ctx.fillStyle=ly.color;ctx.fillRect(-ly.size,-2,ly.size*2,4)
+          ctx.fillStyle='#ff6b6b';ctx.fillRect(-ly.size*0.6,-1,ly.size*1.2,2)
+          ctx.restore()
+        }
       }
+      // 血红轨迹圈
+      ctx.beginPath();ctx.arc(px3,py3,Math.max(1,ww.range),0,Math.PI*2)
+      ctx.strokeStyle='rgba(231,76,60,0.15)';ctx.lineWidth=1;ctx.stroke()
+      ctx.beginPath();ctx.arc(px3,py3,Math.max(1,ww.range*1.6),0,Math.PI*2)
+      ctx.strokeStyle='rgba(192,57,43,0.1)';ctx.lineWidth=1;ctx.stroke()
     }
+    // 弹射护盾弹
     if(ww.id==='bounceshield'){
-      var px3=p.x-cam.x,py3=p.y-cam.y
-      for(var k=0;k<ww.count;k++){
-        var ba=S.elapsed*2+k*(Math.PI*2/ww.count)
-        var bx=px3+Math.cos(ba)*ww.range,by=py3+Math.sin(ba)*ww.range
-        ctx.beginPath();ctx.arc(bx,by,Math.max(1,8),0,Math.PI*2)
-        ctx.fillStyle='rgba(52,152,219,0.7)';ctx.fill()
-        ctx.strokeStyle='#2980b9';ctx.lineWidth=2;ctx.stroke()
+      for(var sb=0;sb<(S._shieldBolts||[]).length;sb++){
+        var bolt=S._shieldBolts[sb]
+        var bsx=bolt.x-cam.x,bsy=bolt.y-cam.y
+        // 护盾球体
+        ctx.beginPath();ctx.arc(bsx,bsy,Math.max(1,bolt.r),0,Math.PI*2)
+        var ba2=Math.min(1,bolt.life/0.5)
+        ctx.fillStyle='rgba(52,152,219,'+ba2*0.8+')';ctx.fill()
+        ctx.strokeStyle='rgba(41,128,185,'+ba2+')';ctx.lineWidth=2;ctx.stroke()
+        // 拖尾
+        ctx.beginPath();ctx.arc(bsx-bolt.vx*0.02,bsy-bolt.vy*0.02,Math.max(1,bolt.r*0.7),0,Math.PI*2)
+        ctx.fillStyle='rgba(52,152,219,'+ba2*0.3+')';ctx.fill()
       }
     }
     if(ww.id==='elemental'){

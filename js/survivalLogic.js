@@ -127,10 +127,10 @@ var WEAPON_DEFS = {
 //  武器进化定义
 // ================================================
 var EVOLUTION_DEFS = {
-  bloodstorm:   { a:'orbit',     b:'vampire',  name:'血刃风暴', desc:'旋转飞刀群+每击回血', icon:'💀', baseDmg:25, baseCD:0, count:5, range:100 },
+  bloodstorm:   { a:'orbit',     b:'vampire',  name:'血刃风暴', desc:'双层飞刀群+大范围回血', icon:'💀', baseDmg:30, baseCD:0, count:6, range:120 },
   thunderball:  { a:'bolt',      b:'lightning', name:'雷球连锁', desc:'能量弹命中触发闪电', icon:'🌩', baseDmg:20, baseCD:0.5, count:3, range:350 },
   elemental:    { a:'aura',      b:'ring',      name:'元素爆裂', desc:'冰火交替脉冲冻爆', icon:'💥', baseDmg:30, baseCD:1.8, count:1, range:200 },
-  bounceshield: { a:'boomerang', b:'shield',    name:'弹射护盾', desc:'护盾球追踪弹射敌人', icon:'🔰', baseDmg:18, baseCD:0, count:5, range:120 },
+  bounceshield: { a:'boomerang', b:'shield',    name:'弹射护盾', desc:'发射护盾弹弹射多敌', icon:'🔰', baseDmg:22, baseCD:1.2, count:3, range:300 },
   plaguemeteor: { a:'meteor',    b:'poison',    name:'瘟疫陨石', desc:'陨石砸中留毒区', icon:'☠', baseDmg:35, baseCD:2.5, count:2, range:280 },
   voidvortex:   { a:'tornado',   b:'chain',     name:'虚空漩涡', desc:'巨型龙卷风吸拽绞杀', icon:'🌀', baseDmg:22, baseCD:1.5, count:1, range:300 }
 }
@@ -165,7 +165,7 @@ GameGlobal.Survival = {
     this.weapons=[]; this.enemies=[]; this.projectiles=[]
     _particles.length=0; this._rings=[]; this._lightnings=[]
     this._boomerangs=[]; this._meteors=[]; this._poisonZones=[]; this._tornadoes=[]
-    this._chains=[]; this._meteorPoison=[]; this._evoFlash=null
+    this._chains=[]; this._meteorPoison=[]; this._evoFlash=null; this._shieldBolts=[]
     this.foodItems=[]; this._foodTimer=0
 
     this.player = {
@@ -340,7 +340,7 @@ GameGlobal.Survival = {
       else if(w.id==='bloodstorm') { this._evoBloodstorm(w,dt) }
       else if(w.id==='thunderball' && w._timer>=w.cd) { w._timer=0; this._evoThunderball(w) }
       else if(w.id==='elemental') { this._evoElemental(w,dt) }
-      else if(w.id==='bounceshield') { this._evoBounceshield(w,dt) }
+      else if(w.id==='bounceshield' && w._timer>=w.cd) { w._timer=0; this._evoBounceshield(w) }
       else if(w.id==='plaguemeteor' && w._timer>=w.cd) { w._timer=0; this._evoPlaguemeteor(w) }
       else if(w.id==='voidvortex' && w._timer>=w.cd) { w._timer=0; this._evoVoidvortex(w) }
     }
@@ -354,6 +354,8 @@ GameGlobal.Survival = {
     this._updateTornadoes(dt)
     // 更新锁链
     this._updateChains(dt)
+    // 更新弹射护盾
+    this._updateShieldBolts(dt)
   },
 
   // ── 旋转飞刀
@@ -700,21 +702,29 @@ GameGlobal.Survival = {
   // ================================================
   //  进化武器实现
   // ================================================
-  // 血刃风暴: 旋转飞刀群+每击回血
+  // 血刃风暴: 双层旋转飞刀群+大范围+每击回血
   _evoBloodstorm: function(w,dt) {
     var p=this.player,t=this.elapsed
-    for(var k=0;k<w.count;k++){
-      var a=t*3+k*(Math.PI*2/w.count)
-      var ox=p.x+Math.cos(a)*w.range,oy=p.y+Math.sin(a)*w.range
-      for(var i=this.enemies.length-1;i>=0;i--){
-        var e=this.enemies[i],dx=e.x-ox,dy=e.y-oy
-        if(dx*dx+dy*dy<22*22){
-          this._damageEnemy(i,w.dmg*dt*3)
-          p.hp=Math.min(p.maxHp,p.hp+w.dmg*dt*0.5)
-          _spawnP(e.x,e.y,'#e74c3c',1)
+    // 双层旋转：内圈快速+外圈慢速
+    var layers=[
+      {count:w.count, range:w.range, speed:4, hitR:28},
+      {count:Math.max(3,w.count-2), range:w.range*1.6, speed:2.5, hitR:32}
+    ]
+    for(var L=0;L<layers.length;L++){
+      var ly=layers[L]
+      for(var k=0;k<ly.count;k++){
+        var a=t*ly.speed+k*(Math.PI*2/ly.count)+(L*Math.PI/ly.count)
+        var ox=p.x+Math.cos(a)*ly.range,oy=p.y+Math.sin(a)*ly.range
+        for(var i=this.enemies.length-1;i>=0;i--){
+          var e=this.enemies[i],dx=e.x-ox,dy=e.y-oy
+          if(dx*dx+dy*dy<ly.hitR*ly.hitR){
+            this._damageEnemy(i,w.dmg*dt*4)
+            p.hp=Math.min(p.maxHp,p.hp+w.dmg*dt*0.8)
+            _spawnP(e.x,e.y,'#e74c3c',1)
+          }
         }
+        if(this.boss){var bdx=this.boss.x-ox,bdy=this.boss.y-oy;if(bdx*bdx+bdy*bdy<(ly.hitR+10)*(ly.hitR+10)){this._damageBoss(w.dmg*dt*4);p.hp=Math.min(p.maxHp,p.hp+w.dmg*dt*0.4)}}
       }
-      if(this.boss){var bdx=this.boss.x-ox,bdy=this.boss.y-oy;if(bdx*bdx+bdy*bdy<30*30){this._damageBoss(w.dmg*dt*3);p.hp=Math.min(p.maxHp,p.hp+w.dmg*dt*0.3)}}
     }
   },
   // 雷球连锁: 能量弹命中触发闪电
@@ -753,20 +763,23 @@ GameGlobal.Survival = {
       _spawnP(p.x,p.y,'#e74c3c',6)
     }
   },
-  // 弹射护盾: 护盾球追踪弹射
-  _evoBounceshield: function(w,dt) {
-    var p=this.player,t=this.elapsed
-    for(var k=0;k<w.count;k++){
-      var a=t*2+k*(Math.PI*2/w.count)
-      var ox=p.x+Math.cos(a)*w.range,oy=p.y+Math.sin(a)*w.range
-      for(var i=this.enemies.length-1;i>=0;i--){
-        var e=this.enemies[i],dx=e.x-ox,dy=e.y-oy
-        if(dx*dx+dy*dy<25*25){
-          this._damageEnemy(i,w.dmg*dt*4)
-          _spawnP(e.x,e.y,'#3498db',1)
-        }
+  // 弹射护盾: 发射护盾弹自动追踪+弹射多个敌人
+  _evoBounceshield: function(w) {
+    var p=this.player
+    for(var c=0;c<w.count;c++){
+      // 找最近敌人发射
+      var nearest=null,nd=Infinity
+      for(var i=0;i<this.enemies.length;i++){
+        var e=this.enemies[i],dx=e.x-p.x,dy=e.y-p.y,d2=dx*dx+dy*dy
+        if(d2<w.range*w.range&&d2<nd){nd=d2;nearest=e}
       }
-      if(this.boss){var bdx=this.boss.x-ox,bdy=this.boss.y-oy;if(bdx*bdx+bdy*bdy<35*35)this._damageBoss(w.dmg*dt*4)}
+      if(!nearest) continue
+      var dx2=nearest.x-p.x,dy2=nearest.y-p.y,d=Math.sqrt(dx2*dx2+dy2*dy2)||1
+      if(!this._shieldBolts) this._shieldBolts=[]
+      this._shieldBolts.push({
+        x:p.x,y:p.y,vx:dx2/d*350,vy:dy2/d*350,
+        dmg:w.dmg,life:2.0,bounces:4,hit:{},r:10
+      })
     }
   },
   // 瘟疫陨石: 陨石+毒区
@@ -806,6 +819,50 @@ GameGlobal.Survival = {
     var d=Math.sqrt(dx2*dx2+dy2*dy2)||1
     if(!this._tornadoes)this._tornadoes=[]
     this._tornadoes.push({x:p.x,y:p.y,vx:dx2/d*250,vy:dy2/d*250,dmg:w.dmg,life:2.5,r:50,isVortex:true,hit:{}})
+  },
+
+  // 弹射护盾弹更新
+  _updateShieldBolts: function(dt) {
+    if(!this._shieldBolts) return
+    for(var i=this._shieldBolts.length-1;i>=0;i--){
+      var sb=this._shieldBolts[i]
+      sb.x+=sb.vx*dt; sb.y+=sb.vy*dt; sb.life-=dt
+      if(sb.life<=0||sb.bounces<=0){this._shieldBolts.splice(i,1);continue}
+      // 碰撞检测
+      for(var ei=this.enemies.length-1;ei>=0;ei--){
+        var e=this.enemies[ei],dx=e.x-sb.x,dy=e.y-sb.y
+        var eid=e._uid||ei
+        if(sb.hit[eid]) continue
+        if(dx*dx+dy*dy<(sb.r+15)*(sb.r+15)){
+          sb.hit[eid]=true
+          this._damageEnemy(ei,sb.dmg)
+          _spawnP(sb.x,sb.y,'#3498db',4)
+          sb.bounces--
+          if(sb.bounces<=0) break
+          // 弹射到下一个最近的敌人
+          var nextE=null,nd2=Infinity
+          for(var j=0;j<this.enemies.length;j++){
+            var ne=this.enemies[j],neid=ne._uid||j
+            if(sb.hit[neid]) continue
+            var ndx=ne.x-sb.x,ndy=ne.y-sb.y,nd=ndx*ndx+ndy*ndy
+            if(nd<250*250&&nd<nd2){nd2=nd;nextE=ne}
+          }
+          if(nextE){
+            var ndx2=nextE.x-sb.x,ndy2=nextE.y-sb.y,d=Math.sqrt(ndx2*ndx2+ndy2*ndy2)||1
+            sb.vx=ndx2/d*350;sb.vy=ndy2/d*350
+          }
+          break
+        }
+      }
+      // Boss碰撞
+      if(this.boss&&!sb.hit['boss']){
+        var bdx=this.boss.x-sb.x,bdy=this.boss.y-sb.y
+        if(bdx*bdx+bdy*bdy<(sb.r+25)*(sb.r+25)){
+          sb.hit['boss']=true;this._damageBoss(sb.dmg);sb.bounces--
+          _spawnP(sb.x,sb.y,'#3498db',4)
+        }
+      }
+    }
   },
 
   // 雷球连锁闪电
