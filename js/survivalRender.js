@@ -323,12 +323,29 @@ GameGlobal.drawSurvivalScreen=function(){
   // 龙卷风
   for(var ti=0;ti<(S._tornadoes||[]).length;ti++){
     var tn=S._tornadoes[ti],tnx=tn.x-cam.x,tny=tn.y-cam.y
-    var ta=tn.life/0.8
-    for(var tr=0;tr<3;tr++){
-      var tAngle=S.elapsed*10+tr*2.1
-      var tDist=10+tr*8
-      ctx.beginPath();ctx.arc(tnx+Math.cos(tAngle)*tDist,tny+Math.sin(tAngle)*tDist,Math.max(0.5,6-tr),0,Math.PI*2)
-      ctx.fillStyle='rgba(200,230,255,'+ta*(0.5-tr*0.1)+')';ctx.fill()
+    var ta=Math.min(1, tn.life/0.8)
+    // 多层旋转弧线组成漏斗形
+    for(var tr=0;tr<6;tr++){
+      var layerY = tny - 12 + tr * 5  // 从上到下展开
+      var layerR = 6 + tr * 5          // 半径越往下越大
+      var tAngle = S.elapsed * (12 - tr) + tr * 1.2
+      // 画旋转弧
+      ctx.beginPath()
+      ctx.arc(tnx, layerY, Math.max(1, layerR), tAngle, tAngle + Math.PI * 1.2)
+      ctx.strokeStyle='rgba(180,220,255,'+ta*(0.7-tr*0.08)+')'
+      ctx.lineWidth = Math.max(1, 4 - tr * 0.4)
+      ctx.stroke()
+    }
+    // 中心亮点
+    ctx.beginPath();ctx.arc(tnx,tny,Math.max(1,4),0,Math.PI*2)
+    ctx.fillStyle='rgba(220,240,255,'+ta*0.6+')';ctx.fill()
+    // 外圈粒子
+    for(var tp=0;tp<5;tp++){
+      var pAngle=S.elapsed*8+tp*1.26
+      var pDist=18+Math.sin(S.elapsed*5+tp)*8
+      var px=tnx+Math.cos(pAngle)*pDist, py=tny+Math.sin(pAngle)*pDist*0.6
+      ctx.beginPath();ctx.arc(px,py,Math.max(0.5,2.5),0,Math.PI*2)
+      ctx.fillStyle='rgba(200,230,255,'+ta*0.4+')';ctx.fill()
     }
   }
 
