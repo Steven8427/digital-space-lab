@@ -181,6 +181,7 @@ GameGlobal.Survival = {
 
     // 初始武器：3选1
     this.maxWeapons = 6
+    this._weaponSlotUsed = 0  // 已使用过的武器槽数（只增不减）
     this._pickingStart = true
     var allIds = Object.keys(WEAPON_DEFS)
     // 随机选3个不同的武器
@@ -217,6 +218,7 @@ GameGlobal.Survival = {
       id:id, dmg:def.baseDmg, cd:def.baseCD, count:def.count,
       range:def.range, level:1, _timer:0
     })
+    this._weaponSlotUsed = (this._weaponSlotUsed || 0) + 1
   },
 
   // ================================================
@@ -1070,8 +1072,8 @@ GameGlobal.Survival = {
         }
       }
     }
-    // 只有武器未满时才提供新武器选项
-    var atMax = this.weapons.length >= (this.maxWeapons || 6)
+    // 用已使用槽数判断（进化合并后不会释放槽）
+    var atMax = (this._weaponSlotUsed || 0) >= (this.maxWeapons || 6)
     if(!atMax){
       for(var id in WEAPON_DEFS){
         if(!owned[id] && !evolvedAway[id]) choices.push({type:'new',id:id})
