@@ -461,16 +461,21 @@ function getPlayerSkin() {
   return _currentSkin
 }
 
-// Draw a weapon icon from Weapons.png sprite sheet
-// iconIdx: 0=dagger, 1=sword, 2=bow, 3=axe, 4=staff
+// Draw a weapon icon from Weapons.png sprite sheet (128x32, 4 icons of 32x32)
+// iconIdx: 0=dagger, 1=sword, 2=axe, 3=staff
 function drawWeaponIcon(ctx, x, y, size, iconIdx) {
   var img = _spriteImages['icons_weapons']
   if (!img || !_spriteLoaded['icons_weapons']) return false
-  var frameW = img.width / 5
-  var frameH = img.height
+  var frameW = 32
+  var frameH = 32
   var sx = iconIdx * frameW
   ctx.drawImage(img, sx, 0, frameW, frameH, x - size / 2, y - size / 2, size, size)
   return true
+}
+
+// Draw axe icon specifically (for vampire axe weapon)
+function drawAxeIcon(ctx, x, y, size) {
+  return drawWeaponIcon(ctx, x, y, size, 2)
 }
 
 // Draw a food item from Food.png sprite sheet
@@ -631,6 +636,7 @@ GameGlobal.SurvivalSprites = {
   getPlayerSkin: getPlayerSkin,
   isLoaded: isLoaded,
   drawWeaponIcon: drawWeaponIcon,
+  drawAxeIcon: drawAxeIcon,
   drawFoodItem: drawFoodItem,
   drawPotionIcon: drawPotionIcon,
   isSpriteReady: isSpriteReady,

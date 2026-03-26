@@ -102,7 +102,7 @@ var WEAPON_DEFS = {
     upgrade: function(w) { w.dmg+=4; w.count++; w.range+=12 }
   },
   vampire: {
-    name:'吸血刃', desc:'近战攻击回血', icon:'💉',
+    name:'吸血斧', desc:'近战攻击回血', icon:'🪓',
     baseDmg:10, baseCD:0.8, count:1, range:120,
     upgrade: function(w) { w.dmg+=6; w.cd*=0.82; w.range+=15 }
   },

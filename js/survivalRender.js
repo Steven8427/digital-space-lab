@@ -279,7 +279,7 @@ GameGlobal.drawSurvivalScreen=function(){
     ctx.strokeStyle='rgba(50,180,30,'+pza*1.5+')';ctx.lineWidth=2;ctx.stroke()
   }
 
-  // 吸血刃挥砍特效
+  // 吸血斧挥砍特效
   if(S._vampSlash && S.elapsed - S._vampSlash.time < 0.3){
     var vs=S._vampSlash, va=(S.elapsed-vs.time)/0.3
     var vr=Math.max(1,vs.range*(0.5+va*0.5))
@@ -734,6 +734,8 @@ function _drawHUD(S){
         wDrawn = _spr.drawIceAura(ctx, wix, wiy, iconSize * 0.4, 0)
       else if (ww.id === 'ring' && typeof _spr.drawFireRing === 'function')
         wDrawn = _spr.drawFireRing(ctx, wix, wiy, iconSize * 0.4, 0)
+      else if (ww.id === 'vampire' && typeof _spr.drawAxeIcon === 'function')
+        wDrawn = _spr.drawAxeIcon(ctx, wix, wiy, iconSize * 0.8)
     }
     if (!wDrawn) {
       var def=_WDEFS[ww.id]
@@ -753,7 +755,7 @@ function _drawHUD(S){
   ctx.fillText('⚙ 设置',stX+stW/2,stY+stH/2)
   GameGlobal.SurvivalUI.settingBtn={x:stX,y:stY,w:stW,h:stH}
 }
-var _WDEFS={orbit:{icon:'🔪'},bolt:{icon:'🔮'},lightning:{icon:'⚡'},aura:{icon:'❄'},ring:{icon:'🔥'},boomerang:{icon:'🪃'},meteor:{icon:'☄'},shield:{icon:'🛡'},vampire:{icon:'💉'},tornado:{icon:'🌪'},poison:{icon:'☢'}}
+var _WDEFS={orbit:{icon:'🔪'},bolt:{icon:'🔮'},lightning:{icon:'⚡'},aura:{icon:'❄'},ring:{icon:'🔥'},boomerang:{icon:'🪃'},meteor:{icon:'☄'},shield:{icon:'🛡'},vampire:{icon:'🪓'},tornado:{icon:'🌪'},poison:{icon:'☢'}}
 var LEVEL_XP_R=(function(){var t=[0];for(var i=1;i<50;i++)t.push(Math.floor(20+i*15+i*i*1.2));return t})()
 
 // ── 摇杆
@@ -791,6 +793,8 @@ function _drawWeaponCardIcon(weaponId, x, y, size, def) {
       drawn = _spr.drawIceAura(ctx, x, y, size * 0.8, 0)  // 冰冻圈
     } else if (weaponId === 'ring' && typeof _spr.drawFireRing === 'function') {
       drawn = _spr.drawFireRing(ctx, x, y, size * 0.8, 0)  // 火焰圈
+    } else if (weaponId === 'vampire' && typeof _spr.drawAxeIcon === 'function') {
+      drawn = _spr.drawAxeIcon(ctx, x, y, size)  // 吸血斧
     }
   }
   if (!drawn && def) {
