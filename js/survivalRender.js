@@ -273,23 +273,44 @@ GameGlobal.drawSurvivalScreen=function(){
   // 毒雾区域
   for(var pzi=0;pzi<(S._poisonZones||[]).length;pzi++){
     var pz=S._poisonZones[pzi],pzx=pz.x-cam.x,pzy=pz.y-cam.y
-    var pza=Math.min(1,pz.life/pz.maxLife)
+    var pza=Math.min(1,pz.life/(pz.maxLife||4))
+    var isBig=pz.r>100 // 瘟疫陨石的大毒区
     var pulseR=pz.r+Math.sin(S.elapsed*4+pzi)*5
-    // 多层毒雾圆
+    // 底层毒雾
     ctx.beginPath();ctx.arc(pzx,pzy,Math.max(1,pulseR),0,Math.PI*2)
-    ctx.fillStyle='rgba(80,200,40,'+pza*0.2+')';ctx.fill()
+    ctx.fillStyle='rgba(80,200,40,'+pza*(isBig?0.3:0.2)+')';ctx.fill()
+    // 中层
     ctx.beginPath();ctx.arc(pzx,pzy,Math.max(1,pulseR*0.7),0,Math.PI*2)
-    ctx.fillStyle='rgba(60,180,30,'+pza*0.25+')';ctx.fill()
+    ctx.fillStyle='rgba(60,180,30,'+pza*(isBig?0.35:0.25)+')';ctx.fill()
+    if(isBig){
+      // 内核紫色
+      ctx.beginPath();ctx.arc(pzx,pzy,Math.max(1,pulseR*0.4),0,Math.PI*2)
+      ctx.fillStyle='rgba(140,80,200,'+pza*0.2+')';ctx.fill()
+    }
+    // 边框
     ctx.beginPath();ctx.arc(pzx,pzy,Math.max(1,pulseR),0,Math.PI*2)
-    ctx.strokeStyle='rgba(50,200,30,'+pza*0.5+')';ctx.lineWidth=2.5;ctx.stroke()
+    ctx.strokeStyle='rgba(50,200,30,'+pza*(isBig?0.7:0.5)+')';ctx.lineWidth=isBig?3:2;ctx.stroke()
     // 毒气粒子
-    for(var pp=0;pp<8;pp++){
-      var pAngle=S.elapsed*2+pp*0.785+pzi
+    var particleCnt=isBig?14:8
+    for(var pp=0;pp<particleCnt;pp++){
+      var pAngle=S.elapsed*2+pp*(Math.PI*2/particleCnt)+pzi
       var pDist=pulseR*(0.3+Math.sin(S.elapsed*3+pp)*0.4)
       var ppx=pzx+Math.cos(pAngle)*pDist,ppy=pzy+Math.sin(pAngle)*pDist
-      var ppSize=Math.max(0.5,2+Math.sin(S.elapsed*5+pp*2)*1.5)
+      var ppSize=Math.max(0.5,(isBig?3.5:2)+Math.sin(S.elapsed*5+pp*2)*1.5)
       ctx.beginPath();ctx.arc(ppx,ppy,ppSize,0,Math.PI*2)
-      ctx.fillStyle='rgba(100,255,50,'+pza*0.4+')';ctx.fill()
+      ctx.fillStyle='rgba(100,255,50,'+pza*(isBig?0.6:0.4)+')';ctx.fill()
+    }
+    // 冒泡效果（大毒区独有）
+    if(isBig){
+      for(var bb=0;bb<5;bb++){
+        var bubbleT=(S.elapsed*0.8+bb*0.7+pzi)%1.5
+        var bubbleY=pzy-bubbleT*30
+        var bubbleX=pzx+Math.sin(bb*2.3+pzi)*pulseR*0.5
+        var bubbleR=Math.max(0.5,(1-bubbleT/1.5)*5)
+        var bubbleA=Math.max(0,(1-bubbleT/1.5)*pza*0.5)
+        ctx.beginPath();ctx.arc(bubbleX,bubbleY,bubbleR,0,Math.PI*2)
+        ctx.strokeStyle='rgba(100,255,50,'+bubbleA+')';ctx.lineWidth=1.5;ctx.stroke()
+      }
     }
   }
 
@@ -311,16 +332,48 @@ GameGlobal.drawSurvivalScreen=function(){
   // 陨石警告+爆炸
   for(var mi=0;mi<(S._meteors||[]).length;mi++){
     var mt=S._meteors[mi],mx=mt.x-cam.x,my=mt.y-cam.y
+    var isPlague=mt.isPlague
     if(mt.phase==='warn'){
       var wa2=Math.max(0,1-mt.delay/0.6)
-      ctx.beginPath();ctx.arc(mx,my,Math.max(1,mt.maxR*wa2),0,Math.PI*2)
-      ctx.strokeStyle='rgba(255,100,0,'+(0.3+wa2*0.4)+')';ctx.lineWidth=2
+      var warnR=Math.max(1,mt.maxR*wa2)
+      // 警告圈
+      ctx.beginPath();ctx.arc(mx,my,warnR,0,Math.PI*2)
+      ctx.strokeStyle=isPlague?'rgba(100,255,50,'+(0.4+wa2*0.5)+')':'rgba(255,100,0,'+(0.3+wa2*0.4)+')'
+      ctx.lineWidth=isPlague?3:2
       ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([])
+      if(isPlague){
+        // 毒气预警：绿色十字 + 骷髅标记
+        ctx.fillStyle='rgba(100,255,50,'+wa2*0.3+')'
+        ctx.fillRect(mx-2,my-warnR*0.6,4,warnR*1.2)
+        ctx.fillRect(mx-warnR*0.6,my-2,warnR*1.2,4)
+        // 下落阴影扩大
+        ctx.beginPath();ctx.arc(mx,my,Math.max(1,warnR*0.4),0,Math.PI*2)
+        ctx.fillStyle='rgba(50,150,30,'+wa2*0.2+')';ctx.fill()
+      }
     } else {
       var ea=1-mt.r/mt.maxR
-      ctx.beginPath();ctx.arc(mx,my,Math.max(1,mt.r),0,Math.PI*2)
-      ctx.fillStyle='rgba(255,120,0,'+ea*0.4+')';ctx.fill()
-      ctx.strokeStyle='rgba(255,200,50,'+ea*0.6+')';ctx.lineWidth=3;ctx.stroke()
+      if(isPlague){
+        // 瘟疫爆炸：绿紫双层冲击波
+        ctx.beginPath();ctx.arc(mx,my,Math.max(1,mt.r),0,Math.PI*2)
+        ctx.fillStyle='rgba(80,200,40,'+ea*0.35+')';ctx.fill()
+        ctx.beginPath();ctx.arc(mx,my,Math.max(1,mt.r*0.7),0,Math.PI*2)
+        ctx.fillStyle='rgba(140,80,200,'+ea*0.25+')';ctx.fill()
+        ctx.beginPath();ctx.arc(mx,my,Math.max(1,mt.r),0,Math.PI*2)
+        ctx.strokeStyle='rgba(100,255,50,'+ea*0.7+')';ctx.lineWidth=4;ctx.stroke()
+        // 毒气飞溅粒子
+        for(var mp=0;mp<6;mp++){
+          var ma=S.elapsed*3+mp*1.05+mi
+          var md=mt.r*(0.5+Math.sin(S.elapsed*6+mp)*0.3)
+          var mpx=mx+Math.cos(ma)*md,mpy=my+Math.sin(ma)*md
+          ctx.beginPath();ctx.arc(mpx,mpy,Math.max(1,4*ea),0,Math.PI*2)
+          ctx.fillStyle='rgba(100,255,50,'+ea*0.6+')';ctx.fill()
+        }
+      } else {
+        // 普通陨石爆炸
+        ctx.beginPath();ctx.arc(mx,my,Math.max(1,mt.r),0,Math.PI*2)
+        ctx.fillStyle='rgba(255,120,0,'+ea*0.4+')';ctx.fill()
+        ctx.strokeStyle='rgba(255,200,50,'+ea*0.6+')';ctx.lineWidth=3;ctx.stroke()
+      }
     }
   }
 
