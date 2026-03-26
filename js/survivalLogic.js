@@ -6,7 +6,11 @@ var SW = GameGlobal.SW, SH = GameGlobal.SH
 var MAP_W = 3000, MAP_H = 3000, GRID_SIZE = 80
 var BASE_SPEED = 160, SPAWN_DIST = 480, GAME_DURATION = 600, MAX_LEVEL = 50
 
-var LEVEL_XP = [0,25,60,110,180,270,380,510,660,830,1020,1230,1460,1710,1980,2270,2580,2910,3260,3630]
+// 50级经验表：前期快升，后期平缓增长
+var LEVEL_XP = (function(){
+  var t=[0]; for(var i=1;i<50;i++) t.push(Math.floor(20+i*15+i*i*1.2))
+  return t
+})()
 
 // ── 敌人类型
 var ENEMY_TYPES = {
@@ -59,58 +63,58 @@ function _updateP(dt) {
 var WEAPON_DEFS = {
   orbit: {
     name:'旋转飞刀', desc:'数字环绕你旋转', icon:'🔪',
-    baseDmg:3, baseCD:0, count:2, range:60,
-    upgrade: function(w) { w.count++; w.dmg+=1 }
+    baseDmg:5, baseCD:0, count:2, range:65,
+    upgrade: function(w) { w.count++; w.dmg+=3; w.range+=8 }
   },
   bolt: {
     name:'能量弹', desc:'自动射击最近敌人', icon:'🔮',
-    baseDmg:5, baseCD:0.8, count:1, range:300,
-    upgrade: function(w) { w.dmg+=3; w.cd*=0.85 }
+    baseDmg:8, baseCD:0.7, count:1, range:300,
+    upgrade: function(w) { w.dmg+=5; w.cd*=0.82; if(w.level%2===0) w.count++ }
   },
   lightning: {
     name:'闪电链', desc:'连锁闪电弹跳伤害', icon:'⚡',
-    baseDmg:4, baseCD:2.5, count:3, range:250,
-    upgrade: function(w) { w.dmg+=2; w.count+=1 }
+    baseDmg:6, baseCD:2.0, count:3, range:250,
+    upgrade: function(w) { w.dmg+=4; w.count+=1; w.cd*=0.9 }
   },
   aura: {
     name:'冰冻光环', desc:'减速并持续伤害', icon:'❄',
-    baseDmg:2, baseCD:0.5, count:1, range:55,
-    upgrade: function(w) { w.dmg+=1; w.range+=20 }
+    baseDmg:4, baseCD:0.4, count:1, range:60,
+    upgrade: function(w) { w.dmg+=3; w.range+=15; w.cd*=0.9 }
   },
   ring: {
     name:'火焰圈', desc:'周期性火焰扩散', icon:'🔥',
-    baseDmg:8, baseCD:3.0, count:1, range:180,
-    upgrade: function(w) { w.dmg+=4; w.cd*=0.88 }
+    baseDmg:12, baseCD:2.5, count:1, range:180,
+    upgrade: function(w) { w.dmg+=6; w.cd*=0.85; w.range+=15 }
   },
   boomerang: {
     name:'回旋镖', desc:'飞出再飞回，穿透敌人', icon:'🪃',
-    baseDmg:6, baseCD:1.8, count:1, range:220,
-    upgrade: function(w) { w.dmg+=3; w.count++; w.cd*=0.9 }
+    baseDmg:8, baseCD:1.5, count:1, range:220,
+    upgrade: function(w) { w.dmg+=5; w.count++; w.cd*=0.88 }
   },
   meteor: {
     name:'陨石', desc:'随机砸落范围爆炸', icon:'☄',
-    baseDmg:15, baseCD:3.5, count:1, range:250,
-    upgrade: function(w) { w.dmg+=6; w.count++; w.cd*=0.9 }
+    baseDmg:20, baseCD:3.0, count:1, range:250,
+    upgrade: function(w) { w.dmg+=10; w.count++; w.cd*=0.88 }
   },
   shield: {
     name:'护盾球', desc:'旋转护盾挡住敌人', icon:'🛡',
-    baseDmg:4, baseCD:0, count:3, range:80,
-    upgrade: function(w) { w.dmg+=2; w.count++; w.range+=10 }
+    baseDmg:6, baseCD:0, count:3, range:85,
+    upgrade: function(w) { w.dmg+=4; w.count++; w.range+=12 }
   },
   vampire: {
     name:'吸血刃', desc:'近战攻击回血', icon:'💉',
-    baseDmg:7, baseCD:1.2, count:1, range:70,
-    upgrade: function(w) { w.dmg+=4; w.cd*=0.85 }
+    baseDmg:10, baseCD:1.0, count:1, range:75,
+    upgrade: function(w) { w.dmg+=6; w.cd*=0.82 }
   },
   tornado: {
     name:'龙卷风', desc:'向前方推开敌人', icon:'🌪',
-    baseDmg:5, baseCD:2.5, count:1, range:200,
-    upgrade: function(w) { w.dmg+=3; w.cd*=0.88; w.range+=30 }
+    baseDmg:7, baseCD:2.0, count:1, range:200,
+    upgrade: function(w) { w.dmg+=5; w.cd*=0.85; w.range+=25 }
   },
   poison: {
     name:'毒雾', desc:'留下毒区域持续伤害', icon:'☢',
-    baseDmg:3, baseCD:4.0, count:1, range:80,
-    upgrade: function(w) { w.dmg+=2; w.count++; w.range+=15 }
+    baseDmg:5, baseCD:3.0, count:1, range:90,
+    upgrade: function(w) { w.dmg+=4; w.count++; w.range+=20; w.cd*=0.92 }
   }
 }
 

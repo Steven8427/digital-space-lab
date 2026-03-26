@@ -677,10 +677,10 @@ function _drawHUD(S){
 
   // 等级 + XP（血条正下方）
   setFont(SW*0.018,'800');ctx.fillStyle='#f39c12';ctx.textAlign='left';ctx.textBaseline='middle'
-  ctx.fillText(p.level>=20?'Lv.MAX':'Lv.'+p.level, hpX, hpY+hpH+SH*0.010)
+  ctx.fillText(p.level>=50?'Lv.MAX':'Lv.'+p.level, hpX, hpY+hpH+SH*0.010)
   // XP条（等级文字右边）
   var lvTextW = SW * 0.08
-  var xpN=(p.level<20)?LEVEL_XP_R[p.level]||999:1,xpR=p.level>=20?1:Math.min(1,p.xp/xpN)
+  var xpN=(p.level<50)?LEVEL_XP_R[p.level]||999:1,xpR=p.level>=50?1:Math.min(1,p.xp/xpN)
   var xpX=hpX+lvTextW,xpW=hpW-lvTextW,xpH=3,xpY=hpY+hpH+SH*0.009
   ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(xpX,xpY,xpW,xpH)
   if(xpR>0){ctx.fillStyle='#f39c12';ctx.fillRect(xpX,xpY,xpW*xpR,xpH)}
@@ -739,7 +739,7 @@ function _drawHUD(S){
   GameGlobal.SurvivalUI.settingBtn={x:stX,y:stY,w:stW,h:stH}
 }
 var _WDEFS={orbit:{icon:'🔪'},bolt:{icon:'🔮'},lightning:{icon:'⚡'},aura:{icon:'❄'},ring:{icon:'🔥'},boomerang:{icon:'🪃'},meteor:{icon:'☄'},shield:{icon:'🛡'},vampire:{icon:'💉'},tornado:{icon:'🌪'},poison:{icon:'☢'}}
-var LEVEL_XP_R=[0,25,60,110,180,270,380,510,660,830,1020,1230,1460,1710,1980,2270,2580,2910,3260,3630]
+var LEVEL_XP_R=(function(){var t=[0];for(var i=1;i<50;i++)t.push(Math.floor(20+i*15+i*i*1.2));return t})()
 
 // ── 摇杆
 function _drawJoystick(js){
