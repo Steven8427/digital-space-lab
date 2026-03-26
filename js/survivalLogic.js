@@ -884,7 +884,7 @@ GameGlobal.Survival = {
       b._waveCD=0
       var waveR = b.phase>=3 ? 200 : (b.phase>=2 ? 160 : 120)
       // 用 _rings 系统显示冲击波
-      this._rings.push({x:b.x, y:b.y, r:0, maxR:waveR, dmg:0, isBossWave:true})
+      this._rings.push({x:b.x, y:b.y, r:0, maxR:waveR, dmg:0, hit:{}, isBossWave:true})
       // 对玩家造成伤害（在范围内）
       if(dist<waveR && p._iFrames<=0) {
         var waveDmg = b.phase>=3 ? 15 : (b.phase>=2 ? 10 : 6)
