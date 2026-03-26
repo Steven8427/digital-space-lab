@@ -34,7 +34,7 @@ function _pickType(t) {
 }
 // 敌人数字（血量）随时间增长
 function _pickEnemyHP(elapsed) {
-  var base = 3 + Math.floor(elapsed / 30) * 2  // 每30秒+2
+  var base = 3 + Math.floor(elapsed / 20) * 3  // 每20秒+3，增长更快
   var vary = Math.floor(Math.random() * base * 0.5)
   return Math.max(1, base + vary - Math.floor(base*0.25))
 }
@@ -232,7 +232,7 @@ GameGlobal.Survival = {
 
     // 生成
     this._spawnTimer+=dt
-    var si=this._waveActive?0.15:0.7
+    var si=this._waveActive?0.08:0.4
     while(this._spawnTimer>=si){this._spawnTimer-=si;if(this.enemies.length<this.maxEnemies)this._spawnEnemy()}
     this._checkWaves()
 
@@ -395,12 +395,18 @@ GameGlobal.Survival = {
       var rr=this._rings[ri]; rr.r+=200*dt
       // 跟随玩家
       if(rr.follow){rr.x=p.x;rr.y=p.y}
-      // 检测碰撞
-      for(var i=this.enemies.length-1;i>=0;i--){
+      // 检测碰撞 — 先收集要伤害的敌人，再统一处理，避免 splice 导致索引错位
+      var ringHits=[]
+      for(var i=0;i<this.enemies.length;i++){
         var e=this.enemies[i]
-        if(!e||rr.hit[i]) continue
+        if(!e) continue
+        var eid=e._uid||i
+        if(rr.hit[eid]) continue
         var dx=e.x-rr.x,dy=e.y-rr.y,d=Math.sqrt(dx*dx+dy*dy)
-        if(Math.abs(d-rr.r)<25){rr.hit[i]=true;this._damageEnemy(i,rr.dmg)}
+        if(Math.abs(d-rr.r)<25){rr.hit[eid]=true;ringHits.push(i)}
+      }
+      for(var hi=ringHits.length-1;hi>=0;hi--){
+        if(ringHits[hi]<this.enemies.length) this._damageEnemy(ringHits[hi],rr.dmg)
       }
       if(this.boss&&!rr.hit['boss']){var dx=this.boss.x-rr.x,dy=this.boss.y-rr.y;if(Math.abs(Math.sqrt(dx*dx+dy*dy)-rr.r)<30){rr.hit['boss']=true;this._damageBoss(rr.dmg)}}
       if(rr.r>rr.maxR) this._rings.splice(ri,1)
@@ -766,7 +772,8 @@ GameGlobal.Survival = {
     if(type==='tank') hp=Math.floor(hp*2.5)
     if(type==='swarm') hp=Math.max(1,Math.floor(hp*0.4))
     var _pickSprite2 = GameGlobal.SurvivalSprites ? GameGlobal.SurvivalSprites.pickMonsterSprite : null
-    this.enemies.push({x:x,y:y,hp:hp,maxHp:hp,type:type,speed:ENEMY_TYPES[type].speed,spriteType:_pickSprite2?_pickSprite2(type):null})
+    this._uidCounter=(this._uidCounter||0)+1
+    this.enemies.push({_uid:this._uidCounter,x:x,y:y,hp:hp,maxHp:hp,type:type,speed:ENEMY_TYPES[type].speed,spriteType:_pickSprite2?_pickSprite2(type):null})
   },
 
   _spawnElite: function() {
@@ -775,13 +782,15 @@ GameGlobal.Survival = {
     var n=this._eliteCount||0
     // 3种精英怪轮流出现，随次数增强
     var eliteTypes=[
-      {type:'tank',  hp:150+n*40, speed:28+n*1.5, size:1.6, color:'#e74c3c', name:'重甲'},   // 高血高防
-      {type:'dash',  hp:100+n*25, speed:60+n*3,   size:1.3, color:'#9b59b6', name:'疾风'},   // 高速冲刺
-      {type:'split', hp:120+n*30, speed:35+n*2,   size:1.5, color:'#f39c12', name:'裂变'},   // 死后分裂更多
+      {type:'tank',  hp:400+n*60, speed:28+n*1.5, size:1.6, color:'#e74c3c', name:'重甲'},   // 高血高防
+      {type:'dash',  hp:250+n*40, speed:60+n*3,   size:1.3, color:'#9b59b6', name:'疾风'},   // 高速冲刺
+      {type:'split', hp:300+n*50, speed:35+n*2,   size:1.5, color:'#f39c12', name:'裂变'},   // 死后分裂更多
     ]
     var elite=eliteTypes[n%3]
     var ex=p.x+Math.cos(a)*450,ey=p.y+Math.sin(a)*450
+    this._uidCounter=(this._uidCounter||0)+1
     this.enemies.push({
+      _uid:this._uidCounter,
       x:ex,y:ey,hp:elite.hp,maxHp:elite.hp,
       type:elite.type,speed:elite.speed,
       spriteType:_ps?_ps(elite.type):null,
@@ -795,7 +804,7 @@ GameGlobal.Survival = {
   _spawnBoss: function() {
     var p=this.player
     this.boss={
-      x:p.x+500, y:p.y, hp:800, maxHp:800, speed:22,
+      x:p.x+500, y:p.y, hp:2000, maxHp:2000, speed:22,
       _spawnTimer:0, _flashTimer:0,
       // 阶段系统
       phase:1,           // 1=普通, 2=狂暴(50%HP), 3=绝望(25%HP)
@@ -974,8 +983,8 @@ GameGlobal.Survival = {
   },
 
   _checkWaves: function() {
-    var t=this.elapsed,waves=[180,300,420]
-    for(var i=0;i<waves.length;i++){if(t>=waves[i]&&t<waves[i]+20&&!this._waveActive){this._waveActive=true;this._waveEnd=waves[i]+20}}
+    var t=this.elapsed,waves=[60,120,180,240,300,360,420,480,540]
+    for(var i=0;i<waves.length;i++){if(t>=waves[i]&&t<waves[i]+25&&!this._waveActive){this._waveActive=true;this._waveEnd=waves[i]+25}}
     if(this._waveActive&&t>=this._waveEnd) this._waveActive=false
   },
 
