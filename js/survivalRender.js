@@ -337,29 +337,86 @@ GameGlobal.drawSurvivalScreen=function(){
   // 龙卷风
   for(var ti=0;ti<(S._tornadoes||[]).length;ti++){
     var tn=S._tornadoes[ti],tnx=tn.x-cam.x,tny=tn.y-cam.y
-    var ta=Math.min(1, tn.life/0.8)
-    // 多层旋转弧线组成漏斗形
-    for(var tr=0;tr<6;tr++){
-      var layerY = tny - 12 + tr * 5  // 从上到下展开
-      var layerR = 6 + tr * 5          // 半径越往下越大
+    var ta=Math.min(1, tn.life/(tn.isVortex?2.5:0.8))
+    var scale=tn.isVortex?2.5:1 // 虚空漩涡更大
+    var layers=tn.isVortex?10:6
+    var color=tn.isVortex?'140,80,220':'180,220,255' // 紫色 vs 蓝色
+    for(var tr=0;tr<layers;tr++){
+      var layerY = tny - 12*scale + tr * 5*scale/layers*6
+      var layerR = (6 + tr * 5)*scale
       var tAngle = S.elapsed * (12 - tr) + tr * 1.2
-      // 画旋转弧
       ctx.beginPath()
       ctx.arc(tnx, layerY, Math.max(1, layerR), tAngle, tAngle + Math.PI * 1.2)
-      ctx.strokeStyle='rgba(180,220,255,'+ta*(0.7-tr*0.08)+')'
-      ctx.lineWidth = Math.max(1, 4 - tr * 0.4)
+      ctx.strokeStyle='rgba('+color+','+ta*(0.7-tr*0.05)+')'
+      ctx.lineWidth = Math.max(1, (4 - tr * 0.3)*scale)
       ctx.stroke()
     }
-    // 中心亮点
-    ctx.beginPath();ctx.arc(tnx,tny,Math.max(1,4),0,Math.PI*2)
-    ctx.fillStyle='rgba(220,240,255,'+ta*0.6+')';ctx.fill()
-    // 外圈粒子
-    for(var tp=0;tp<5;tp++){
-      var pAngle=S.elapsed*8+tp*1.26
-      var pDist=18+Math.sin(S.elapsed*5+tp)*8
+    ctx.beginPath();ctx.arc(tnx,tny,Math.max(1,4*scale),0,Math.PI*2)
+    ctx.fillStyle='rgba('+color+','+ta*0.6+')';ctx.fill()
+    var particleCount=tn.isVortex?10:5
+    for(var tp=0;tp<particleCount;tp++){
+      var pAngle=S.elapsed*8+tp*(Math.PI*2/particleCount)
+      var pDist=(18+Math.sin(S.elapsed*5+tp)*8)*scale
       var px=tnx+Math.cos(pAngle)*pDist, py=tny+Math.sin(pAngle)*pDist*0.6
-      ctx.beginPath();ctx.arc(px,py,Math.max(0.5,2.5),0,Math.PI*2)
-      ctx.fillStyle='rgba(200,230,255,'+ta*0.4+')';ctx.fill()
+      ctx.beginPath();ctx.arc(px,py,Math.max(0.5,2.5*scale),0,Math.PI*2)
+      ctx.fillStyle='rgba('+color+','+ta*0.4+')';ctx.fill()
+    }
+  }
+
+  // 锁链视觉
+  for(var ci=0;ci<(S._chains||[]).length;ci++){
+    var ch=S._chains[ci],ca=ch.life/0.3
+    ctx.beginPath()
+    ctx.moveTo(ch.x-cam.x,ch.y-cam.y)
+    ctx.lineTo(ch.tx-cam.x,ch.ty-cam.y)
+    ctx.strokeStyle='rgba(149,165,166,'+ca+')'
+    ctx.lineWidth=3;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([])
+    // 链头
+    ctx.beginPath();ctx.arc(ch.tx-cam.x,ch.ty-cam.y,Math.max(1,4),0,Math.PI*2)
+    ctx.fillStyle='rgba(149,165,166,'+ca+')';ctx.fill()
+  }
+
+  // 进化闪光
+  if(S._evoFlash&&S.elapsed-S._evoFlash.time<2){
+    var ef=1-(S.elapsed-S._evoFlash.time)/2
+    ctx.fillStyle='rgba(255,215,0,'+ef*0.15+')'
+    ctx.fillRect(0,0,SW,SH)
+    setFont(SW*0.07,'900');ctx.textAlign='center';ctx.textBaseline='middle'
+    ctx.fillStyle='rgba(255,215,0,'+ef+')'
+    ctx.fillText('🌟 '+S._evoFlash.name+' 🌟',SW/2,SH*0.4)
+  }
+
+  // 血刃风暴视觉
+  for(var wi=0;wi<S.weapons.length;wi++){
+    var ww=S.weapons[wi]
+    if(ww.id==='bloodstorm'){
+      var px3=p.x-cam.x,py3=p.y-cam.y
+      for(var k=0;k<ww.count;k++){
+        var ba=S.elapsed*3+k*(Math.PI*2/ww.count)
+        var bx=px3+Math.cos(ba)*ww.range,by=py3+Math.sin(ba)*ww.range
+        // 红色刀刃
+        ctx.save();ctx.translate(bx,by);ctx.rotate(ba+Math.PI/2)
+        ctx.fillStyle='#e74c3c';ctx.fillRect(-6,-2,12,4)
+        ctx.fillStyle='#c0392b';ctx.fillRect(-4,-1,8,2)
+        ctx.restore()
+      }
+    }
+    if(ww.id==='bounceshield'){
+      var px3=p.x-cam.x,py3=p.y-cam.y
+      for(var k=0;k<ww.count;k++){
+        var ba=S.elapsed*2+k*(Math.PI*2/ww.count)
+        var bx=px3+Math.cos(ba)*ww.range,by=py3+Math.sin(ba)*ww.range
+        ctx.beginPath();ctx.arc(bx,by,Math.max(1,8),0,Math.PI*2)
+        ctx.fillStyle='rgba(52,152,219,0.7)';ctx.fill()
+        ctx.strokeStyle='#2980b9';ctx.lineWidth=2;ctx.stroke()
+      }
+    }
+    if(ww.id==='elemental'){
+      var px3=p.x-cam.x,py3=p.y-cam.y
+      // 冰圈
+      ctx.beginPath();ctx.arc(px3,py3,Math.max(1,ww.range),0,Math.PI*2)
+      ctx.strokeStyle='rgba(93,173,226,0.3)';ctx.lineWidth=2;ctx.stroke()
+      ctx.fillStyle='rgba(93,173,226,0.05)';ctx.fill()
     }
   }
 
@@ -786,7 +843,7 @@ function _drawHUD(S){
   ctx.fillText('⚙ 设置',stX+stW/2,stY+stH/2)
   GameGlobal.SurvivalUI.settingBtn={x:stX,y:stY,w:stW,h:stH}
 }
-var _WDEFS={orbit:{icon:'🔪'},bolt:{icon:'🔮'},lightning:{icon:'⚡'},aura:{icon:'❄'},ring:{icon:'🔥'},boomerang:{icon:'🪃'},meteor:{icon:'☄'},shield:{icon:'🛡'},vampire:{icon:'🪓'},tornado:{icon:'🌪'},poison:{icon:'☢'}}
+var _WDEFS={orbit:{icon:'🔪'},bolt:{icon:'🔮'},lightning:{icon:'⚡'},aura:{icon:'❄'},ring:{icon:'🔥'},boomerang:{icon:'🪃'},meteor:{icon:'☄'},shield:{icon:'🛡'},vampire:{icon:'🪓'},tornado:{icon:'🌪'},poison:{icon:'☢'},chain:{icon:'⛓'},bloodstorm:{icon:'💀'},thunderball:{icon:'🌩'},elemental:{icon:'💥'},bounceshield:{icon:'🔰'},plaguemeteor:{icon:'☠'},voidvortex:{icon:'🌀'}}
 var LEVEL_XP_R=(function(){var t=[0];for(var i=1;i<50;i++)t.push(Math.floor(20+i*15+i*i*1.2));return t})()
 
 // ── 摇杆
@@ -871,6 +928,18 @@ function _drawWeaponSelect(S){
       ctx.fillText((def?def.name:ch.id)+' Lv'+(ch.w.level+1),cardX+PAD+cardH*0.5,cy+cardH*0.32)
       setFont(cardH*0.15,'600');ctx.fillStyle=C.textDim
       ctx.fillText('伤害↑ 效果↑',cardX+PAD+cardH*0.5,cy+cardH*0.58)
+    }else if(ch.type==='evolve'){
+      // 进化选项 - 金色边框闪烁
+      var glow=0.6+Math.sin(Date.now()/200)*0.4
+      roundRect(cardX,cy,cardW,cardH,14,'rgba(255,215,0,0.15)','rgba(255,215,0,'+glow+')')
+      setFont(cardH*0.35,'700');ctx.textAlign='left';ctx.textBaseline='middle'
+      ctx.fillStyle='#ffd700';ctx.fillText(ch.evo.icon,cardX+PAD,cy+cardH*0.4)
+      setFont(cardH*0.20,'900');ctx.fillStyle='#ffd700'
+      ctx.fillText('🌟 进化: '+ch.evo.name,cardX+PAD+cardH*0.5,cy+cardH*0.32)
+      setFont(cardH*0.14,'600');ctx.fillStyle='#ffe082'
+      ctx.fillText(ch.evo.desc,cardX+PAD+cardH*0.5,cy+cardH*0.58)
+      setFont(cardH*0.13,'800');ctx.fillStyle='#ffd700'
+      ctx.fillText('EVOLVE',cardX+cardW-PAD*4,cy+cardH*0.5)
     }else if(ch.type==='heal'){
       roundRect(cardX,cy,cardW,cardH,14,'rgba(46,204,113,0.08)','rgba(46,204,113,0.2)')
       // 红色药瓶图标（potionIdx 4 = 红色）
