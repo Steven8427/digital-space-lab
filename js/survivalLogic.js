@@ -503,10 +503,25 @@ GameGlobal.Survival = {
     }
   },
 
-  // ── 龙卷风
+  // ── 龙卷风（自动瞄准最近怪物）
   _weaponTornado: function(w) {
-    var p=this.player,js=this.joystick
-    var dx=js&&js.active?js.dx:0,dy=js&&js.active?js.dy:1
+    var p=this.player
+    // 找最近的敌人
+    var nearest=null, nearDist=Infinity
+    for(var i=0;i<this.enemies.length;i++){
+      var e=this.enemies[i]
+      var ex=e.x-p.x, ey=e.y-p.y
+      var dist=ex*ex+ey*ey
+      if(dist<nearDist){nearDist=dist;nearest=e}
+    }
+    var dx,dy
+    if(nearest){
+      dx=nearest.x-p.x; dy=nearest.y-p.y
+    } else {
+      // 没有怪物时用摇杆方向
+      var js=this.joystick
+      dx=js&&js.active?js.dx:0; dy=js&&js.active?js.dy:1
+    }
     var d=Math.sqrt(dx*dx+dy*dy)||1
     this._tornadoes.push({x:p.x,y:p.y,vx:(dx/d)*250,vy:(dy/d)*250,
       dmg:w.dmg,life:0.8,range:w.range,hit:{}})
