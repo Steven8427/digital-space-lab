@@ -461,29 +461,31 @@ function getPlayerSkin() {
   return _currentSkin
 }
 
-// Draw icon from 30Icons spritesheet (128x160, 8col x 10row, 16x16 each)
-// row/col index into grid
-function _drawIconAt(ctx, x, y, size, row, col) {
+// Draw weapon icon from Weapons.png (128x32, 4 icons of 32x32)
+// iconIdx: 0=dagger, 1=sword, 2=axe, 3=staff
+function drawWeaponIcon(ctx, x, y, size, iconIdx) {
   var img = _spriteImages['icons_weapons']
   if (!img || !_spriteLoaded['icons_weapons']) return false
-  var sx = col * 16, sy = row * 16
-  ctx.drawImage(img, sx, sy, 16, 16, x - size / 2, y - size / 2, size, size)
+  var sx = iconIdx * 32
+  ctx.drawImage(img, sx, 0, 32, 32, x - size / 2, y - size / 2, size, size)
   return true
 }
 
-// Draw weapon icon: row 6 has weapons (0=短剑, 1=长剑, 2=弓, 3=斧头, 4=法杖)
-function drawWeaponIcon(ctx, x, y, size, weaponCol) {
-  return _drawIconAt(ctx, x, y, size, 6, weaponCol)
-}
-
-// Draw axe icon (row 6, col 3)
+// Draw axe icon (index 2 in Weapons.png)
 function drawAxeIcon(ctx, x, y, size) {
-  return _drawIconAt(ctx, x, y, size, 6, 3)
+  return drawWeaponIcon(ctx, x, y, size, 2)
 }
 
-// Draw food item from 30Icons spritesheet row 5 (apple=0, bread=1, cheese=2, drumstick=3, fish=4)
+// Draw food item from Food.png sprite sheet (128x32, 5 items)
+// foodType: 0=apple, 1=bread, 2=cheese, 3=drumstick, 4=fish
 function drawFoodItem(ctx, x, y, size, foodType) {
-  return _drawIconAt(ctx, x, y, size, 5, foodType)
+  var img = _spriteImages['icons_food']
+  if (!img || !_spriteLoaded['icons_food']) return false
+  var frameW = Math.floor(img.width / 5)
+  var frameH = img.height
+  var sx = foodType * frameW
+  ctx.drawImage(img, sx, 0, frameW, frameH, x - size / 2, y - size / 2, size, size)
+  return true
 }
 
 // Draw a potion icon from PotionBottles.png sprite sheet
