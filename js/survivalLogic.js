@@ -966,13 +966,25 @@ GameGlobal.Survival = {
       }
     }
 
-    // 已有武器升级选项（不包括已进化的源武器）
+    // 已有武器升级选项（满级的不再显示）
     for(var id in owned){
-      if(owned[id].level<5) choices.push({type:'upgrade',id:id,w:owned[id]})
+      if(!owned[id].evolved && owned[id].level<5) choices.push({type:'upgrade',id:id,w:owned[id]})
     }
-    // 新武器选项（不包括进化武器）
+    // 新武器选项（不包括已拥有的、进化武器ID、和已进化掉的源武器）
+    var evolvedAway = {} // 被进化掉的源武器不能再选
+    for(var i=0;i<this.weapons.length;i++){
+      if(this.weapons[i].evolved){
+        // 找到对应的进化定义，标记源武器
+        for(var eid in EVOLUTION_DEFS){
+          if(eid===this.weapons[i].id){
+            evolvedAway[EVOLUTION_DEFS[eid].a]=true
+            evolvedAway[EVOLUTION_DEFS[eid].b]=true
+          }
+        }
+      }
+    }
     for(var id in WEAPON_DEFS){
-      if(!owned[id]) choices.push({type:'new',id:id})
+      if(!owned[id] && !evolvedAway[id]) choices.push({type:'new',id:id})
     }
     // 特殊选项
     choices.push({type:'heal',id:'heal'})
