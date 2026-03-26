@@ -46,7 +46,9 @@ var TILESET_FILE = CLOUD_PREFIX + 'survival/map/Tileset.png'
 var HOUSES_FILE = CLOUD_PREFIX + 'survival/map/Houses.png'
 
 // Icon sprite sheets
-var ICONS_WEAPONS_FILE = CLOUD_PREFIX + 'survival/icons/Weapons.png'
+var ICONS_WEAPONS_FILE = CLOUD_PREFIX + 'survival/icons/Weapons.png'  // legacy, unused
+var ICONS_DAGGER_FILE = CLOUD_PREFIX + 'survival/icons/dagger.png'
+var ICONS_AXE_FILE = CLOUD_PREFIX + 'survival/icons/axe.png'
 var ICONS_FOOD_FILE = CLOUD_PREFIX + 'survival/icons/Food.png'
 var ICONS_POTIONS_FILE = CLOUD_PREFIX + 'survival/icons/PotionBottles.png'
 
@@ -94,8 +96,10 @@ function _loadSprites() {
   fileKeys.push('houses')
 
   // Icon sprite sheets
-  fileIDs.push(ICONS_WEAPONS_FILE)
-  fileKeys.push('icons_weapons')
+  fileIDs.push(ICONS_DAGGER_FILE)
+  fileKeys.push('icons_dagger')
+  fileIDs.push(ICONS_AXE_FILE)
+  fileKeys.push('icons_axe')
   fileIDs.push(ICONS_FOOD_FILE)
   fileKeys.push('icons_food')
   fileIDs.push(ICONS_POTIONS_FILE)
@@ -461,19 +465,20 @@ function getPlayerSkin() {
   return _currentSkin
 }
 
-// Draw weapon icon from WeaponsClean.png (64x16, 4 icons of 16x16)
-// iconIdx: 0=dagger, 1=sword, 2=axe, 3=staff
-function drawWeaponIcon(ctx, x, y, size, iconIdx) {
-  var img = _spriteImages['icons_weapons']
-  if (!img || !_spriteLoaded['icons_weapons']) return false
-  var sx = iconIdx * 16
-  ctx.drawImage(img, sx, 0, 16, 16, x - size / 2, y - size / 2, size, size)
+// Draw dagger icon from dagger.png (single sprite)
+function drawWeaponIcon(ctx, x, y, size) {
+  var img = _spriteImages['icons_dagger']
+  if (!img || !_spriteLoaded['icons_dagger']) return false
+  ctx.drawImage(img, 0, 0, img.width, img.height, x - size / 2, y - size / 2, size, size)
   return true
 }
 
-// Draw axe icon (index 2 in Weapons.png)
+// Draw axe icon from axe.png (single sprite)
 function drawAxeIcon(ctx, x, y, size) {
-  return drawWeaponIcon(ctx, x, y, size, 2)
+  var img = _spriteImages['icons_axe']
+  if (!img || !_spriteLoaded['icons_axe']) return false
+  ctx.drawImage(img, 0, 0, img.width, img.height, x - size / 2, y - size / 2, size, size)
+  return true
 }
 
 // Draw food item from Food.png sprite sheet (128x32, 5 items)
