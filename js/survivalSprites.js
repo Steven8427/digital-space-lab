@@ -471,19 +471,19 @@ function _drawIconAt(ctx, x, y, size, row, col) {
   return true
 }
 
-// Draw weapon icon: row 5 has weapons (0=短剑, 1=长剑, 2=弓, 3=斧头, 4=法杖)
+// Draw weapon icon: row 6 has weapons (0=短剑, 1=长剑, 2=弓, 3=斧头, 4=法杖)
 function drawWeaponIcon(ctx, x, y, size, weaponCol) {
-  return _drawIconAt(ctx, x, y, size, 5, weaponCol)
+  return _drawIconAt(ctx, x, y, size, 6, weaponCol)
 }
 
-// Draw axe icon (row 5, col 3)
+// Draw axe icon (row 6, col 3)
 function drawAxeIcon(ctx, x, y, size) {
-  return _drawIconAt(ctx, x, y, size, 5, 3)
+  return _drawIconAt(ctx, x, y, size, 6, 3)
 }
 
-// Draw food item from 30Icons spritesheet row 4 (apple=0, bread=1, cheese=2, drumstick=3, fish=4)
+// Draw food item from 30Icons spritesheet row 5 (apple=0, bread=1, cheese=2, drumstick=3, fish=4)
 function drawFoodItem(ctx, x, y, size, foodType) {
-  return _drawIconAt(ctx, x, y, size, 4, foodType)
+  return _drawIconAt(ctx, x, y, size, 5, foodType)
 }
 
 // Draw a potion icon from PotionBottles.png sprite sheet
