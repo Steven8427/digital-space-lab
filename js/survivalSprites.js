@@ -461,13 +461,13 @@ function getPlayerSkin() {
   return _currentSkin
 }
 
-// Draw weapon icon from Weapons.png (128x32, 4 icons of 32x32)
+// Draw weapon icon from WeaponsClean.png (64x16, 4 icons of 16x16)
 // iconIdx: 0=dagger, 1=sword, 2=axe, 3=staff
 function drawWeaponIcon(ctx, x, y, size, iconIdx) {
   var img = _spriteImages['icons_weapons']
   if (!img || !_spriteLoaded['icons_weapons']) return false
-  var sx = iconIdx * 32
-  ctx.drawImage(img, sx, 0, 32, 32, x - size / 2, y - size / 2, size, size)
+  var sx = iconIdx * 16
+  ctx.drawImage(img, sx, 0, 16, 16, x - size / 2, y - size / 2, size, size)
   return true
 }
 
