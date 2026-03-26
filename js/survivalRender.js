@@ -273,10 +273,24 @@ GameGlobal.drawSurvivalScreen=function(){
   // 毒雾区域
   for(var pzi=0;pzi<(S._poisonZones||[]).length;pzi++){
     var pz=S._poisonZones[pzi],pzx=pz.x-cam.x,pzy=pz.y-cam.y
-    var pza=Math.min(1,pz.life/pz.maxLife)*0.25
-    ctx.beginPath();ctx.arc(pzx,pzy,pz.r,0,Math.PI*2)
-    ctx.fillStyle='rgba(100,220,60,'+pza+')';ctx.fill()
-    ctx.strokeStyle='rgba(50,180,30,'+pza*1.5+')';ctx.lineWidth=2;ctx.stroke()
+    var pza=Math.min(1,pz.life/pz.maxLife)
+    var pulseR=pz.r+Math.sin(S.elapsed*4+pzi)*5
+    // 多层毒雾圆
+    ctx.beginPath();ctx.arc(pzx,pzy,Math.max(1,pulseR),0,Math.PI*2)
+    ctx.fillStyle='rgba(80,200,40,'+pza*0.2+')';ctx.fill()
+    ctx.beginPath();ctx.arc(pzx,pzy,Math.max(1,pulseR*0.7),0,Math.PI*2)
+    ctx.fillStyle='rgba(60,180,30,'+pza*0.25+')';ctx.fill()
+    ctx.beginPath();ctx.arc(pzx,pzy,Math.max(1,pulseR),0,Math.PI*2)
+    ctx.strokeStyle='rgba(50,200,30,'+pza*0.5+')';ctx.lineWidth=2.5;ctx.stroke()
+    // 毒气粒子
+    for(var pp=0;pp<8;pp++){
+      var pAngle=S.elapsed*2+pp*0.785+pzi
+      var pDist=pulseR*(0.3+Math.sin(S.elapsed*3+pp)*0.4)
+      var ppx=pzx+Math.cos(pAngle)*pDist,ppy=pzy+Math.sin(pAngle)*pDist
+      var ppSize=Math.max(0.5,2+Math.sin(S.elapsed*5+pp*2)*1.5)
+      ctx.beginPath();ctx.arc(ppx,ppy,ppSize,0,Math.PI*2)
+      ctx.fillStyle='rgba(100,255,50,'+pza*0.4+')';ctx.fill()
+    }
   }
 
   // 吸血斧挥砍特效

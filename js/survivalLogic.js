@@ -123,7 +123,7 @@ var WEAPON_DEFS = {
 // ================================================
 GameGlobal.Survival = {
   running:false, paused:false, gameOver:false, victory:false,
-  player:null, enemies:[], maxEnemies:55,
+  player:null, enemies:[], maxEnemies:80,
   projectiles:[], // {x,y,vx,vy,dmg,life,type,targets}
   elapsed:0, _lastTick:0, _spawnTimer:0,
   _waveActive:false, _waveEnd:0,
@@ -396,9 +396,10 @@ GameGlobal.Survival = {
       // 跟随玩家
       if(rr.follow){rr.x=p.x;rr.y=p.y}
       // 检测碰撞
-      for(var i=0;i<this.enemies.length;i++){
-        if(rr.hit[i]) continue
-        var e=this.enemies[i],dx=e.x-rr.x,dy=e.y-rr.y,d=Math.sqrt(dx*dx+dy*dy)
+      for(var i=this.enemies.length-1;i>=0;i--){
+        var e=this.enemies[i]
+        if(!e||rr.hit[i]) continue
+        var dx=e.x-rr.x,dy=e.y-rr.y,d=Math.sqrt(dx*dx+dy*dy)
         if(Math.abs(d-rr.r)<25){rr.hit[i]=true;this._damageEnemy(i,rr.dmg)}
       }
       if(this.boss&&!rr.hit['boss']){var dx=this.boss.x-rr.x,dy=this.boss.y-rr.y;if(Math.abs(Math.sqrt(dx*dx+dy*dy)-rr.r)<30){rr.hit['boss']=true;this._damageBoss(rr.dmg)}}
@@ -774,9 +775,9 @@ GameGlobal.Survival = {
     var n=this._eliteCount||0
     // 3种精英怪轮流出现，随次数增强
     var eliteTypes=[
-      {type:'tank',  hp:80+n*25,  speed:28+n*1.5, size:1.6, color:'#e74c3c', name:'重甲'},   // 高血高防
-      {type:'dash',  hp:50+n*15,  speed:60+n*3,   size:1.3, color:'#9b59b6', name:'疾风'},   // 高速冲刺
-      {type:'split', hp:60+n*20,  speed:35+n*2,   size:1.5, color:'#f39c12', name:'裂变'},   // 死后分裂更多
+      {type:'tank',  hp:150+n*40, speed:28+n*1.5, size:1.6, color:'#e74c3c', name:'重甲'},   // 高血高防
+      {type:'dash',  hp:100+n*25, speed:60+n*3,   size:1.3, color:'#9b59b6', name:'疾风'},   // 高速冲刺
+      {type:'split', hp:120+n*30, speed:35+n*2,   size:1.5, color:'#f39c12', name:'裂变'},   // 死后分裂更多
     ]
     var elite=eliteTypes[n%3]
     var ex=p.x+Math.cos(a)*450,ey=p.y+Math.sin(a)*450
