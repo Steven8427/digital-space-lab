@@ -962,14 +962,20 @@ function _drawWeaponSelect(S){
   } else {
     ctx.fillStyle='#f39c12';ctx.fillText('升级！',cx,SH*0.16)
     setFont(SW*0.030,'700');ctx.fillStyle='#fff';ctx.fillText('等级 '+S.player.level+' — 选择一项'+((S._weaponSlotUsed||0)>=(S.maxWeapons||6)?' (武器已满)':''),cx,SH*0.23)
+    // 金币显示
+    var coins=GameGlobal.AchieveShop?GameGlobal.AchieveShop.coins:0
+    setFont(SW*0.025,'700');ctx.textAlign='right';ctx.fillStyle='#f1c40f'
+    ctx.fillText('💰 '+coins,SW-PAD*2,SH*0.16)
+    ctx.textAlign='center'
   }
 
   var UI=GameGlobal.SurvivalUI;UI.skillBtns=[]
   var chs=S.weaponChoices, cardW=BOARD_W*0.90, cardH=SH*0.13, startY=SH*0.30
 
+  var EVOLUTION_DEFS = GameGlobal.Survival && GameGlobal.Survival.EVOLUTION_DEFS || {}
   for(var i=0;i<chs.length;i++){
     var ch=chs[i],cy=startY+i*(cardH+GAP),cardX=cx-cardW/2
-    var def=WEAPON_DEFS[ch.id]
+    var def=WEAPON_DEFS[ch.id] || EVOLUTION_DEFS[ch.id]
 
     if(ch.type==='new'){
       roundRect(cardX,cy,cardW,cardH,14,'rgba(46,204,113,0.1)','rgba(46,204,113,0.3)')

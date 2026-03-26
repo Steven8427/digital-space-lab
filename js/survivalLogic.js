@@ -131,7 +131,7 @@ var EVOLUTION_DEFS = {
   thunderball:  { a:'bolt',      b:'lightning', name:'雷球连锁', desc:'能量弹命中触发闪电', icon:'🌩', baseDmg:20, baseCD:0.5, count:3, range:350 },
   elemental:    { a:'aura',      b:'ring',      name:'元素爆裂', desc:'冰火交替脉冲冻爆', icon:'💥', baseDmg:30, baseCD:1.8, count:1, range:200 },
   bounceshield: { a:'boomerang', b:'shield',    name:'弹射护盾', desc:'发射护盾弹弹射多敌', icon:'🔰', baseDmg:22, baseCD:1.2, count:3, range:300 },
-  plaguemeteor: { a:'meteor',    b:'poison',    name:'瘟疫陨石', desc:'陨石砸中留毒区', icon:'☠', baseDmg:35, baseCD:2.5, count:2, range:280 },
+  plaguemeteor: { a:'meteor',    b:'poison',    name:'瘟疫陨石', desc:'大范围陨石+毒区+减速', icon:'☠', baseDmg:40, baseCD:2.0, count:3, range:300 },
   voidvortex:   { a:'tornado',   b:'chain',     name:'虚空漩涡', desc:'巨型龙卷风吸拽绞杀', icon:'🌀', baseDmg:22, baseCD:1.5, count:1, range:300 }
 }
 
@@ -525,7 +525,10 @@ GameGlobal.Survival = {
         m.r+=300*dt
         for(var ei=this.enemies.length-1;ei>=0;ei--){
           var e=this.enemies[ei],dx=e.x-m.x,dy=e.y-m.y
-          if(dx*dx+dy*dy<m.r*m.r){this._damageEnemy(ei,m.dmg*dt*3)}
+          if(dx*dx+dy*dy<m.r*m.r){
+            this._damageEnemy(ei,m.dmg*dt*3)
+            if(m.isPlague) e._slowed=0.4 // 瘟疫陨石减速
+          }
         }
         if(this.boss){var bdx=this.boss.x-m.x,bdy=this.boss.y-m.y;if(bdx*bdx+bdy*bdy<m.r*m.r)this._damageBoss(m.dmg*dt*3)}
         if(m.r>=m.maxR){
@@ -534,7 +537,7 @@ GameGlobal.Survival = {
             for(var mp=this._meteorPoison.length-1;mp>=0;mp--){
               var mpp=this._meteorPoison[mp]
               if(Math.abs(mpp.x-m.x)<5&&Math.abs(mpp.y-m.y)<5){
-                this._poisonZones.push({x:mpp.x,y:mpp.y,r:mpp.r,dmg:mpp.dmg,life:mpp.life})
+                this._poisonZones.push({x:mpp.x,y:mpp.y,r:mpp.r,dmg:mpp.dmg,life:mpp.life,maxLife:mpp.life})
                 this._meteorPoison.splice(mp,1)
               }
             }
@@ -797,28 +800,29 @@ GameGlobal.Survival = {
       })
     }
   },
-  // 瘟疫陨石: 陨石+毒区
+  // 瘟疫陨石: 大范围陨石+大毒区+减速
   _evoPlaguemeteor: function(w) {
     var p=this.player
     for(var c=0;c<w.count;c++){
       var tx=p.x+(Math.random()-0.5)*w.range*2
       var ty=p.y+(Math.random()-0.5)*w.range*2
-      // 瞄准怪物群
+      // 瞄准怪物密集区
       var best=null,bestCnt=0
       for(var i=0;i<this.enemies.length;i++){
         var e=this.enemies[i],cnt=0
         for(var j=0;j<this.enemies.length;j++){
           var dx=this.enemies[j].x-e.x,dy=this.enemies[j].y-e.y
-          if(dx*dx+dy*dy<80*80)cnt++
+          if(dx*dx+dy*dy<120*120)cnt++
         }
         if(cnt>bestCnt){bestCnt=cnt;best=e}
       }
-      if(best){tx=best.x+(Math.random()-0.5)*40;ty=best.y+(Math.random()-0.5)*40}
+      if(best){tx=best.x+(Math.random()-0.5)*30;ty=best.y+(Math.random()-0.5)*30}
       if(!this._meteors)this._meteors=[]
-      this._meteors.push({x:tx,y:ty,delay:0.6,phase:'warn',r:0,maxR:120,dmg:w.dmg})
-      // 着地后留毒区
+      // 更大的陨石爆炸范围
+      this._meteors.push({x:tx,y:ty,delay:0.5+c*0.2,phase:'warn',r:0,maxR:150,dmg:w.dmg*1.5,isPlague:true})
+      // 更大更持久的毒区
       if(!this._meteorPoison)this._meteorPoison=[]
-      this._meteorPoison.push({x:tx,y:ty,delay:0.65,r:100,dmg:Math.floor(w.dmg*0.4),life:4})
+      this._meteorPoison.push({x:tx,y:ty,delay:0.55+c*0.2,r:130,dmg:Math.floor(w.dmg*0.6),life:6})
     }
   },
   // 虚空漩涡: 巨型龙卷风+吸拽
@@ -1437,5 +1441,6 @@ GameGlobal.Survival = {
 
   enemyRadius:_enemyRadius,
   MAP_W:MAP_W, MAP_H:MAP_H, GRID_SIZE:GRID_SIZE, GAME_DURATION:GAME_DURATION,
-  WEAPON_DEFS:WEAPON_DEFS
+  WEAPON_DEFS:WEAPON_DEFS,
+  EVOLUTION_DEFS:EVOLUTION_DEFS
 }
