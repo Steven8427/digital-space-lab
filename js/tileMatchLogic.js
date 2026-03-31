@@ -453,11 +453,10 @@ GameGlobal.TileMatch = {
     return true
   },
 
-  // ── 道具：移出3个（从槽位移到暂存区，暂存区最多3个）
+  // ── 道具：移出3个（从槽位移到暂存区，可无限叠加）
   holdArea: [],   // 暂存区
   propMoveOut: function() {
     if (this.tray.length === 0) return false
-    if (this.holdArea.length >= 3) { wx.showToast({title:'暂存区已满',icon:'none'}); return false }
     if (this.props.moveOut <= 0) {
       var self = this
       GameGlobal.AdManager.showRewardedAd(function() { self._doMoveOut() })
@@ -468,7 +467,7 @@ GameGlobal.TileMatch = {
   },
 
   _doMoveOut: function() {
-    var count = Math.min(3, this.tray.length, 3 - this.holdArea.length)
+    var count = Math.min(3, this.tray.length)
     for (var i = 0; i < count; i++) {
       this.holdArea.push(this.tray.shift())
     }

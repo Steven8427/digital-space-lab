@@ -201,8 +201,8 @@ GameGlobal.drawTileMatchScreen = function() {
   var now = Date.now()
 
   // 飞行动画参数
-  var trayY_anim = SH * 0.78
-  var trayW_anim = SW * 0.92
+  var trayY_anim = SH * 0.82
+  var trayW_anim = SW * 0.94
   var trayX_anim = (SW - trayW_anim) / 2
   var slotW_anim = trayW_anim / 7
   var flyDuration = 250
@@ -306,8 +306,8 @@ GameGlobal.drawTileMatchScreen = function() {
   }
 
   // ── 底部木质槽位区
-  var trayY = SH * 0.78
-  var trayH = SW * 0.14
+  var trayY = SH * 0.82
+  var trayH = SW * 0.13
   var trayW = SW * 0.94
   var trayX = (SW - trayW) / 2
   var slotW = trayW / 7
