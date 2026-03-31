@@ -1170,7 +1170,85 @@ function _fmt(s){var m=Math.floor(s/60),ss=Math.floor(s%60);return String(m).pad
 // ── 排行榜（同v3保持不变）
 GameGlobal.SurvivalRank={list:[],myRank:null,scrollY:0,loading:false,load:function(){this.loading=true;this.scrollY=0;var self=this;wx.cloud.callFunction({name:'leaderboard',data:{action:'query',type:'survival',limit:100},success:function(r){if(r.result&&r.result.success){self.list=r.result.data||[];self.myRank=r.result.myRank||null}self.loading=false},fail:function(){self.loading=false}})}}
 GameGlobal.SurvivalRankUI={backBtn:null}
-GameGlobal.drawSurvivalRankScreen=function(){drawBg();var cx=SW/2,R=GameGlobal.SurvivalRank,RUI=GameGlobal.SurvivalRankUI;setFont(SW*0.050,'900');ctx.textAlign='center';ctx.textBaseline='middle';var tg=ctx.createLinearGradient(cx-SW*0.2,0,cx+SW*0.2,0);tg.addColorStop(0,'#e74c3c');tg.addColorStop(1,'#f39c12');ctx.fillStyle=tg;ctx.fillText('生存排行榜',cx,SH*0.09);setFont(SW*0.025,'600');ctx.fillStyle=C.textDim;ctx.fillText('击杀数排名',cx,SH*0.135);if(R.loading){setFont(SW*0.035,'700');ctx.fillStyle=C.textDim;ctx.fillText('加载中...',cx,SH*0.4);RUI.backBtn={x:BOARD_X,y:SH*0.88,w:BOARD_W,h:BTN_H};drawBtn(BOARD_X,SH*0.88,BOARD_W,BTN_H,'返回',C.surface,C.textLight);return}var myBarY=SH*0.17,myBarH=SH*0.065;if(R.myRank){roundRect(BOARD_X,myBarY,BOARD_W,myBarH,10,'rgba(231,76,60,0.15)','rgba(231,76,60,0.4)');setFont(SW*0.030,'900');ctx.textAlign='left';ctx.fillStyle='#e74c3c';ctx.fillText('我  #'+R.myRank.rank,BOARD_X+PAD,myBarY+myBarH/2);ctx.textAlign='right';ctx.fillText(R.myRank.score+'',BOARD_X+BOARD_W-PAD,myBarY+myBarH/2)}else{roundRect(BOARD_X,myBarY,BOARD_W,myBarH,10,C.surface,'rgba(255,255,255,0.05)');setFont(SW*0.028,'700');ctx.textAlign='center';ctx.fillStyle=C.textDim;ctx.fillText('完成一局即可上榜',cx,myBarY+myBarH/2)}var listY=myBarY+myBarH+GAP,rowH=SH*0.065,list=R.list;ctx.save();ctx.beginPath();ctx.rect(0,listY,SW,SH*0.65);ctx.clip();for(var i=0;i<list.length;i++){var ry=listY+i*rowH-R.scrollY;if(ry+rowH<listY||ry>listY+SH*0.65)continue;roundRect(BOARD_X,ry+2,BOARD_W,rowH-4,8,C.surface,'rgba(255,255,255,0.04)');setFont(SW*0.028,'800');ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=i<3?'#f39c12':C.textDim;ctx.fillText((i+1)+'',BOARD_X+PAD,ry+rowH/2);setFont(SW*0.028,'700');ctx.fillStyle=C.textLight;ctx.fillText(list[i].nickname||'???',BOARD_X+PAD*3,ry+rowH/2);setFont(SW*0.032,'900');ctx.textAlign='right';ctx.fillStyle='#e74c3c';ctx.fillText(String(list[i].score||0),BOARD_X+BOARD_W-PAD,ry+rowH/2)}ctx.restore();var bkY=SH*0.88;drawBtn(BOARD_X,bkY,BOARD_W,BTN_H,'返回',C.surface,C.textLight);RUI.backBtn={x:BOARD_X,y:bkY,w:BOARD_W,h:BTN_H}}
+GameGlobal.drawSurvivalRankScreen = function() {
+  drawBg()
+  var cx = SW / 2, R = GameGlobal.SurvivalRank, RUI = GameGlobal.SurvivalRankUI
+  var rankColors = ['#f5a623', '#d4d4d4', '#e8935a']
+
+  setFont(SW * 0.050, '900'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  var tg = ctx.createLinearGradient(cx - SW * 0.2, 0, cx + SW * 0.2, 0)
+  tg.addColorStop(0, '#e74c3c'); tg.addColorStop(1, '#f39c12')
+  ctx.fillStyle = tg; ctx.fillText('生存排行榜', cx, SH * 0.09)
+  setFont(SW * 0.025, '600'); ctx.fillStyle = C.textDim; ctx.fillText('击杀数排名', cx, SH * 0.135)
+
+  if (R.loading) {
+    setFont(SW * 0.035, '700'); ctx.fillStyle = C.textDim; ctx.fillText('加载中...', cx, SH * 0.4)
+    RUI.backBtn = { x: BOARD_X, y: SH * 0.88, w: BOARD_W, h: BTN_H }
+    drawBtn(BOARD_X, SH * 0.88, BOARD_W, BTN_H, '返回', C.surface, C.textLight); return
+  }
+
+  var myBarY = SH * 0.17, myBarH = SH * 0.065
+  if (R.myRank) {
+    roundRect(BOARD_X, myBarY, BOARD_W, myBarH, 10, 'rgba(231,76,60,0.15)', 'rgba(231,76,60,0.4)')
+    setFont(SW * 0.030, '900'); ctx.textAlign = 'left'; ctx.fillStyle = '#e74c3c'
+    ctx.fillText('我  #' + R.myRank.rank, BOARD_X + PAD, myBarY + myBarH / 2)
+    ctx.textAlign = 'right'; ctx.fillText(R.myRank.score + ' 击杀', BOARD_X + BOARD_W - PAD, myBarY + myBarH / 2)
+  } else {
+    roundRect(BOARD_X, myBarY, BOARD_W, myBarH, 10, C.surface, 'rgba(255,255,255,0.05)')
+    setFont(SW * 0.028, '700'); ctx.textAlign = 'center'; ctx.fillStyle = C.textDim
+    ctx.fillText('完成一局即可上榜', cx, myBarY + myBarH / 2)
+  }
+
+  var listY = myBarY + myBarH + GAP, rowH = SH * 0.075, list = R.list
+  var listH = SH * 0.65
+  ctx.save(); ctx.beginPath(); ctx.rect(0, listY, SW, listH); ctx.clip()
+
+  for (var i = 0; i < list.length; i++) {
+    var ry = listY + i * rowH - R.scrollY
+    if (ry + rowH < listY || ry > listY + listH) continue
+    var rcy = ry + rowH / 2
+    var item = list[i]
+
+    // 背景
+    if (i % 2 === 0) roundRect(BOARD_X + 2, ry, BOARD_W - 4, rowH, 0, 'rgba(255,255,255,0.03)')
+
+    // 排名
+    var rankColor = i < 3 ? rankColors[i] : C.textDim
+    setFont(rowH * 0.34, '900'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+    ctx.fillStyle = rankColor; ctx.fillText(String(i + 1), BOARD_X + PAD, rcy)
+
+    // 头像
+    var rankW = (i >= 9) ? rowH * 0.72 : rowH * 0.58
+    var avatarR = rowH * 0.28, avatarX = BOARD_X + PAD + rankW
+    ctx.beginPath(); ctx.arc(avatarX, rcy, avatarR, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill()
+    var avImg = item.avatarUrl && GameGlobal._avatarImgCache && GameGlobal._avatarImgCache[item.avatarUrl]
+    if (avImg && avImg !== 'loading') {
+      ctx.save(); ctx.beginPath(); ctx.arc(avatarX, rcy, avatarR, 0, Math.PI * 2); ctx.clip()
+      ctx.drawImage(avImg, avatarX - avatarR, rcy - avatarR, avatarR * 2, avatarR * 2); ctx.restore()
+    } else {
+      if (item.avatarUrl && (!GameGlobal._avatarImgCache || !GameGlobal._avatarImgCache[item.avatarUrl]))
+        GameGlobal._loadHomeAvatar(item.avatarUrl)
+      setFont(avatarR * 0.9, '700'); ctx.textAlign = 'center'; ctx.fillStyle = C.textDim
+      ctx.fillText((item.nickname || '?')[0], avatarX, rcy)
+    }
+
+    // 昵称
+    var name = item.nickname || '???'
+    if (name.length > 6) name = name.slice(0, 6) + '..'
+    setFont(rowH * 0.28, '700'); ctx.textAlign = 'left'; ctx.fillStyle = C.textLight
+    ctx.fillText(name, avatarX + avatarR + PAD * 0.4, rcy)
+
+    // 分数
+    setFont(rowH * 0.34, '900'); ctx.textAlign = 'right'; ctx.fillStyle = '#e74c3c'
+    ctx.fillText(String(item.score || 0), BOARD_X + BOARD_W - PAD, rcy)
+  }
+  ctx.restore()
+
+  var bkY = SH * 0.88
+  drawBtn(BOARD_X, bkY, BOARD_W, BTN_H, '返回', C.surface, C.textLight)
+  RUI.backBtn = { x: BOARD_X, y: bkY, w: BOARD_W, h: BTN_H }
+}
 
 var _svRTY=0,_svRSS=0
 GameGlobal.handleSurvivalRankTouch=function(type,y){var R=GameGlobal.SurvivalRank;if(type==='start'){_svRTY=y;_svRSS=R.scrollY}else if(type==='move'){var mx=Math.max(0,R.list.length*SH*0.065-SH*0.65);R.scrollY=Math.max(0,Math.min(mx,_svRSS-(y-_svRTY)))}}

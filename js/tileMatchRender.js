@@ -394,16 +394,47 @@ GameGlobal.drawTileMatchRankScreen = function() {
     ctx.fillText('完成一关即可上榜', cx, myBarY + myBarH / 2)
   }
 
-  var listY = myBarY + myBarH + GAP, rowH = SH * 0.065
-  ctx.save(); ctx.beginPath(); ctx.rect(0, listY, SW, SH * 0.65); ctx.clip()
+  var listY = myBarY + myBarH + GAP, rowH = SH * 0.075, listH = SH * 0.65
+  var rankColors = ['#f5a623', '#d4d4d4', '#e8935a']
+  ctx.save(); ctx.beginPath(); ctx.rect(0, listY, SW, listH); ctx.clip()
   for (var i = 0; i < R.list.length; i++) {
-    var ry = listY + i * rowH - R.scrollY; if (ry + rowH < listY || ry > listY + SH * 0.65) continue
-    roundRect(BOARD_X, ry + 2, BOARD_W, rowH - 4, 8, C.surface, 'rgba(255,255,255,0.04)')
-    setFont(SW * 0.028, '800'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
-    ctx.fillStyle = i < 3 ? '#f39c12' : C.textDim; ctx.fillText((i + 1) + '', BOARD_X + PAD, ry + rowH / 2)
-    setFont(SW * 0.028, '700'); ctx.fillStyle = C.textLight; ctx.fillText(R.list[i].nickname || '???', BOARD_X + PAD * 3, ry + rowH / 2)
-    setFont(SW * 0.032, '900'); ctx.textAlign = 'right'; ctx.fillStyle = '#2ecc71'
-    ctx.fillText('第' + (R.list[i].score || 0) + '关', BOARD_X + BOARD_W - PAD, ry + rowH / 2)
+    var ry = listY + i * rowH - R.scrollY
+    if (ry + rowH < listY || ry > listY + listH) continue
+    var rcy = ry + rowH / 2
+    var item = R.list[i]
+
+    if (i % 2 === 0) roundRect(BOARD_X + 2, ry, BOARD_W - 4, rowH, 0, 'rgba(255,255,255,0.03)')
+
+    // 排名
+    var rankColor = i < 3 ? rankColors[i] : C.textDim
+    setFont(rowH * 0.34, '900'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+    ctx.fillStyle = rankColor; ctx.fillText(String(i + 1), BOARD_X + PAD, rcy)
+
+    // 头像
+    var rankW = (i >= 9) ? rowH * 0.72 : rowH * 0.58
+    var avatarR = rowH * 0.28, avatarX = BOARD_X + PAD + rankW
+    ctx.beginPath(); ctx.arc(avatarX, rcy, avatarR, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill()
+    var avImg = item.avatarUrl && GameGlobal._avatarImgCache && GameGlobal._avatarImgCache[item.avatarUrl]
+    if (avImg && avImg !== 'loading') {
+      ctx.save(); ctx.beginPath(); ctx.arc(avatarX, rcy, avatarR, 0, Math.PI * 2); ctx.clip()
+      ctx.drawImage(avImg, avatarX - avatarR, rcy - avatarR, avatarR * 2, avatarR * 2); ctx.restore()
+    } else {
+      if (item.avatarUrl && (!GameGlobal._avatarImgCache || !GameGlobal._avatarImgCache[item.avatarUrl]))
+        GameGlobal._loadHomeAvatar(item.avatarUrl)
+      setFont(avatarR * 0.9, '700'); ctx.textAlign = 'center'; ctx.fillStyle = C.textDim
+      ctx.fillText((item.nickname || '?')[0], avatarX, rcy)
+    }
+
+    // 昵称
+    var name = item.nickname || '???'
+    if (name.length > 6) name = name.slice(0, 6) + '..'
+    setFont(rowH * 0.28, '700'); ctx.textAlign = 'left'; ctx.fillStyle = C.textLight
+    ctx.fillText(name, avatarX + avatarR + PAD * 0.4, rcy)
+
+    // 分数
+    setFont(rowH * 0.34, '900'); ctx.textAlign = 'right'; ctx.fillStyle = '#2ecc71'
+    ctx.fillText('第' + (item.score || 0) + '关', BOARD_X + BOARD_W - PAD, rcy)
   }
   ctx.restore()
 
@@ -415,5 +446,5 @@ var _tmRTY = 0, _tmRSS = 0
 GameGlobal.handleTileMatchRankTouch = function(type, y) {
   var R = GameGlobal.TileMatchRank
   if (type === 'start') { _tmRTY = y; _tmRSS = R.scrollY }
-  else if (type === 'move') { var mx = Math.max(0, R.list.length * SH * 0.065 - SH * 0.65); R.scrollY = Math.max(0, Math.min(mx, _tmRSS - (y - _tmRTY))) }
+  else if (type === 'move') { var mx = Math.max(0, R.list.length * SH * 0.075 - SH * 0.65); R.scrollY = Math.max(0, Math.min(mx, _tmRSS - (y - _tmRTY))) }
 }
