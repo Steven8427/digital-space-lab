@@ -72,6 +72,8 @@ try {
 // ── 4. 切屏函数（挂到 GameGlobal 供各模块调用）
 GameGlobal.setScreen = function(name) {
   GameGlobal.Sound.play('click')
+  // 清理残留定时器
+  if (GameGlobal.Game && GameGlobal.Game._clearGameOverTimer) GameGlobal.Game._clearGameOverTimer()
   currentScreen = name
   if (name === 'home')         { GameGlobal.Timer.stop(); GameGlobal.Sound.playBgm() }
   if (name === 'lobby2048')    { GameGlobal.Timer.stop(); GameGlobal.Sound.playBgm() }

@@ -163,6 +163,7 @@ GameGlobal.Survival = {
     this._eliteTimer=0; this._eliteCount=0
     this.levelUp=false; this.weaponChoices=[]
     this.weapons=[]; this.enemies=[]; this.projectiles=[]
+    this._uidCounter=0  // 重置敌人唯一ID计数器
     _particles.length=0; this._rings=[]; this._lightnings=[]
     this._boomerangs=[]; this._meteors=[]; this._poisonZones=[]; this._tornadoes=[]
     this._chains=[]; this._meteorPoison=[]; this._evoFlash=null; this._shieldBolts=[]
@@ -891,12 +892,15 @@ GameGlobal.Survival = {
       var e=this.enemies[i]
       if(e===fromE||(hit&&hit[e._uid])) continue
       var dx=e.x-fromE.x,dy=e.y-fromE.y,d2=dx*dx+dy*dy
-      if(d2<200*200&&d2<nd){nd=d2;nearest=e;nearest._idx=i}
+      if(d2<200*200&&d2<nd){nd=d2;nearest=e}
     }
     if(!nearest) return
     hit[nearest._uid]=true
     this._lightnings.push({x1:fromE.x,y1:fromE.y,x2:nearest.x,y2:nearest.y,life:0.2})
-    this._damageEnemy(nearest._idx,dmg)
+    // 用 UID 查找当前索引，避免 splice 导致索引错位
+    var curIdx = -1
+    for(var j=0;j<this.enemies.length;j++){if(this.enemies[j]===nearest){curIdx=j;break}}
+    if(curIdx>=0) this._damageEnemy(curIdx,dmg)
     _spawnP(nearest.x,nearest.y,'#3498db',3)
     if(chainsLeft>1){
       var self=this
