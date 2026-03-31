@@ -165,7 +165,7 @@ function _genLayout(level) {
   var tileW = Math.min(areaW / needW, areaH / needH, SW * 0.20)
   tileW = Math.max(SW * 0.10, tileW)
   var tileH = tileW
-  var sp = tileW
+  var sp = tileW * 1.06  // 方块间距稍大于方块尺寸，留出呼吸感
 
   var tiles = [], id = 0
 

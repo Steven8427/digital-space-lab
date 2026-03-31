@@ -252,41 +252,52 @@ GameGlobal.drawTileMatchScreen = function() {
     var free = TM.isFree(t, TM.tiles)
     var tw = t.w, th = t.h, dx = t.x, dy = t.y
 
-    // 卡片底板
-    var cardImg = TM.getCardImg(free)
-    if (cardImg) {
-      if (free) {
-        // 自由方块浮起阴影
-        ctx.globalAlpha = 0.18
-        roundRect(dx + 2, dy + 4, tw, th, 6, 'rgba(0,0,0,1)')
-        ctx.globalAlpha = 1
-      }
-      ctx.drawImage(cardImg, dx, dy, tw, th)
-    } else {
-      // fallback canvas 绘制
-      if (free) {
-        roundRect(dx + 2, dy + 4, tw, th, 6, 'rgba(0,0,0,0.18)')
-        roundRect(dx, dy, tw, th, 6, '#FFFDF7')
-        roundRect(dx, dy, tw, th, 6, null, 'rgba(200,180,150,0.4)')
-      } else {
-        roundRect(dx, dy, tw, th, 6, '#9E9E9E')
-        roundRect(dx, dy, tw, th, 6, null, 'rgba(0,0,0,0.15)')
-      }
-    }
-
-    // 图标
-    var iconImg = TM.getIconImg(t.type)
-    var pad = tw * 0.10
-    if (iconImg) {
-      if (!free) ctx.globalAlpha = 0.35
-      ctx.drawImage(iconImg, dx + pad, dy + pad, tw - pad * 2, th - pad * 2)
+    if (free) {
+      // ── 自由方块：明亮白色卡片 + 浮起阴影
+      var cardImg = TM.getCardImg(true)
+      // 阴影
+      ctx.globalAlpha = 0.2
+      roundRect(dx + 2, dy + 4, tw, th, 8, 'rgba(0,0,0,1)')
       ctx.globalAlpha = 1
+      if (cardImg) {
+        ctx.drawImage(cardImg, dx, dy, tw, th)
+      } else {
+        roundRect(dx, dy, tw, th, 8, '#FFFDF7')
+        roundRect(dx, dy, tw, th, 8, null, 'rgba(200,180,150,0.3)')
+      }
+      // 图标（完全不透明）
+      var iconImg = TM.getIconImg(t.type)
+      var pad = tw * 0.10
+      if (iconImg) {
+        ctx.drawImage(iconImg, dx + pad, dy + pad, tw - pad * 2, th - pad * 2)
+      } else {
+        var icon = TM.TILE_ICONS[t.type % TM.TILE_ICONS.length]
+        setFont(tw * 0.52, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+        ctx.fillStyle = TOON.textDark
+        ctx.fillText(icon, dx + tw / 2, dy + th / 2 + 1)
+      }
     } else {
-      var icon = TM.TILE_ICONS[t.type % TM.TILE_ICONS.length]
-      setFont(tw * 0.52, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-      if (!free) ctx.globalAlpha = 0.35
-      ctx.fillStyle = TOON.textDark
-      ctx.fillText(icon, dx + tw / 2, dy + th / 2 + 1)
+      // ── 被压方块：淡灰白色，半透明，不那么突兀
+      var cardImgB = TM.getCardImg(false)
+      if (cardImgB) {
+        ctx.globalAlpha = 0.55
+        ctx.drawImage(cardImgB, dx, dy, tw, th)
+        ctx.globalAlpha = 1
+      } else {
+        roundRect(dx, dy, tw, th, 6, 'rgba(220,215,210,0.7)')
+      }
+      // 图标半透明
+      var iconImgB = TM.getIconImg(t.type)
+      var padB = tw * 0.10
+      ctx.globalAlpha = 0.3
+      if (iconImgB) {
+        ctx.drawImage(iconImgB, dx + padB, dy + padB, tw - padB * 2, th - padB * 2)
+      } else {
+        var iconB = TM.TILE_ICONS[t.type % TM.TILE_ICONS.length]
+        setFont(tw * 0.52, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+        ctx.fillStyle = TOON.textDark
+        ctx.fillText(iconB, dx + tw / 2, dy + th / 2 + 1)
+      }
       ctx.globalAlpha = 1
     }
   }
