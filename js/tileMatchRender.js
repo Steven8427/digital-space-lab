@@ -167,36 +167,33 @@ GameGlobal.drawTileMatchScreen = function() {
   var UI = GameGlobal.TileMatchUI
   var cx = SW / 2
 
-  // ── 顶部木质栏（避开胶囊区域）
-  var capsuleTop = SH * 0.06  // 胶囊下方安全区
-  var headerH = SH * 0.07
-  var headerY = capsuleTop
-  _drawWoodPanel(-2, headerY, SW + 4, headerH, 0)
+  // ── 顶部信息（胶囊下方）
+  var safeTop = SH * 0.095  // 胶囊+间距下方
 
-  // 返回按钮
-  setFont(SW * 0.024, '700'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
-  ctx.fillStyle = '#FFF8E1'
-  ctx.fillText('← 退出', PAD + 4, headerY + headerH * 0.5)
-  UI.backBtn = { x: 0, y: headerY, w: SW * 0.22, h: headerH }
-
-  // 关卡标牌
-  var lvW = SW * 0.30, lvH = headerH * 0.65
-  var lvX = cx - lvW / 2, lvY = headerY + (headerH - lvH) / 2
-  roundRect(lvX + 1, lvY + 2, lvW, lvH, 10, 'rgba(0,0,0,0.2)')
+  // 关卡标牌（居中）
+  var lvW = SW * 0.28, lvH = SH * 0.042
+  var lvX = cx - lvW / 2, lvY = safeTop
+  roundRect(lvX + 1, lvY + 2, lvW, lvH, 12, 'rgba(0,0,0,0.15)')
   var lvBg = ctx.createLinearGradient(lvX, lvY, lvX, lvY + lvH)
   lvBg.addColorStop(0, '#FF7043'); lvBg.addColorStop(1, '#E64A19')
-  roundRect(lvX, lvY, lvW, lvH, 10, lvBg)
-  setFont(lvH * 0.50, '900'); ctx.textAlign = 'center'
+  roundRect(lvX, lvY, lvW, lvH, 12, lvBg)
+  setFont(lvH * 0.52, '900'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
   ctx.fillStyle = '#FFF8E1'
   ctx.fillText('第 ' + TM.level + ' 关', cx, lvY + lvH * 0.52)
 
-  // 设置按钮
-  var stW = SW * 0.09, stH = headerH * 0.55
-  var stX = SW - PAD - stW - 4, stY = headerY + (headerH - stH) / 2
-  roundRect(stX + 1, stY + 2, stW, stH, 8, 'rgba(0,0,0,0.15)')
-  roundRect(stX, stY, stW, stH, 8, 'rgba(255,255,255,0.2)')
-  setFont(stH * 0.5, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-  ctx.fillStyle = '#FFF8E1'; ctx.fillText('⚙', stX + stW / 2, stY + stH / 2)
+  // 退出按钮（左侧）
+  setFont(SW * 0.024, '700'); ctx.textAlign = 'left'
+  ctx.fillStyle = TOON.textWarm
+  ctx.fillText('← 退出', PAD + 4, lvY + lvH * 0.5)
+  UI.backBtn = { x: 0, y: lvY - 5, w: SW * 0.20, h: lvH + 10 }
+
+  // 设置按钮（右侧）
+  var stW = SW * 0.08, stH = lvH
+  var stX = SW - PAD - stW, stY = lvY
+  roundRect(stX + 1, stY + 2, stW, stH, 8, 'rgba(0,0,0,0.1)')
+  roundRect(stX, stY, stW, stH, 8, 'rgba(255,255,255,0.5)')
+  setFont(stH * 0.55, '700'); ctx.textAlign = 'center'
+  ctx.fillStyle = TOON.textWarm; ctx.fillText('⚙', stX + stW / 2, stY + stH / 2)
   UI.settingBtn = { x: stX, y: stY, w: stW, h: stH }
 
   // ── 绘制方块（按层从下到上）

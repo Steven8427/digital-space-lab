@@ -121,28 +121,37 @@ var SHAPES = {
 
 // 获取某个关卡的形状和参数
 function _getLevelConfig(level) {
-  // 形状随关卡循环，但大小随关卡递增
-  var mod = level % 10
-  var scale = Math.floor(level / 10)  // 每10关增大一圈
+  var scale = Math.floor(level / 10)
 
   // 基础行列数随关卡增加
-  var baseRows = Math.min(6, 3 + Math.floor(level / 8) + scale)
-  var baseCols = Math.min(7, 4 + Math.floor(level / 6) + scale)
+  var baseRows = Math.min(7, 3 + Math.floor(level / 6) + scale)
+  var baseCols = Math.min(8, 4 + Math.floor(level / 5) + scale)
 
+  // 形状按难度阶段循环，每个阶段内有变化
+  var phase = level % 12
   var shape
-  if (mod <= 1)      shape = SHAPES.rect(baseRows, baseCols)
-  else if (mod <= 3) shape = SHAPES.diamond(Math.min(4, 2 + Math.floor(level / 10)))
-  else if (mod <= 4) shape = SHAPES.cross()
-  else if (mod <= 6) shape = SHAPES.invTriangle(baseCols, baseRows)
-  else               shape = SHAPES.heart()
+
+  if (phase === 0)       shape = SHAPES.rect(Math.min(5, 3 + scale), Math.min(6, 4 + scale))         // 小矩形入门
+  else if (phase === 1)  shape = SHAPES.diamond(Math.min(4, 2 + scale))                               // 菱形
+  else if (phase === 2)  shape = SHAPES.rect(Math.min(6, 4 + scale), Math.min(7, 5 + scale))         // 大矩形
+  else if (phase === 3)  shape = SHAPES.cross()                                                        // 十字
+  else if (phase === 4)  shape = SHAPES.invTriangle(Math.min(7, 5 + scale), Math.min(6, 4 + scale))  // 倒三角
+  else if (phase === 5)  shape = SHAPES.heart()                                                        // 心形
+  else if (phase === 6)  shape = SHAPES.diamond(Math.min(5, 3 + scale))                               // 大菱形
+  else if (phase === 7)  shape = SHAPES.rect(baseRows, baseCols)                                       // 满矩形
+  else if (phase === 8)  shape = SHAPES.invTriangle(baseCols, baseRows)                                // 满倒三角
+  else if (phase === 9)  shape = SHAPES.cross()                                                        // 十字变体
+  else if (phase === 10) shape = SHAPES.heart()                                                        // 心形
+  else                   shape = SHAPES.diamond(Math.min(5, 3 + scale))                               // 大菱形
 
   return shape
 }
 
 function _genLayout(level) {
-  var typeCnt = Math.min(12, 5 + Math.floor(level / 4))
-  // 层数：1关=2层，逐渐增加到4层
-  var layers = Math.min(4, 2 + Math.floor(level / 10))
+  // 图标种类：前几关少（容易配对），后面多（更难）
+  var typeCnt = Math.min(12, 4 + Math.floor(level / 3))
+  // 层数：渐进增加，更早出现3层
+  var layers = Math.min(4, 2 + Math.floor(level / 6))
 
   // 顶层形状
   var topShape = _getLevelConfig(level)
@@ -154,7 +163,7 @@ function _genLayout(level) {
   var maxCols = shapeCols + (layers - 1)
 
   // 可用区域
-  var areaTop = SH * 0.15, areaBot = SH * 0.74
+  var areaTop = SH * 0.16, areaBot = SH * 0.75
   var areaH = areaBot - areaTop
   var areaW = SW * 0.96
   var cx = SW * 0.5
