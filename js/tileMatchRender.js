@@ -1,5 +1,5 @@
 // ================================================
-//  tileMatchRender.js — 三消堆叠 渲染
+//  tileMatchRender.js — 三消堆叠 渲染（卡通风格）
 //  大厅 / 游戏界面 / 结算 / 排行榜
 // ================================================
 var ctx = GameGlobal.ctx, SW = GameGlobal.SW, SH = GameGlobal.SH
@@ -9,11 +9,81 @@ var BTN_H = GameGlobal.BTN_H, C = GameGlobal.C
 var roundRect = GameGlobal.roundRect, setFont = GameGlobal.setFont
 var drawBg = GameGlobal.drawBg, drawBtn = GameGlobal.drawBtn, inRect = GameGlobal.inRect
 
-// 每种图标对应的淡彩色底（参考图的白色卡片+微彩）
-var TYPE_COLORS = [
-  '#fce4ec','#fff8e1','#e3f2fd','#e8f5e9','#f3e5f5','#fff3e0',
-  '#e0f7fa','#fbe9e7','#f1f8e9','#ede7f6','#fce4ec','#e0f2f1'
-]
+// ── 卡通配色方案 ──
+var TOON = {
+  sky1: '#87CEEB', sky2: '#E0F4FF',     // 天蓝渐变
+  warm1: '#FF9A56', warm2: '#FF6B35',    // 暖橙按钮
+  green1: '#6BCB77', green2: '#4CAF50',  // 绿色按钮
+  wood: '#8B6914', woodLight: '#C4944A', // 木质
+  card: '#FFF8F0',                       // 卡片白
+  shadow: 'rgba(0,0,0,0.12)',
+  textDark: '#4A3728',                   // 深棕文字
+  textWarm: '#8B5E3C',                   // 暖棕文字
+  gold: '#FFB800',
+  red: '#FF5252',
+  purple: '#A66CFF',
+}
+
+// 卡通背景绘制
+function _drawCartoonBg() {
+  var g = ctx.createLinearGradient(0, 0, 0, SH)
+  g.addColorStop(0, TOON.sky1); g.addColorStop(0.5, TOON.sky2)
+  g.addColorStop(0.7, '#C8E6C9'); g.addColorStop(1, '#A5D6A7')
+  ctx.fillStyle = g; ctx.fillRect(0, 0, SW, SH)
+  // 淡云朵
+  ctx.globalAlpha = 0.3
+  _drawCloud(SW * 0.15, SH * 0.06, SW * 0.18)
+  _drawCloud(SW * 0.7, SH * 0.12, SW * 0.14)
+  _drawCloud(SW * 0.45, SH * 0.03, SW * 0.12)
+  ctx.globalAlpha = 1
+}
+function _drawCloud(x, y, w) {
+  ctx.fillStyle = '#fff'
+  var r = w * 0.3
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(x + r * 0.8, y - r * 0.3, r * 0.7, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(x + r * 1.5, y, r * 0.6, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(x - r * 0.5, y + r * 0.1, r * 0.5, 0, Math.PI * 2); ctx.fill()
+}
+
+// 卡通圆角按钮（带阴影和高光）
+function _drawCartoonBtn(x, y, w, h, radius, color1, color2, text, textColor, fontSize) {
+  // 阴影
+  roundRect(x + 2, y + 4, w, h, radius, 'rgba(0,0,0,0.15)')
+  // 主体渐变
+  var bg = ctx.createLinearGradient(x, y, x, y + h)
+  bg.addColorStop(0, color1); bg.addColorStop(1, color2)
+  roundRect(x, y, w, h, radius, bg)
+  // 顶部高光
+  ctx.globalAlpha = 0.25
+  roundRect(x + 4, y + 2, w - 8, h * 0.4, radius, 'rgba(255,255,255,0.8)')
+  ctx.globalAlpha = 1
+  // 文字
+  setFont(fontSize || h * 0.4, '800'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillStyle = textColor || '#fff'
+  ctx.fillText(text, x + w / 2, y + h / 2 + 1)
+}
+
+// 木质面板
+function _drawWoodPanel(x, y, w, h, radius) {
+  // 阴影
+  roundRect(x + 3, y + 5, w, h, radius, 'rgba(0,0,0,0.2)')
+  // 木质渐变
+  var wg = ctx.createLinearGradient(x, y, x, y + h)
+  wg.addColorStop(0, '#D4A559'); wg.addColorStop(0.3, '#C4944A')
+  wg.addColorStop(0.7, '#B8863E'); wg.addColorStop(1, '#A67832')
+  roundRect(x, y, w, h, radius, wg)
+  // 木纹线
+  ctx.globalAlpha = 0.08
+  for (var li = 0; li < 3; li++) {
+    var ly = y + h * (0.25 + li * 0.25)
+    ctx.beginPath(); ctx.moveTo(x + radius, ly); ctx.lineTo(x + w - radius, ly)
+    ctx.strokeStyle = '#5D3A1A'; ctx.lineWidth = 1; ctx.stroke()
+  }
+  ctx.globalAlpha = 1
+  // 边框
+  roundRect(x, y, w, h, radius, null, '#8B6914')
+}
 
 // ================================================
 //  大厅
@@ -21,56 +91,66 @@ var TYPE_COLORS = [
 GameGlobal.LobbyTileUI = { startBtn: null, rankBtn: null, backBtn: null }
 
 GameGlobal.drawLobbyTileScreen = function() {
-  drawBg()
+  _drawCartoonBg()
   var cx = SW / 2, L = GameGlobal.LobbyTileUI
 
+  // ── 标题卡片
+  var titleY = SH * 0.08
+  _drawWoodPanel(BOARD_X - 10, titleY, BOARD_W + 20, SH * 0.12, 18)
   setFont(SW * 0.075, '900'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-  var tg = ctx.createLinearGradient(cx - SW * 0.25, 0, cx + SW * 0.25, 0)
-  tg.addColorStop(0, '#2ecc71'); tg.addColorStop(1, '#3498db')
-  ctx.shadowColor = 'rgba(46,204,113,0.5)'; ctx.shadowBlur = 18; ctx.fillStyle = tg
-  ctx.fillText('三消堆叠', cx, SH * 0.14)
-  ctx.shadowBlur = 0; ctx.shadowColor = 'transparent'
+  ctx.fillStyle = '#FFF8E1'
+  ctx.fillText('三消堆叠', cx, titleY + SH * 0.06)
 
-  setFont(SW * 0.028, '600'); ctx.fillStyle = 'rgba(255,255,255,0.45)'
-  ctx.fillText('点击方块，三个一样就消除！', cx, SH * 0.20)
+  // ── 副标题
+  setFont(SW * 0.026, '600'); ctx.fillStyle = TOON.textWarm
+  ctx.fillText('点击方块，三个一样就消除！', cx, SH * 0.235)
 
-  // 最佳记录
+  // ── 最佳记录卡片
   var best = wx.getStorageSync('tileMatchBest') || 0
-  var cardY = SH * 0.27, cardH = BTN_H * 1.5
-  roundRect(BOARD_X, cardY, BOARD_W, cardH, 14, C.surface, 'rgba(46,204,113,0.18)')
-  setFont(SW * 0.026, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = C.textDim
-  ctx.fillText('最高通关', cx, cardY + cardH * 0.30)
-  setFont(best > 0 ? SW * 0.065 : SW * 0.035, '900')
-  ctx.fillStyle = best > 0 ? '#2ecc71' : C.textDim
-  ctx.fillText(best > 0 ? '第 ' + best + ' 关' : '暂无记录', cx, cardY + cardH * 0.72)
+  var cardY = SH * 0.28, cardH = SH * 0.14
+  roundRect(BOARD_X + 2, cardY + 4, BOARD_W, cardH, 16, 'rgba(0,0,0,0.1)')
+  roundRect(BOARD_X, cardY, BOARD_W, cardH, 16, TOON.card)
+  roundRect(BOARD_X, cardY, BOARD_W, cardH, 16, null, 'rgba(139,105,20,0.2)')
 
-  // 玩法说明
-  var infoY = cardY + cardH + GAP * 2
-  setFont(SW * 0.024, '600'); ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.textAlign = 'center'
-  ctx.fillText('👆 点击没被盖住的方块放入槽位', cx, infoY)
-  ctx.fillText('✨ 三个一样的方块自动消除', cx, infoY + SH * 0.035)
-  ctx.fillText('⚠️ 槽位满了(7个)就输了', cx, infoY + SH * 0.070)
+  setFont(SW * 0.024, '700'); ctx.textAlign = 'center'; ctx.fillStyle = TOON.textWarm
+  ctx.fillText('最高通关', cx, cardY + cardH * 0.28)
 
-  // 开始按钮
-  var btnY = SH * 0.56
-  var bg = ctx.createLinearGradient(BOARD_X, 0, BOARD_X + BOARD_W, 0)
-  bg.addColorStop(0, '#2ecc71'); bg.addColorStop(1, '#3498db')
-  roundRect(BOARD_X, btnY, BOARD_W, BTN_H * 1.3, 16, bg)
-  setFont(BTN_H * 0.42, '900'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'
-  ctx.fillText(best > 0 ? '继续第 ' + (best + 1) + ' 关' : '开 始 游 戏', cx, btnY + BTN_H * 0.65)
-  L.startBtn = { x: BOARD_X, y: btnY, w: BOARD_W, h: BTN_H * 1.3 }
+  if (best > 0) {
+    setFont(SW * 0.058, '900'); ctx.fillStyle = TOON.warm2
+    ctx.fillText('第 ' + best + ' 关', cx, cardY + cardH * 0.68)
+  } else {
+    setFont(SW * 0.032, '700'); ctx.fillStyle = '#bbb'
+    ctx.fillText('暂无记录', cx, cardY + cardH * 0.68)
+  }
 
-  // 排行榜
-  var rkY = btnY + BTN_H * 1.3 + GAP
-  roundRect(BOARD_X, rkY, BOARD_W, BTN_H, 12, C.surface, 'rgba(255,255,255,0.08)')
-  setFont(BTN_H * 0.36, '700'); ctx.fillStyle = C.textLight
-  ctx.fillText('🏆  排 行 榜', cx, rkY + BTN_H / 2)
+  // ── 玩法说明
+  var infoY = cardY + cardH + GAP * 1.5
+  var infoH = SH * 0.12
+  roundRect(BOARD_X + 2, infoY + 3, BOARD_W, infoH, 14, 'rgba(0,0,0,0.08)')
+  roundRect(BOARD_X, infoY, BOARD_W, infoH, 14, 'rgba(255,255,255,0.85)')
+  setFont(SW * 0.022, '600'); ctx.fillStyle = TOON.textWarm; ctx.textAlign = 'center'
+  ctx.fillText('点击没被盖住的方块放入槽位', cx, infoY + infoH * 0.25)
+  ctx.fillText('三个一样的方块自动消除', cx, infoY + infoH * 0.52)
+  ctx.fillText('槽位满了(7个)就输了', cx, infoY + infoH * 0.79)
+
+  // ── 开始按钮
+  var btnY = SH * 0.60
+  var btnH = BTN_H * 1.4
+  _drawCartoonBtn(BOARD_X, btnY, BOARD_W, btnH, 20, TOON.warm1, TOON.warm2,
+    best > 0 ? '继续第 ' + (best + 1) + ' 关' : '开 始 游 戏', '#fff', btnH * 0.36)
+  L.startBtn = { x: BOARD_X, y: btnY, w: BOARD_W, h: btnH }
+
+  // ── 排行榜按钮
+  var rkY = btnY + btnH + GAP * 1.2
+  _drawCartoonBtn(BOARD_X, rkY, BOARD_W, BTN_H, 14, TOON.green1, TOON.green2,
+    '排 行 榜', '#fff', BTN_H * 0.38)
   L.rankBtn = { x: BOARD_X, y: rkY, w: BOARD_W, h: BTN_H }
 
-  // 返回
-  var bkY = rkY + BTN_H + GAP * 1.5
-  roundRect(BOARD_X, bkY, BOARD_W, BTN_H * 0.85, 12, C.surface, 'rgba(255,255,255,0.06)')
-  setFont(BTN_H * 0.34, '700'); ctx.fillStyle = C.textDim
+  // ── 返回按钮
+  var bkY = rkY + BTN_H + GAP
+  roundRect(BOARD_X + 2, bkY + 3, BOARD_W, BTN_H * 0.85, 12, 'rgba(0,0,0,0.08)')
+  roundRect(BOARD_X, bkY, BOARD_W, BTN_H * 0.85, 12, 'rgba(255,255,255,0.7)')
+  setFont(BTN_H * 0.32, '700'); ctx.textAlign = 'center'; ctx.fillStyle = TOON.textWarm
   ctx.fillText('← 返回主页', cx, bkY + BTN_H * 0.425)
   L.backBtn = { x: BOARD_X, y: bkY, w: BOARD_W, h: BTN_H * 0.85 }
 }
@@ -81,76 +161,73 @@ GameGlobal.drawLobbyTileScreen = function() {
 GameGlobal.TileMatchUI = { undoBtn: null, moveOutBtn: null, shuffleBtn: null, retryBtn: null, nextBtn: null, exitBtn: null, holdBtns: [], backBtn: null, settingBtn: null }
 
 GameGlobal.drawTileMatchScreen = function() {
-  drawBg()
+  _drawCartoonBg()
   var TM = GameGlobal.TileMatch
   if (!TM) return
   var UI = GameGlobal.TileMatchUI
   var cx = SW / 2
 
-  // ── 顶部信息（避开刘海）
-  var headerY = SH * 0.08
-  roundRect(0, 0, SW, SH * 0.13, 0, 'rgba(0,0,0,0.4)')
+  // ── 顶部木质栏
+  var headerH = SH * 0.10
+  _drawWoodPanel(-2, 0, SW + 4, headerH, 0)
 
   // 返回按钮
-  setFont(SW * 0.028, '700'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
-  ctx.fillStyle = C.textDim
-  ctx.fillText('← 退出', PAD, headerY + SH * 0.025)
-  UI.backBtn = { x: 0, y: 0, w: SW * 0.22, h: SH * 0.13 }
+  setFont(SW * 0.026, '700'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#FFF8E1'
+  ctx.fillText('← 退出', PAD + 4, headerH * 0.6)
+  UI.backBtn = { x: 0, y: 0, w: SW * 0.22, h: headerH }
 
-  // 关卡
-  setFont(SW * 0.032, '900'); ctx.textAlign = 'center'
-  ctx.fillStyle = '#f39c12'
-  ctx.fillText('第 ' + TM.level + ' 关', cx, headerY + SH * 0.025)
+  // 关卡标牌
+  var lvW = SW * 0.32, lvH = headerH * 0.55
+  var lvX = cx - lvW / 2, lvY = headerH * 0.22
+  roundRect(lvX + 1, lvY + 2, lvW, lvH, 10, 'rgba(0,0,0,0.2)')
+  var lvBg = ctx.createLinearGradient(lvX, lvY, lvX, lvY + lvH)
+  lvBg.addColorStop(0, '#FF7043'); lvBg.addColorStop(1, '#E64A19')
+  roundRect(lvX, lvY, lvW, lvH, 10, lvBg)
+  setFont(lvH * 0.52, '900'); ctx.textAlign = 'center'
+  ctx.fillStyle = '#FFF8E1'
+  ctx.fillText('第 ' + TM.level + ' 关', cx, lvY + lvH * 0.52)
 
   // 设置按钮
-  var stW = SW * 0.12, stH = SW * 0.07
-  var stX = SW - PAD - stW, stY = headerY + SH * 0.005
-  roundRect(stX, stY, stW, stH, 8, C.surface, 'rgba(255,255,255,0.25)')
-  setFont(stH * 0.42, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-  ctx.fillStyle = '#eee'
-  ctx.fillText('⚙ 设置', stX + stW / 2, stY + stH / 2)
+  var stW = SW * 0.11, stH = headerH * 0.45
+  var stX = SW - PAD - stW - 4, stY = headerH * 0.28
+  roundRect(stX + 1, stY + 2, stW, stH, 8, 'rgba(0,0,0,0.15)')
+  roundRect(stX, stY, stW, stH, 8, 'rgba(255,255,255,0.2)')
+  setFont(stH * 0.5, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#FFF8E1'; ctx.fillText('⚙', stX + stW / 2, stY + stH / 2)
   UI.settingBtn = { x: stX, y: stY, w: stW, h: stH }
 
   // ── 绘制方块（按层从下到上）
   var sortedTiles = TM.tiles.slice().sort(function(a, b) { return a.layer - b.layer })
   var now = Date.now()
 
-  // 飞行动画：方块从棋盘飞到槽位
-  var trayY_anim = SH * 0.76
+  // 飞行动画参数
+  var trayY_anim = SH * 0.78
   var trayW_anim = SW * 0.92
   var trayX_anim = (SW - trayW_anim) / 2
   var slotW_anim = trayW_anim / 7
-  var flyDuration = 250  // 飞行时间ms
+  var flyDuration = 250
 
   for (var pi = 0; pi < sortedTiles.length; pi++) {
     var pt = sortedTiles[pi]
     if (!pt.removed || !pt._pickTime || !pt._flyFrom) continue
     var elapsed = now - pt._pickTime
     if (elapsed >= flyDuration) continue
-
     var progress = elapsed / flyDuration
-    // 缓动函数（ease-out）
     var ease = 1 - Math.pow(1 - progress, 3)
-
-    // 找到在槽位中的目标位置
     var targetIdx = -1
     for (var ti = 0; ti < TM.tray.length; ti++) {
       if (TM.tray[ti].tileId === pt.id) { targetIdx = ti; break }
     }
     if (targetIdx < 0) continue
-
     var toX = trayX_anim + targetIdx * slotW_anim + 2
-    var toY = trayY_anim + 2
+    var toY = trayY_anim + 6
     var toW = slotW_anim - 4
-    var toH = SW * 0.15 - 4
-
-    // 插值位置和大小
+    var toH = SW * 0.14 - 8
     var curX = pt._flyFrom.x + (toX - pt._flyFrom.x) * ease
     var curY = pt._flyFrom.y + (toY - pt._flyFrom.y) * ease
     var curW = pt.w + (toW - pt.w) * ease
     var curH = pt.h + (toH - pt.h) * ease
-
-    // 画飞行中的方块
     var cardImg = TM.getCardImg(true)
     if (cardImg) {
       ctx.globalAlpha = 1 - progress * 0.2
@@ -168,36 +245,36 @@ GameGlobal.drawTileMatchScreen = function() {
     }
   }
 
+  // ── 绘制方块
   for (var i = 0; i < sortedTiles.length; i++) {
     var t = sortedTiles[i]
     if (t.removed) continue
-
     var free = TM.isFree(t, TM.tiles)
-    var tw = t.w, th = t.h
-    var dx = t.x, dy = t.y
+    var tw = t.w, th = t.h, dx = t.x, dy = t.y
 
-    // ── 自由方块微弹效果（点击反馈用 CSS 式的 scale 感觉）
-    // 如果刚被标记为 free 时可以加微小浮动，这里先跳过
-
-    // ── 卡片底板（图片 or fallback）
+    // 卡片底板
     var cardImg = TM.getCardImg(free)
     if (cardImg) {
-      // 自由方块加一点阴影深度
       if (free) {
-        ctx.globalAlpha = 0.15
-        roundRect(dx + 2, dy + 3, tw, th, 8, 'rgba(0,0,0,1)')
+        // 自由方块浮起阴影
+        ctx.globalAlpha = 0.18
+        roundRect(dx + 2, dy + 4, tw, th, 6, 'rgba(0,0,0,1)')
         ctx.globalAlpha = 1
       }
       ctx.drawImage(cardImg, dx, dy, tw, th)
     } else {
-      ctx.fillStyle = 'rgba(0,0,0,0.3)'
-      roundRect(dx + 3, dy + 4, tw, th, 6, 'rgba(0,0,0,0.3)')
-      roundRect(dx + 1.5, dy + 2, tw, th, 6, free ? '#b0b5bc' : '#555566')
-      roundRect(dx, dy, tw, th, 6, free ? '#f5f5f5' : '#4a4a5a')
-      if (!free) roundRect(dx, dy, tw, th, 6, 'rgba(0,0,0,0.3)')
+      // fallback canvas 绘制
+      if (free) {
+        roundRect(dx + 2, dy + 4, tw, th, 6, 'rgba(0,0,0,0.18)')
+        roundRect(dx, dy, tw, th, 6, '#FFFDF7')
+        roundRect(dx, dy, tw, th, 6, null, 'rgba(200,180,150,0.4)')
+      } else {
+        roundRect(dx, dy, tw, th, 6, '#9E9E9E')
+        roundRect(dx, dy, tw, th, 6, null, 'rgba(0,0,0,0.15)')
+      }
     }
 
-    // ── 图标（图片 or emoji fallback）
+    // 图标
     var iconImg = TM.getIconImg(t.type)
     var pad = tw * 0.10
     if (iconImg) {
@@ -208,185 +285,183 @@ GameGlobal.drawTileMatchScreen = function() {
       var icon = TM.TILE_ICONS[t.type % TM.TILE_ICONS.length]
       setFont(tw * 0.52, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
       if (!free) ctx.globalAlpha = 0.35
+      ctx.fillStyle = TOON.textDark
       ctx.fillText(icon, dx + tw / 2, dy + th / 2 + 1)
       ctx.globalAlpha = 1
     }
   }
 
-  // ── 消除爆炸粒子效果
+  // ── 消除粒子效果
   if (TM._elimAnim && now - TM._elimAnim.time < 400) {
     var ep = (now - TM._elimAnim.time) / 400
     var elimSlotW = trayW_anim / 7
     for (var ei = 0; ei < TM._elimAnim.positions.length; ei++) {
       var si = TM._elimAnim.positions[ei]
       var ecx = trayX_anim + si * elimSlotW + elimSlotW / 2
-      var ecy = trayY_anim + SW * 0.075
-      // 星星粒子扩散
-      for (var star = 0; star < 6; star++) {
-        var angle = (star / 6) * Math.PI * 2 + ep * 2
-        var dist = ep * SW * 0.12
+      var ecy = trayY_anim + SW * 0.07
+      for (var star = 0; star < 8; star++) {
+        var angle = (star / 8) * Math.PI * 2 + ep * 3
+        var dist = ep * SW * 0.14
         var sx = ecx + Math.cos(angle) * dist
-        var sy = ecy + Math.sin(angle) * dist
-        var ss = (1 - ep) * SW * 0.02
+        var sy = ecy + Math.sin(angle) * dist - ep * 20
+        var ss = Math.max(1, (1 - ep) * SW * 0.018)
         ctx.globalAlpha = 1 - ep
-        ctx.fillStyle = star % 2 === 0 ? '#FFD700' : '#FF6B6B'
+        ctx.fillStyle = ['#FFD700', '#FF6B6B', '#6BCB77', '#A66CFF'][star % 4]
         ctx.beginPath(); ctx.arc(sx, sy, ss, 0, Math.PI * 2); ctx.fill()
       }
-      // 中心闪光
-      ctx.globalAlpha = (1 - ep) * 0.4
-      ctx.fillStyle = '#fff'
-      ctx.beginPath(); ctx.arc(ecx, ecy, (1 - ep) * SW * 0.06, 0, Math.PI * 2); ctx.fill()
     }
     ctx.globalAlpha = 1
   }
 
-  // ── 底部槽位区
-  var trayY = SH * 0.76
-  var trayH = SW * 0.15
-  var trayW = SW * 0.92
+  // ── 底部木质槽位区
+  var trayY = SH * 0.78
+  var trayH = SW * 0.14
+  var trayW = SW * 0.94
   var trayX = (SW - trayW) / 2
   var slotW = trayW / 7
 
-  // 暂存区（holdArea）显示在槽位上方
+  // 暂存区
   UI.holdBtns = []
   if (TM.holdArea && TM.holdArea.length > 0) {
-    var holdY = trayY - trayH * 0.75 - GAP * 0.5
+    var holdY = trayY - trayH * 0.8 - GAP * 0.3
     setFont(SW * 0.020, '600'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillText('暂存区', cx, holdY - SW * 0.015)
+    ctx.fillStyle = TOON.textWarm; ctx.fillText('暂存区', cx, holdY - SW * 0.012)
     for (var hi = 0; hi < TM.holdArea.length; hi++) {
       var hx = cx - TM.holdArea.length * slotW / 2 + hi * slotW
       var hItem = TM.holdArea[hi]
+      roundRect(hx + 3, holdY + 2, slotW - 6, trayH * 0.72, 8, 'rgba(0,0,0,0.1)')
       var hCardImg = TM.getCardImg(true)
       if (hCardImg) {
         ctx.drawImage(hCardImg, hx + 3, holdY, slotW - 6, trayH * 0.7)
       } else {
-        var hColor = TYPE_COLORS[hItem.type % TYPE_COLORS.length]
-        roundRect(hx + 3, holdY, slotW - 6, trayH * 0.7, 8, hColor, 'rgba(255,255,255,0.3)')
+        roundRect(hx + 3, holdY, slotW - 6, trayH * 0.7, 8, TOON.card, 'rgba(200,180,150,0.3)')
       }
       var hIconImg = TM.getIconImg(hItem.type)
-      var hPad = slotW * 0.10
+      var hPad = slotW * 0.12
       if (hIconImg) {
         ctx.drawImage(hIconImg, hx + hPad, holdY + hPad * 0.6, slotW - hPad * 2, trayH * 0.7 - hPad * 1.2)
       } else {
         var hIcon = TM.TILE_ICONS[hItem.type % TM.TILE_ICONS.length]
-        setFont(trayH * 0.38, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+        setFont(trayH * 0.36, '700'); ctx.textAlign = 'center'; ctx.fillStyle = TOON.textDark
         ctx.fillText(hIcon, hx + slotW / 2, holdY + trayH * 0.35)
       }
       UI.holdBtns.push({ x: hx, y: holdY, w: slotW, h: trayH * 0.7, idx: hi })
     }
   }
 
-  // 槽位背景
-  roundRect(trayX - 4, trayY - 4, trayW + 8, trayH + 8, 14, 'rgba(20,20,40,0.85)', 'rgba(162,155,254,0.5)')
+  // 木质槽位背景
+  _drawWoodPanel(trayX - 6, trayY - 6, trayW + 12, trayH + 12, 16)
 
-  // 画7个槽位
+  // 7个槽位
   for (var i = 0; i < 7; i++) {
     var sx = trayX + i * slotW
-    roundRect(sx + 2, trayY + 2, slotW - 4, trayH - 4, 8, 'rgba(255,255,255,0.08)', 'rgba(162,155,254,0.3)')
+    // 槽位凹陷
+    roundRect(sx + 3, trayY + 3, slotW - 6, trayH - 6, 8, 'rgba(0,0,0,0.2)')
+    roundRect(sx + 3, trayY + 3, slotW - 6, trayH - 6, 8, 'rgba(90,60,30,0.3)')
     if (i < TM.tray.length) {
       var item2 = TM.tray[i]
-      // 卡片底板
       var trayCardImg = TM.getCardImg(true)
       if (trayCardImg) {
-        ctx.drawImage(trayCardImg, sx + 2, trayY + 2, slotW - 4, trayH - 4)
+        ctx.drawImage(trayCardImg, sx + 4, trayY + 4, slotW - 8, trayH - 8)
       } else {
-        var slotColor2 = TYPE_COLORS[item2.type % TYPE_COLORS.length]
-        roundRect(sx + 3, trayY + 3, slotW - 6, trayH - 6, 6, slotColor2)
+        roundRect(sx + 4, trayY + 4, slotW - 8, trayH - 8, 6, TOON.card)
       }
-      // 图标
       var trayIconImg = TM.getIconImg(item2.type)
-      var tPad = slotW * 0.10
+      var tPad = slotW * 0.14
       if (trayIconImg) {
         ctx.drawImage(trayIconImg, sx + tPad, trayY + tPad, slotW - tPad * 2, trayH - tPad * 2)
       } else {
         var icon2 = TM.TILE_ICONS[item2.type % TM.TILE_ICONS.length]
-        setFont(trayH * 0.48, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+        setFont(trayH * 0.45, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+        ctx.fillStyle = TOON.textDark
         ctx.fillText(icon2, sx + slotW / 2, trayY + trayH / 2)
       }
     }
   }
 
-  // ── 道具栏
-  var propY = trayY + trayH + GAP * 0.6
+  // ── 道具按钮
+  var propY = trayY + trayH + GAP * 0.8
   var propW = Math.floor((trayW - GAP * 2) / 3)
-  var propH = SH * 0.055
+  var propH = SH * 0.058
 
   // 撤回
   var p1x = trayX
   var undoLeft = TM.props.undo
-  roundRect(p1x, propY, propW, propH, 10, undoLeft > 0 ? 'rgba(46,204,113,0.2)' : 'rgba(233,160,50,0.15)', undoLeft > 0 ? 'rgba(46,204,113,0.4)' : 'rgba(233,160,50,0.3)')
-  setFont(propH * 0.32, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-  ctx.fillStyle = undoLeft > 0 ? '#2ecc71' : '#f5a623'
-  ctx.fillText(undoLeft > 0 ? '↩ 撤回 ×' + undoLeft : '↩ 撤回 ▶', p1x + propW / 2, propY + propH / 2)
+  if (undoLeft > 0) {
+    _drawCartoonBtn(p1x, propY, propW, propH, 12, '#6BCB77', '#4CAF50', '↩ 撤回 ×' + undoLeft, '#fff', propH * 0.34)
+  } else {
+    _drawCartoonBtn(p1x, propY, propW, propH, 12, '#FFB74D', '#FB8C00', '↩ 撤回 ▶', '#fff', propH * 0.34)
+  }
   UI.undoBtn = { x: p1x, y: propY, w: propW, h: propH }
 
   // 移出
   var p2x = trayX + propW + GAP
   var moveLeft = TM.props.moveOut
-  roundRect(p2x, propY, propW, propH, 10, moveLeft > 0 ? 'rgba(52,152,219,0.2)' : 'rgba(233,160,50,0.15)', moveLeft > 0 ? 'rgba(52,152,219,0.4)' : 'rgba(233,160,50,0.3)')
-  setFont(propH * 0.32, '700')
-  ctx.fillStyle = moveLeft > 0 ? '#3498db' : '#f5a623'
-  ctx.fillText(moveLeft > 0 ? '⬆ 移出 ×' + moveLeft : '⬆ 移出 ▶', p2x + propW / 2, propY + propH / 2)
+  if (moveLeft > 0) {
+    _drawCartoonBtn(p2x, propY, propW, propH, 12, '#42A5F5', '#1E88E5', '⬆ 移出 ×' + moveLeft, '#fff', propH * 0.34)
+  } else {
+    _drawCartoonBtn(p2x, propY, propW, propH, 12, '#FFB74D', '#FB8C00', '⬆ 移出 ▶', '#fff', propH * 0.34)
+  }
   UI.moveOutBtn = { x: p2x, y: propY, w: propW, h: propH }
 
   // 打乱
   var p3x = trayX + (propW + GAP) * 2
   var shufLeft = TM.props.shuffle
-  roundRect(p3x, propY, propW, propH, 10, shufLeft > 0 ? 'rgba(155,89,182,0.2)' : 'rgba(233,160,50,0.15)', shufLeft > 0 ? 'rgba(155,89,182,0.4)' : 'rgba(233,160,50,0.3)')
-  setFont(propH * 0.32, '700')
-  ctx.fillStyle = shufLeft > 0 ? '#9b59b6' : '#f5a623'
-  ctx.fillText(shufLeft > 0 ? '🔀 打乱 ×' + shufLeft : '🔀 打乱 ▶', p3x + propW / 2, propY + propH / 2)
+  if (shufLeft > 0) {
+    _drawCartoonBtn(p3x, propY, propW, propH, 12, '#AB47BC', '#8E24AA', '打乱 ×' + shufLeft, '#fff', propH * 0.34)
+  } else {
+    _drawCartoonBtn(p3x, propY, propW, propH, 12, '#FFB74D', '#FB8C00', '打乱 ▶', '#fff', propH * 0.34)
+  }
   UI.shuffleBtn = { x: p3x, y: propY, w: propW, h: propH }
 
   // ── 胜利/失败覆盖层
   if (TM.gameOver || TM.victory) {
-    ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(0, 0, SW, SH)
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, SW, SH)
 
-    var cardY2 = SH * 0.25, cardH2 = SH * 0.38
-    roundRect(BOARD_X, cardY2, BOARD_W, cardH2, 20, C.surface, 'rgba(255,255,255,0.1)')
+    var cardY2 = SH * 0.22, cardH2 = SH * 0.42
+    // 弹窗卡片
+    roundRect(BOARD_X - 5 + 3, cardY2 + 5, BOARD_W + 10, cardH2, 24, 'rgba(0,0,0,0.2)')
+    roundRect(BOARD_X - 5, cardY2, BOARD_W + 10, cardH2, 24, TOON.card)
 
-    setFont(SW * 0.06, '900'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    setFont(SW * 0.055, '900'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
     if (TM.victory) {
-      var vg = ctx.createLinearGradient(cx - SW * 0.2, 0, cx + SW * 0.2, 0)
-      vg.addColorStop(0, '#2ecc71'); vg.addColorStop(1, '#3498db')
-      ctx.fillStyle = vg; ctx.fillText('🎉 通关成功！', cx, cardY2 + cardH2 * 0.18)
+      ctx.fillStyle = TOON.warm2; ctx.fillText('通关成功！', cx, cardY2 + cardH2 * 0.14)
+      // 星星装饰
+      setFont(SW * 0.06, '400')
+      ctx.fillText('⭐ ⭐ ⭐', cx, cardY2 + cardH2 * 0.28)
     } else {
-      ctx.fillStyle = '#e74c3c'; ctx.fillText('💔 槽位已满', cx, cardY2 + cardH2 * 0.18)
+      ctx.fillStyle = TOON.red; ctx.fillText('槽位已满', cx, cardY2 + cardH2 * 0.14)
+      setFont(SW * 0.05, '400')
+      ctx.fillText('😢', cx, cardY2 + cardH2 * 0.28)
     }
 
     // 统计
-    setFont(SW * 0.030, '700'); ctx.fillStyle = C.textDim
-    ctx.fillText('第 ' + TM.level + ' 关', cx, cardY2 + cardH2 * 0.36)
-    ctx.fillText('消除 ' + TM.score + ' 个方块', cx, cardY2 + cardH2 * 0.48)
+    setFont(SW * 0.028, '700'); ctx.fillStyle = TOON.textWarm
+    ctx.fillText('第 ' + TM.level + ' 关', cx, cardY2 + cardH2 * 0.40)
+    ctx.fillText('消除 ' + TM.score + ' 个方块', cx, cardY2 + cardH2 * 0.50)
 
     if (TM.victory) {
-      ctx.fillStyle = '#f39c12'
-      ctx.fillText('+15 🪙', cx, cardY2 + cardH2 * 0.60)
+      setFont(SW * 0.032, '800'); ctx.fillStyle = TOON.gold
+      ctx.fillText('+15 金币', cx, cardY2 + cardH2 * 0.62)
     }
 
     // 按钮
     if (TM.victory) {
-      // 下一关
       var nxY = cardY2 + cardH2 * 0.72
       var nxH = cardH2 * 0.18
-      var bg2 = ctx.createLinearGradient(BOARD_X + PAD, 0, BOARD_X + BOARD_W - PAD, 0)
-      bg2.addColorStop(0, '#2ecc71'); bg2.addColorStop(1, '#3498db')
-      roundRect(BOARD_X + PAD, nxY, BOARD_W - PAD * 2, nxH, 12, bg2)
-      setFont(nxH * 0.45, '900'); ctx.fillStyle = '#fff'
-      ctx.fillText('下 一 关', cx, nxY + nxH / 2)
+      _drawCartoonBtn(BOARD_X + PAD, nxY, BOARD_W - PAD * 2, nxH, 14,
+        TOON.warm1, TOON.warm2, '下 一 关', '#fff', nxH * 0.42)
       UI.nextBtn = { x: BOARD_X + PAD, y: nxY, w: BOARD_W - PAD * 2, h: nxH }
     } else {
-      // 重试 + 退出
       var halfW = (BOARD_W - PAD * 2 - GAP) / 2
       var ryY = cardY2 + cardH2 * 0.72, ryH = cardH2 * 0.18
-
-      roundRect(BOARD_X + PAD, ryY, halfW, ryH, 12, '#e74c3c')
-      setFont(ryH * 0.42, '800'); ctx.fillStyle = '#fff'
-      ctx.fillText('重 试', BOARD_X + PAD + halfW / 2, ryY + ryH / 2)
+      _drawCartoonBtn(BOARD_X + PAD, ryY, halfW, ryH, 12,
+        TOON.warm1, TOON.warm2, '重 试', '#fff', ryH * 0.42)
       UI.retryBtn = { x: BOARD_X + PAD, y: ryY, w: halfW, h: ryH }
 
-      roundRect(BOARD_X + PAD + halfW + GAP, ryY, halfW, ryH, 12, C.surface, 'rgba(255,255,255,0.1)')
-      setFont(ryH * 0.42, '700'); ctx.fillStyle = C.textDim
+      roundRect(BOARD_X + PAD + halfW + GAP + 2, ryY + 3, halfW, ryH, 12, 'rgba(0,0,0,0.1)')
+      roundRect(BOARD_X + PAD + halfW + GAP, ryY, halfW, ryH, 12, '#E0E0E0')
+      setFont(ryH * 0.40, '700'); ctx.fillStyle = TOON.textWarm
       ctx.fillText('退 出', BOARD_X + PAD + halfW + GAP + halfW / 2, ryY + ryH / 2)
       UI.exitBtn = { x: BOARD_X + PAD + halfW + GAP, y: ryY, w: halfW, h: ryH }
     }
@@ -410,47 +485,58 @@ GameGlobal.TileMatchRank = {
 GameGlobal.TileMatchRankUI = { backBtn: null }
 
 GameGlobal.drawTileMatchRankScreen = function() {
-  drawBg()
+  _drawCartoonBg()
   var cx = SW / 2, R = GameGlobal.TileMatchRank, RUI = GameGlobal.TileMatchRankUI
 
-  setFont(SW * 0.050, '900'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-  var tg = ctx.createLinearGradient(cx - SW * 0.2, 0, cx + SW * 0.2, 0)
-  tg.addColorStop(0, '#2ecc71'); tg.addColorStop(1, '#3498db')
-  ctx.fillStyle = tg; ctx.fillText('三消排行榜', cx, SH * 0.09)
-  setFont(SW * 0.025, '600'); ctx.fillStyle = C.textDim; ctx.fillText('通关数排名', cx, SH * 0.135)
+  // 标题木板
+  _drawWoodPanel(BOARD_X, SH * 0.04, BOARD_W, SH * 0.08, 14)
+  setFont(SW * 0.042, '900'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#FFF8E1'; ctx.fillText('排 行 榜', cx, SH * 0.08)
 
   if (R.loading) {
-    setFont(SW * 0.035, '700'); ctx.fillStyle = C.textDim; ctx.fillText('加载中...', cx, SH * 0.4)
-    RUI.backBtn = { x: BOARD_X, y: SH * 0.88, w: BOARD_W, h: BTN_H }
-    drawBtn(BOARD_X, SH * 0.88, BOARD_W, BTN_H, '返回', C.surface, C.textLight); return
+    setFont(SW * 0.035, '700'); ctx.fillStyle = TOON.textWarm; ctx.fillText('加载中...', cx, SH * 0.4)
+    var bkY2 = SH * 0.88
+    _drawCartoonBtn(BOARD_X, bkY2, BOARD_W, BTN_H, 12, '#E0E0E0', '#BDBDBD', '返回', TOON.textWarm, BTN_H * 0.38)
+    RUI.backBtn = { x: BOARD_X, y: bkY2, w: BOARD_W, h: BTN_H }
+    return
   }
 
-  var myBarY = SH * 0.17, myBarH = SH * 0.065
+  // 我的排名
+  var myBarY = SH * 0.15, myBarH = SH * 0.065
+  roundRect(BOARD_X + 2, myBarY + 3, BOARD_W, myBarH, 12, 'rgba(0,0,0,0.1)')
   if (R.myRank) {
-    roundRect(BOARD_X, myBarY, BOARD_W, myBarH, 10, 'rgba(46,204,113,0.15)', 'rgba(46,204,113,0.4)')
-    setFont(SW * 0.030, '900'); ctx.textAlign = 'left'; ctx.fillStyle = '#2ecc71'
+    var myBg = ctx.createLinearGradient(BOARD_X, myBarY, BOARD_X + BOARD_W, myBarY)
+    myBg.addColorStop(0, '#FFF3E0'); myBg.addColorStop(1, '#FFE0B2')
+    roundRect(BOARD_X, myBarY, BOARD_W, myBarH, 12, myBg, 'rgba(255,152,0,0.3)')
+    setFont(SW * 0.028, '900'); ctx.textAlign = 'left'; ctx.fillStyle = TOON.warm2
     ctx.fillText('我  #' + R.myRank.rank, BOARD_X + PAD, myBarY + myBarH / 2)
     ctx.textAlign = 'right'; ctx.fillText('第' + R.myRank.score + '关', BOARD_X + BOARD_W - PAD, myBarY + myBarH / 2)
   } else {
-    roundRect(BOARD_X, myBarY, BOARD_W, myBarH, 10, C.surface, 'rgba(255,255,255,0.05)')
-    setFont(SW * 0.028, '700'); ctx.textAlign = 'center'; ctx.fillStyle = C.textDim
+    roundRect(BOARD_X, myBarY, BOARD_W, myBarH, 12, TOON.card, 'rgba(200,180,150,0.2)')
+    setFont(SW * 0.026, '700'); ctx.textAlign = 'center'; ctx.fillStyle = '#bbb'
     ctx.fillText('完成一关即可上榜', cx, myBarY + myBarH / 2)
   }
 
+  // 列表
   var listY = myBarY + myBarH + GAP, rowH = SH * 0.065
-  ctx.save(); ctx.beginPath(); ctx.rect(0, listY, SW, SH * 0.65); ctx.clip()
+  ctx.save(); ctx.beginPath(); ctx.rect(0, listY, SW, SH * 0.63); ctx.clip()
+  var medalColors = ['#FFD700', '#C0C0C0', '#CD7F32']
   for (var i = 0; i < R.list.length; i++) {
-    var ry = listY + i * rowH - R.scrollY; if (ry + rowH < listY || ry > listY + SH * 0.65) continue
-    roundRect(BOARD_X, ry + 2, BOARD_W, rowH - 4, 8, C.surface, 'rgba(255,255,255,0.04)')
-    setFont(SW * 0.028, '800'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
-    ctx.fillStyle = i < 3 ? '#f39c12' : C.textDim; ctx.fillText((i + 1) + '', BOARD_X + PAD, ry + rowH / 2)
-    setFont(SW * 0.028, '700'); ctx.fillStyle = C.textLight; ctx.fillText(R.list[i].nickname || '???', BOARD_X + PAD * 3, ry + rowH / 2)
-    setFont(SW * 0.032, '900'); ctx.textAlign = 'right'; ctx.fillStyle = '#2ecc71'
+    var ry = listY + i * rowH - R.scrollY
+    if (ry + rowH < listY || ry > listY + SH * 0.63) continue
+    roundRect(BOARD_X, ry + 2, BOARD_W, rowH - 4, 10, i % 2 === 0 ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.5)')
+    setFont(SW * 0.026, '800'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+    ctx.fillStyle = i < 3 ? medalColors[i] : TOON.textWarm
+    ctx.fillText(i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1) + '', BOARD_X + PAD, ry + rowH / 2)
+    setFont(SW * 0.026, '700'); ctx.fillStyle = TOON.textDark
+    ctx.fillText(R.list[i].nickname || '???', BOARD_X + PAD * 3.5, ry + rowH / 2)
+    setFont(SW * 0.030, '900'); ctx.textAlign = 'right'; ctx.fillStyle = TOON.warm2
     ctx.fillText('第' + (R.list[i].score || 0) + '关', BOARD_X + BOARD_W - PAD, ry + rowH / 2)
   }
   ctx.restore()
 
-  var bkY = SH * 0.88; drawBtn(BOARD_X, bkY, BOARD_W, BTN_H, '返回', C.surface, C.textLight)
+  var bkY = SH * 0.85
+  _drawCartoonBtn(BOARD_X, bkY, BOARD_W, BTN_H, 12, '#E0E0E0', '#BDBDBD', '返回', TOON.textWarm, BTN_H * 0.38)
   RUI.backBtn = { x: BOARD_X, y: bkY, w: BOARD_W, h: BTN_H }
 }
 
@@ -458,5 +544,5 @@ var _tmRTY = 0, _tmRSS = 0
 GameGlobal.handleTileMatchRankTouch = function(type, y) {
   var R = GameGlobal.TileMatchRank
   if (type === 'start') { _tmRTY = y; _tmRSS = R.scrollY }
-  else if (type === 'move') { var mx = Math.max(0, R.list.length * SH * 0.065 - SH * 0.65); R.scrollY = Math.max(0, Math.min(mx, _tmRSS - (y - _tmRTY))) }
+  else if (type === 'move') { var mx = Math.max(0, R.list.length * SH * 0.065 - SH * 0.63); R.scrollY = Math.max(0, Math.min(mx, _tmRSS - (y - _tmRTY))) }
 }
