@@ -167,30 +167,32 @@ GameGlobal.drawTileMatchScreen = function() {
   var UI = GameGlobal.TileMatchUI
   var cx = SW / 2
 
-  // ── 顶部木质栏
-  var headerH = SH * 0.10
-  _drawWoodPanel(-2, 0, SW + 4, headerH, 0)
+  // ── 顶部木质栏（避开胶囊区域）
+  var capsuleTop = SH * 0.06  // 胶囊下方安全区
+  var headerH = SH * 0.07
+  var headerY = capsuleTop
+  _drawWoodPanel(-2, headerY, SW + 4, headerH, 0)
 
   // 返回按钮
-  setFont(SW * 0.026, '700'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+  setFont(SW * 0.024, '700'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
   ctx.fillStyle = '#FFF8E1'
-  ctx.fillText('← 退出', PAD + 4, headerH * 0.6)
-  UI.backBtn = { x: 0, y: 0, w: SW * 0.22, h: headerH }
+  ctx.fillText('← 退出', PAD + 4, headerY + headerH * 0.5)
+  UI.backBtn = { x: 0, y: headerY, w: SW * 0.22, h: headerH }
 
   // 关卡标牌
-  var lvW = SW * 0.32, lvH = headerH * 0.55
-  var lvX = cx - lvW / 2, lvY = headerH * 0.22
+  var lvW = SW * 0.30, lvH = headerH * 0.65
+  var lvX = cx - lvW / 2, lvY = headerY + (headerH - lvH) / 2
   roundRect(lvX + 1, lvY + 2, lvW, lvH, 10, 'rgba(0,0,0,0.2)')
   var lvBg = ctx.createLinearGradient(lvX, lvY, lvX, lvY + lvH)
   lvBg.addColorStop(0, '#FF7043'); lvBg.addColorStop(1, '#E64A19')
   roundRect(lvX, lvY, lvW, lvH, 10, lvBg)
-  setFont(lvH * 0.52, '900'); ctx.textAlign = 'center'
+  setFont(lvH * 0.50, '900'); ctx.textAlign = 'center'
   ctx.fillStyle = '#FFF8E1'
   ctx.fillText('第 ' + TM.level + ' 关', cx, lvY + lvH * 0.52)
 
   // 设置按钮
-  var stW = SW * 0.11, stH = headerH * 0.45
-  var stX = SW - PAD - stW - 4, stY = headerH * 0.28
+  var stW = SW * 0.09, stH = headerH * 0.55
+  var stX = SW - PAD - stW - 4, stY = headerY + (headerH - stH) / 2
   roundRect(stX + 1, stY + 2, stW, stH, 8, 'rgba(0,0,0,0.15)')
   roundRect(stX, stY, stW, stH, 8, 'rgba(255,255,255,0.2)')
   setFont(stH * 0.5, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
@@ -228,12 +230,11 @@ GameGlobal.drawTileMatchScreen = function() {
     var curY = pt._flyFrom.y + (toY - pt._flyFrom.y) * ease
     var curW = pt.w + (toW - pt.w) * ease
     var curH = pt.h + (toH - pt.h) * ease
-    var cardImg = TM.getCardImg(true)
-    if (cardImg) {
-      ctx.globalAlpha = 1 - progress * 0.2
-      ctx.drawImage(cardImg, curX, curY, curW, curH)
-      ctx.globalAlpha = 1
-    }
+    // 飞行中的卡片（代码绘制）
+    ctx.globalAlpha = 1 - progress * 0.2
+    roundRect(curX, curY + 2, curW, curH, 6, '#E8E0D8')
+    roundRect(curX, curY, curW, curH - 2, 6, '#FFFDF7')
+    ctx.globalAlpha = 1
     var iconImg = TM.getIconImg(pt.type)
     var fPad = curW * 0.10
     if (iconImg) {
@@ -253,53 +254,36 @@ GameGlobal.drawTileMatchScreen = function() {
     var tw = t.w, th = t.h, dx = t.x, dy = t.y
 
     if (free) {
-      // ── 自由方块：明亮白色卡片 + 浮起阴影
-      var cardImg = TM.getCardImg(true)
+      // ── 自由方块：白色圆角卡片 + 浮起阴影 + 底部厚边
       // 阴影
-      ctx.globalAlpha = 0.2
-      roundRect(dx + 2, dy + 4, tw, th, 8, 'rgba(0,0,0,1)')
+      roundRect(dx + 1, dy + 3, tw, th, 8, 'rgba(0,0,0,0.15)')
+      // 侧边厚度（3D 感）
+      roundRect(dx, dy + 2, tw, th, 8, '#E8E0D8')
+      // 主体白色面
+      roundRect(dx, dy, tw, th - 2, 8, '#FFFDF7')
+      // 顶部高光
+      ctx.globalAlpha = 0.35
+      roundRect(dx + 3, dy + 2, tw - 6, th * 0.3, 6, 'rgba(255,255,255,0.9)')
       ctx.globalAlpha = 1
-      if (cardImg) {
-        ctx.drawImage(cardImg, dx, dy, tw, th)
-      } else {
-        roundRect(dx, dy, tw, th, 8, '#FFFDF7')
-        roundRect(dx, dy, tw, th, 8, null, 'rgba(200,180,150,0.3)')
-      }
-      // 图标（完全不透明）
-      var iconImg = TM.getIconImg(t.type)
-      var pad = tw * 0.10
-      if (iconImg) {
-        ctx.drawImage(iconImg, dx + pad, dy + pad, tw - pad * 2, th - pad * 2)
-      } else {
-        var icon = TM.TILE_ICONS[t.type % TM.TILE_ICONS.length]
-        setFont(tw * 0.52, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-        ctx.fillStyle = TOON.textDark
-        ctx.fillText(icon, dx + tw / 2, dy + th / 2 + 1)
-      }
     } else {
-      // ── 被压方块：淡灰白色，半透明，不那么突兀
-      var cardImgB = TM.getCardImg(false)
-      if (cardImgB) {
-        ctx.globalAlpha = 0.55
-        ctx.drawImage(cardImgB, dx, dy, tw, th)
-        ctx.globalAlpha = 1
-      } else {
-        roundRect(dx, dy, tw, th, 6, 'rgba(220,215,210,0.7)')
-      }
-      // 图标半透明
-      var iconImgB = TM.getIconImg(t.type)
-      var padB = tw * 0.10
-      ctx.globalAlpha = 0.3
-      if (iconImgB) {
-        ctx.drawImage(iconImgB, dx + padB, dy + padB, tw - padB * 2, th - padB * 2)
-      } else {
-        var iconB = TM.TILE_ICONS[t.type % TM.TILE_ICONS.length]
-        setFont(tw * 0.52, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-        ctx.fillStyle = TOON.textDark
-        ctx.fillText(iconB, dx + tw / 2, dy + th / 2 + 1)
-      }
-      ctx.globalAlpha = 1
+      // ── 被压方块：柔和灰色，微透明
+      roundRect(dx, dy, tw, th, 6, 'rgba(180,175,170,0.5)')
+      roundRect(dx + 1, dy + 1, tw - 2, th - 2, 5, 'rgba(200,195,190,0.45)')
     }
+
+    // ── 图标
+    var iconImg = TM.getIconImg(t.type)
+    var pad = tw * 0.10
+    if (!free) ctx.globalAlpha = 0.28
+    if (iconImg) {
+      ctx.drawImage(iconImg, dx + pad, dy + pad, tw - pad * 2, (free ? th - 2 : th) - pad * 2)
+    } else {
+      var icon = TM.TILE_ICONS[t.type % TM.TILE_ICONS.length]
+      setFont(tw * 0.50, '700'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      ctx.fillStyle = free ? TOON.textDark : '#888'
+      ctx.fillText(icon, dx + tw / 2, dy + (free ? th - 2 : th) / 2)
+    }
+    ctx.globalAlpha = 1
   }
 
   // ── 消除粒子效果
@@ -341,12 +325,8 @@ GameGlobal.drawTileMatchScreen = function() {
       var hx = cx - TM.holdArea.length * slotW / 2 + hi * slotW
       var hItem = TM.holdArea[hi]
       roundRect(hx + 3, holdY + 2, slotW - 6, trayH * 0.72, 8, 'rgba(0,0,0,0.1)')
-      var hCardImg = TM.getCardImg(true)
-      if (hCardImg) {
-        ctx.drawImage(hCardImg, hx + 3, holdY, slotW - 6, trayH * 0.7)
-      } else {
-        roundRect(hx + 3, holdY, slotW - 6, trayH * 0.7, 8, TOON.card, 'rgba(200,180,150,0.3)')
-      }
+      roundRect(hx + 3, holdY + 2, slotW - 6, trayH * 0.7, 8, '#E8E0D8')
+      roundRect(hx + 3, holdY, slotW - 6, trayH * 0.7 - 2, 8, '#FFFDF7')
       var hIconImg = TM.getIconImg(hItem.type)
       var hPad = slotW * 0.12
       if (hIconImg) {
@@ -371,12 +351,9 @@ GameGlobal.drawTileMatchScreen = function() {
     roundRect(sx + 3, trayY + 3, slotW - 6, trayH - 6, 8, 'rgba(90,60,30,0.3)')
     if (i < TM.tray.length) {
       var item2 = TM.tray[i]
-      var trayCardImg = TM.getCardImg(true)
-      if (trayCardImg) {
-        ctx.drawImage(trayCardImg, sx + 4, trayY + 4, slotW - 8, trayH - 8)
-      } else {
-        roundRect(sx + 4, trayY + 4, slotW - 8, trayH - 8, 6, TOON.card)
-      }
+      // 槽位中的卡片
+      roundRect(sx + 4, trayY + 6, slotW - 8, trayH - 8, 6, '#E8E0D8')
+      roundRect(sx + 4, trayY + 4, slotW - 8, trayH - 10, 6, '#FFFDF7')
       var trayIconImg = TM.getIconImg(item2.type)
       var tPad = slotW * 0.14
       if (trayIconImg) {

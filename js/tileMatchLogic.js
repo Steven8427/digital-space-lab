@@ -154,7 +154,7 @@ function _genLayout(level) {
   var maxCols = shapeCols + (layers - 1)
 
   // 可用区域
-  var areaTop = SH * 0.12, areaBot = SH * 0.72
+  var areaTop = SH * 0.15, areaBot = SH * 0.74
   var areaH = areaBot - areaTop
   var areaW = SW * 0.96
   var cx = SW * 0.5
