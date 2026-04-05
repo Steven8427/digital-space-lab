@@ -9,6 +9,23 @@ var _localCfg = {}; try { _localCfg = require('./config.local.js') } catch(e) {}
 wx.cloud.init({ env: _localCfg.cloudEnv || 'YOUR_CLOUD_ENV_ID', traceUser: true })
 console.log('[game.js] v2.4 闯关模式版 已加载')
 
+// ── 1.5 开启分享功能
+wx.showShareMenu({
+  withShareTicket: true,
+  menus: ['shareAppMessage', 'shareTimeline']
+})
+wx.onShareAppMessage(function() {
+  return {
+    title: '数字空间实验室 - 快来挑战！',
+    imageUrl: '' // 可选：分享卡片图片路径
+  }
+})
+wx.onShareTimeline && wx.onShareTimeline(function() {
+  return {
+    title: '数字空间实验室 - 五款趣味小游戏等你挑战！'
+  }
+})
+
 // ── 2. 加载模块（顺序很重要！layout 必须第一个）
 require('./js/layout.js')    // canvas、尺寸、颜色、绘图工具 → GameGlobal
 require('./js/sound.js')     // GameGlobal.Sound
