@@ -14,15 +14,58 @@ wx.showShareMenu({
   withShareTicket: true,
   menus: ['shareAppMessage', 'shareTimeline']
 })
+
+// 根据当前游戏生成分享标题
+function _getShareTitle() {
+  var screen = GameGlobal.currentScreen || 'home'
+  var nickName = (wx.getStorageSync('userInfo') || {}).nickName || '我'
+
+  // 2048
+  if (screen === 'game' || screen === 'lobby2048' || screen === 'rank') {
+    var best2048 = wx.getStorageSync('bestScore') || 0
+    if (best2048 > 0) return nickName + '在2048拿到了' + best2048 + '分！你能超过吗？'
+    return '快来挑战2048！你能拿多少分？'
+  }
+  // 华容道
+  if (screen === 'huarong' || screen === 'lobbyHuarong' || screen === 'huarongRank') {
+    var bestHR = wx.getStorageSync('huarongBest') || 0
+    if (bestHR > 0) return nickName + '用' + bestHR + '步通关华容道！你能更少吗？'
+    return '快来挑战华容道！看你几步能通关？'
+  }
+  // 数独
+  if (screen === 'sudoku' || screen === 'lobbySudoku' || screen === 'sudokuRank') {
+    var bestSD = wx.getStorageSync('sudokuBestTime') || 0
+    if (bestSD > 0) {
+      var m = Math.floor(bestSD / 60), s = bestSD % 60
+      return nickName + '用' + m + '分' + s + '秒完成数独！你能更快吗？'
+    }
+    return '快来挑战数独！看你多快能解开？'
+  }
+  // 生存模式
+  if (screen === 'survival' || screen === 'lobbySurvival' || screen === 'survivalRank') {
+    var bestSV = wx.getStorageSync('survivalBest') || 0
+    if (bestSV > 0) return nickName + '在生存模式击杀了' + bestSV + '只怪物！你能超过吗？'
+    return '快来挑战生存模式！看你能活多久？'
+  }
+  // 三消
+  if (screen === 'tileMatch' || screen === 'lobbyTile' || screen === 'tileMatchRank') {
+    var bestTM = wx.getStorageSync('tileMatchBest') || 0
+    if (bestTM > 0) return nickName + '三消堆叠通关到第' + bestTM + '关！你能超过吗？'
+    return '快来挑战三消堆叠！看你能过几关？'
+  }
+  // 默认
+  return '数字空间实验室 - 五款趣味小游戏，快来和我PK吧！'
+}
+
 wx.onShareAppMessage(function() {
   return {
-    title: '数字空间实验室 - 快来挑战！',
-    imageUrl: '' // 可选：分享卡片图片路径
+    title: _getShareTitle(),
+    imageUrl: ''
   }
 })
 wx.onShareTimeline && wx.onShareTimeline(function() {
   return {
-    title: '数字空间实验室 - 五款趣味小游戏等你挑战！'
+    title: _getShareTitle()
   }
 })
 
