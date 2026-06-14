@@ -15,62 +15,145 @@ wx.showShareMenu({
   menus: ['shareAppMessage', 'shareTimeline']
 })
 
-// 根据当前游戏生成分享标题
-function _getShareTitle() {
+// 根据当前界面计算分享信息：key=游戏标识 / title=标题 / scoreLine=分享图上的成绩 / query=落地参数
+function _getShareInfo() {
   var screen = GameGlobal.currentScreen || 'home'
   var nickName = (wx.getStorageSync('userInfo') || {}).nickName || '我'
 
   // 2048
   if (screen === 'game' || screen === 'lobby2048' || screen === 'rank') {
-    var best2048 = wx.getStorageSync('bestScore') || 0
-    if (best2048 > 0) return nickName + '在2048拿到了' + best2048 + '分！你能超过吗？'
-    return '快来挑战2048！你能拿多少分？'
+    var best2048 = wx.getStorageSync('2048best') || 0
+    return {
+      key: '2048',
+      title: best2048 > 0 ? (nickName + '在2048拿到了' + best2048 + '分！你能超过吗？') : '快来挑战2048！你能拿多少分？',
+      scoreLine: best2048 > 0 ? ('最高 ' + best2048 + ' 分') : '',
+      query: 'from=share&game=2048'
+    }
   }
   // 华容道
   if (screen === 'huarong' || screen === 'lobbyHuarong' || screen === 'huarongRank') {
     var bestHR = wx.getStorageSync('huarongBest') || 0
-    if (bestHR > 0) return nickName + '用' + bestHR + '步通关华容道！你能更少吗？'
-    return '快来挑战华容道！看你几步能通关？'
+    return {
+      key: 'huarong',
+      title: bestHR > 0 ? (nickName + '用' + bestHR + '步通关华容道！你能更少吗？') : '快来挑战华容道！看你几步能通关？',
+      scoreLine: bestHR > 0 ? (bestHR + ' 步通关') : '',
+      query: 'from=share&game=huarong'
+    }
   }
   // 数独
   if (screen === 'sudoku' || screen === 'lobbySudoku' || screen === 'sudokuRank') {
     var bestSD = wx.getStorageSync('sudokuBestTime') || 0
-    if (bestSD > 0) {
-      var m = Math.floor(bestSD / 60), s = bestSD % 60
-      return nickName + '用' + m + '分' + s + '秒完成数独！你能更快吗？'
+    var sdLine = ''
+    if (bestSD > 0) { var sm = Math.floor(bestSD / 60), ss = bestSD % 60; sdLine = '最快 ' + sm + ':' + (ss < 10 ? '0' + ss : ss) }
+    return {
+      key: 'sudoku',
+      title: bestSD > 0 ? (nickName + '用' + Math.floor(bestSD / 60) + '分' + (bestSD % 60) + '秒完成数独！你能更快吗？') : '快来挑战数独！看你多快能解开？',
+      scoreLine: sdLine,
+      query: 'from=share&game=sudoku'
     }
-    return '快来挑战数独！看你多快能解开？'
   }
   // 生存模式
   if (screen === 'survival' || screen === 'lobbySurvival' || screen === 'survivalRank') {
     var bestSV = wx.getStorageSync('survivalBest') || 0
-    if (bestSV > 0) return nickName + '在生存模式击杀了' + bestSV + '只怪物！你能超过吗？'
-    return '快来挑战生存模式！看你能活多久？'
+    return {
+      key: 'survival',
+      title: bestSV > 0 ? (nickName + '在生存模式击杀了' + bestSV + '只怪物！你能超过吗？') : '快来挑战生存模式！看你能活多久？',
+      scoreLine: bestSV > 0 ? ('击杀 ' + bestSV) : '',
+      query: 'from=share&game=survival'
+    }
   }
   // 三消
   if (screen === 'tileMatch' || screen === 'lobbyTile' || screen === 'tileMatchRank') {
     var bestTM = wx.getStorageSync('tileMatchBest') || 0
-    if (bestTM > 0) return nickName + '三消堆叠通关到第' + bestTM + '关！你能超过吗？'
-    return '快来挑战三消堆叠！看你能过几关？'
+    return {
+      key: 'tileMatch',
+      title: bestTM > 0 ? (nickName + '三消堆叠通关到第' + bestTM + '关！你能超过吗？') : '快来挑战三消堆叠！看你能过几关？',
+      scoreLine: bestTM > 0 ? ('第 ' + bestTM + ' 关') : '',
+      query: 'from=share&game=tileMatch'
+    }
   }
   // 默认
-  return '数字空间实验室 - 五款趣味小游戏，快来和我PK吧！'
+  return {
+    key: 'home',
+    title: '数字空间实验室 - 五款趣味小游戏，快来和我PK吧！',
+    scoreLine: '',
+    query: 'from=share&game=home'
+  }
+}
+
+// 提前生成当前界面的分享图，进入界面时调用，保证用户点分享时图已就绪
+GameGlobal.prepShareCard = function() {
+  if (!GameGlobal.ShareCard) return
+  var info = _getShareInfo()
+  GameGlobal.ShareCard.generate(info.key, info.scoreLine)
 }
 
 wx.onShareAppMessage(function() {
+  var info = _getShareInfo()
+  if (GameGlobal.ShareCard) GameGlobal.ShareCard.generate(info.key, info.scoreLine)
   return {
-    title: _getShareTitle(),
-    imageUrl: ''
+    title: info.title,
+    imageUrl: GameGlobal.ShareCard ? GameGlobal.ShareCard.get(info.key) : '',
+    query: info.query
   }
 })
 wx.onShareTimeline && wx.onShareTimeline(function() {
+  var info = _getShareInfo()
+  if (GameGlobal.ShareCard) GameGlobal.ShareCard.generate(info.key, info.scoreLine)
   return {
-    title: _getShareTitle()
+    title: info.title,
+    imageUrl: GameGlobal.ShareCard ? GameGlobal.ShareCard.get(info.key) : '',
+    query: info.query
   }
 })
 
+// ── 分享复活：推出分享卡片，并立即给予一次复活（每局限一次，由各游戏内部守卫）
+//   微信小游戏 shareAppMessage 无可靠成功回调，故采用「点击即复活 + 同时推出分享卡」策略
+GameGlobal.requestReviveShare = function(type) {
+  var info = _getShareInfo()
+  try {
+    wx.shareAppMessage({
+      title: type === 'survival' ? '我在生存模式杀疯了，快来一起战！' : '我在玩数字空间实验室，快来挑战！',
+      imageUrl: GameGlobal.ShareCard ? GameGlobal.ShareCard.get(info.key) : '',
+      query: info.query
+    })
+  } catch (e) {}
+  if (type === '2048' && GameGlobal.Game && GameGlobal.Game.revive) {
+    GameGlobal.Game.revive()
+  } else if (type === 'survival' && GameGlobal.Survival && GameGlobal.Survival.reviveByShare) {
+    GameGlobal.Survival.reviveByShare()
+  }
+}
+
+// ── 分享进房间：解析 PK 邀请卡片带来的房间码，存为待加入，在空闲界面自动 join ──
+GameGlobal._pendingPK = null   // { code, t }
+GameGlobal._capturePKQuery = function(query) {
+  if (query && query.pk && /^\d{4}$/.test(String(query.pk))) {
+    GameGlobal._pendingPK = { code: String(query.pk), t: Date.now() }
+  }
+}
+GameGlobal.tryJoinPendingPK = function() {
+  var p = GameGlobal._pendingPK
+  if (!p) return
+  if (Date.now() - p.t > 120000) { GameGlobal._pendingPK = null; return }   // 2分钟内有效（含新用户设昵称时间）
+  if (!GameGlobal.PK || !GameGlobal.PK.joinRoom) return                     // PK 模块未就绪
+  // 仅在首页/各游戏大厅等空闲界面自动加入，避免打断进行中的对局
+  var s = GameGlobal.currentScreen
+  var idle = (s === 'home' || s === 'lobby2048' || s === 'lobbyHuarong' ||
+              s === 'lobbySudoku' || s === 'lobbySurvival' || s === 'lobbyTile')
+  if (!idle) return
+  var code = p.code
+  GameGlobal._pendingPK = null
+  if (GameGlobal.Sound) GameGlobal.Sound.play('click')
+  GameGlobal.currentScreen = 'pk'
+  GameGlobal.PK.gameType = '2048'   // 占位，joinRoom 会按房间实际类型纠正
+  GameGlobal.PK.enterLobby()
+  GameGlobal.PK.joinRoom(code)
+}
+
 // ── 2. 加载模块（顺序很重要！layout 必须第一个）
 require('./js/layout.js')    // canvas、尺寸、颜色、绘图工具 → GameGlobal
+try { require('./js/shareCard.js') } catch(e) { console.error('shareCard.js 加载失败', e) }  // 分享图生成（须在 layout 之后）
 require('./js/sound.js')     // GameGlobal.Sound
 require('./js/timer.js')     // GameGlobal.Timer
 require('./js/gameLogic.js') // GameGlobal.Game
@@ -106,12 +189,15 @@ wx.onHide(function() {
   }
 })
 
-wx.onShow(function() {
+wx.onShow(function(res) {
   // 切回前台时拉取最新云端数据（多设备场景）
   if (GameGlobal.AchieveShop && GameGlobal.AchieveShop._syncFromCloud) {
     GameGlobal.AchieveShop._syncFromCloud()
     console.log('[lifecycle] 切前台，拉取云端数据')
   }
+  // 好友点了 PK 邀请卡片回到前台：记下房间码，待空闲时自动加入
+  if (GameGlobal._capturePKQuery) GameGlobal._capturePKQuery(res && res.query)
+  if (GameGlobal.tryJoinPendingPK) GameGlobal.tryJoinPendingPK()
 })
 
 // ── 3. 当前界面状态
@@ -155,6 +241,8 @@ GameGlobal.setScreen = function(name) {
   if (name === 'lobbyTile')     { GameGlobal.Timer.stop(); GameGlobal.Sound.playBgm() }
   if (name === 'tileMatch')     { if (GameGlobal.TileMatch) { GameGlobal.TileMatch.init(GameGlobal.TileMatch.level || 1); GameGlobal.Sound.playBgm() } }
   if (name === 'tileMatchRank') { if (GameGlobal.TileMatchRank) { GameGlobal.TileMatchRank.load(); GameGlobal.TileMatchRank.scrollY = 0 } }
+  // 进入界面时提前生成分享图，等用户点分享时已就绪
+  if (GameGlobal.prepShareCard) GameGlobal.prepShareCard()
 }
 
 // ── 5. 触摸处理
@@ -421,6 +509,8 @@ function handleTap(x, y) {
       } else {
         G.init(); GameGlobal.Sound.playBgm()
       }
+    } else if (G.gameOver && !G._revived && GU.reviveBtn && inRect(x, y, GU.reviveBtn)) {
+      GameGlobal.requestReviveShare('2048')
     } else if (G.gameOver && inRect(x, y, GU.overlayBtn)) {
       GameGlobal.Sound.play('click')
       // 成就系统
@@ -1121,7 +1211,9 @@ function handleTap(x, y) {
 
     // 游戏结束按钮
     if (SV.gameOver) {
-      if (SUI.retryBtn && inRect(x, y, SUI.retryBtn)) {
+      if (SUI.reviveBtn && inRect(x, y, SUI.reviveBtn)) {
+        GameGlobal.requestReviveShare('survival')
+      } else if (SUI.retryBtn && inRect(x, y, SUI.retryBtn)) {
         GameGlobal.Sound.play('click')
         SV.init()
       } else if (SUI.exitBtn && inRect(x, y, SUI.exitBtn)) {
@@ -1364,6 +1456,12 @@ if (GameGlobal.AchieveShop) GameGlobal.AchieveShop.init()
 // 标记加载完成（延迟确保所有模块就绪）
 setTimeout(function() { _loadingDone = true }, 1800)
 
+// 预生成首页分享图（其余游戏界面由 setScreen 触发），保证首次分享即带图
+setTimeout(function() { if (GameGlobal.ShareCard) GameGlobal.ShareCard.generate('home', '') }, 2200)
+
+// 冷启动：若由 PK 邀请卡片点入，先记下房间码，加载完成回到首页后由主循环自动加入
+try { var _launchOpt = wx.getLaunchOptionsSync(); GameGlobal._capturePKQuery(_launchOpt && _launchOpt.query) } catch(e) {}
+
 // ── 云端恢复本地最佳记录（清缓存不丢）
 ;(function() {
   wx.cloud.callFunction({
@@ -1441,6 +1539,8 @@ var _needsRedraw = true
 GameGlobal.markDirty = function() { _needsRedraw = true }
 
 function loop(ts) {
+  // 有待加入的 PK 房间（来自分享邀请卡片）时，在空闲界面自动加入
+  if (GameGlobal._pendingPK && GameGlobal.tryJoinPendingPK) GameGlobal.tryJoinPendingPK()
   var isAnimated = (currentScreen === 'loading' || currentScreen === 'game' || currentScreen === 'pk' || currentScreen === 'huarong' || currentScreen === 'sudoku' || currentScreen === 'sudokuChallengeGame' || currentScreen === 'survival')
   var fps = isAnimated ? 60 : 20
   var interval = 1000 / fps

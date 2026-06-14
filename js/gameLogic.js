@@ -25,6 +25,7 @@ GameGlobal.Game = {
   gameWon:     false,
   keepPlaying: false,
   tiles:       [],
+  _revived:    false,     // 本局是否已用过分享复活（每局限一次）
   _gameOverTimer: null,   // 用于追踪 gameOver 的 setTimeout，撤销时可取消
 
   // ---- 撤销道具 ----
@@ -48,6 +49,7 @@ GameGlobal.Game = {
     this.gameOver    = false
     this.gameWon     = false
     this.keepPlaying = false
+    this._revived    = false
     this._clearGameOverTimer()  // 清除残留的定时器
     this.undoItem.reset()   // 每局重置道具次数
     GameGlobal.Timer.reset()
@@ -252,6 +254,27 @@ GameGlobal.Game = {
         wx.showToast({ title: '撤销成功！感谢观看', icon: 'success', duration: 1200 })
       })
     }
+  },
+
+  // ---- 分享复活：清掉最小的几个数字，继续本局（每局限一次）----
+  revive: function() {
+    if (this._revived || !this.gameOver) return
+    this._revived = true
+    this._clearGameOverTimer()
+    // 收集非空格子，按数值升序，清掉最小的若干个腾出空间
+    var cells = []
+    for (var r = 0; r < SIZE; r++)
+      for (var c = 0; c < SIZE; c++)
+        if (this.grid[r][c] > 0) cells.push({ r:r, c:c, v:this.grid[r][c] })
+    cells.sort(function(a, b) { return a.v - b.v })
+    var clearN = Math.min(4, cells.length)
+    for (var i = 0; i < clearN; i++) this.grid[cells[i].r][cells[i].c] = 0
+    this.gameOver = false
+    this.prevGrid = null   // 复活后不能再撤销回死亡前
+    GameGlobal.Timer.resume()
+    this.buildTiles(null, null)
+    GameGlobal.Sound.play('merge')
+    wx.showToast({ title: '复活成功！已清除最小的方块', icon: 'none', duration: 1500 })
   },
 
   canMove: function() {

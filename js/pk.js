@@ -146,6 +146,23 @@ GameGlobal.PK = {
     })
   },
 
+  // ── 分享邀请：把房间码塞进分享卡片 query，好友点卡片直接加入 ──
+  shareInvite: function() {
+    var self = this
+    var gt = this.gameType || '2048'
+    var nameMap = { '2048': '2048', 'huarong': '华容道', 'sudoku': '数独' }
+    var gname = nameMap[gt] || '数字空间实验室'
+    // 确保分享图已生成（没有就用通用图，不污染已有的成绩图）
+    if (GameGlobal.ShareCard && !GameGlobal.ShareCard.get(gt)) GameGlobal.ShareCard.generate(gt, '')
+    try {
+      wx.shareAppMessage({
+        title: self.myNick + ' 邀请你来一局' + gname + ' PK，点击直接加入！',
+        imageUrl: GameGlobal.ShareCard ? GameGlobal.ShareCard.get(gt) : '',
+        query: 'pk=' + (self.roomCode || '')
+      })
+    } catch (e) {}
+  },
+
   // ── 开始轮询 ──────────────────────────────
   // 等待室/游戏中每1秒查一次房间状态
   _startPoll: function() {
@@ -668,16 +685,32 @@ GameGlobal.drawPKWaiting = function() {
   var dotCount = Math.floor(Date.now()/500) % 4
   setFont(SW*0.03, '700')
   ctx.fillStyle = C.textDim
-  ctx.fillText(pk.isHost ? ('请告诉好友房间码，等待对方加入' + '·'.repeat(dotCount)) : ('正在连接' + '·'.repeat(dotCount+1)),
-    cx, SH*0.76)
+  ctx.fillText(pk.isHost ? ('告诉好友房间码，或点下方一键邀请' + '·'.repeat(dotCount)) : ('正在连接' + '·'.repeat(dotCount+1)),
+    cx, pk.isHost ? SH*0.735 : SH*0.76)
+
+  // 邀请好友按钮（仅房主）——发分享卡片，好友点击直接进房
+  if (pk.isHost) {
+    var inviteY = SH*0.775, inviteH = BTN_H*0.95
+    var ig = ctx.createLinearGradient(PAD, 0, PAD+BOARD_W, 0)
+    ig.addColorStop(0, '#1aad19'); ig.addColorStop(1, '#2ecc71')
+    ctx.shadowColor = 'rgba(46,204,113,0.4)'; ctx.shadowBlur = 12
+    roundRect(PAD, inviteY, BOARD_W, inviteH, 14, ig)
+    ctx.shadowBlur = 0; ctx.shadowColor = 'transparent'
+    setFont(inviteH*0.32, '900'); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle = '#fff'
+    ctx.fillText('📤 邀请好友 · 点击直接加入', cx, inviteY+inviteH/2)
+    pk.btns.inviteBtn = { x:PAD, y:inviteY, w:BOARD_W, h:inviteH }
+  } else {
+    pk.btns.inviteBtn = null
+  }
 
   // 取消按钮
-  var cancelY = SH*0.82
-  roundRect(PAD+BOARD_W*0.2, cancelY, BOARD_W*0.6, BTN_H*0.85, 12,
+  var cancelY = pk.isHost ? SH*0.89 : SH*0.82
+  var cancelH = pk.isHost ? BTN_H*0.72 : BTN_H*0.85
+  roundRect(PAD+BOARD_W*0.2, cancelY, BOARD_W*0.6, cancelH, 12,
     'rgba(255,255,255,0.05)', 'rgba(255,255,255,0.1)')
   setFont(BTN_H*0.3, '700')
-  ctx.fillStyle = C.textDim; ctx.fillText('取 消', cx, cancelY+BTN_H*0.425)
-  pk.btns.cancelBtn = { x:PAD+BOARD_W*0.2, y:cancelY, w:BOARD_W*0.6, h:BTN_H*0.85 }
+  ctx.fillStyle = C.textDim; ctx.fillText('取 消', cx, cancelY+cancelH/2)
+  pk.btns.cancelBtn = { x:PAD+BOARD_W*0.2, y:cancelY, w:BOARD_W*0.6, h:cancelH }
 }
 
 // ================================================
@@ -1154,7 +1187,10 @@ GameGlobal.handlePKTap = function(x, y) {
     }
 
   } else if (pk.phase === 'waiting') {
-    if (inRect(x, y, btns.cancelBtn)) {
+    if (btns.inviteBtn && inRect(x, y, btns.inviteBtn)) {
+      GameGlobal.Sound.play('click')
+      pk.shareInvite()
+    } else if (inRect(x, y, btns.cancelBtn)) {
       GameGlobal.Sound.play('click')
       pk._stopPoll()
       pk.phase = 'lobby'

@@ -140,6 +140,7 @@ var EVOLUTION_DEFS = {
 // ================================================
 GameGlobal.Survival = {
   running:false, paused:false, gameOver:false, victory:false,
+  _revived:false, _rewardBooked:false,   // 分享复活（每局一次）/ 金币是否已结算
   player:null, enemies:[], maxEnemies:80,
   projectiles:[], // {x,y,vx,vy,dmg,life,type,targets}
   elapsed:0, _lastTick:0, _spawnTimer:0,
@@ -157,6 +158,7 @@ GameGlobal.Survival = {
 
   init: function() {
     this.running=true; this.paused=false; this.gameOver=false; this.victory=false
+    this._revived=false; this._rewardBooked=false
     this.elapsed=0; this._lastTick=Date.now(); this._spawnTimer=0
     this._waveActive=false; this._waveEnd=0
     this.boss=null; this.eliteSpawned=false
@@ -1412,6 +1414,10 @@ GameGlobal.Survival = {
     var info=wx.getStorageSync('userInfo')||{}
     wx.cloud.callFunction({name:'leaderboard',data:{action:'upload',type:'survival',nickname:info.nickName||'神秘玩家',avatarUrl:info.avatarUrl||'',score:score,time:Math.floor(this.elapsed)},fail:function(){}})
 
+    // 金币 / 局数每局只结算一次：分享复活后再次死亡时，成绩照常上传，但不重复发金币
+    if(this._rewardBooked) return
+    this._rewardBooked = true
+
     // 结算金币奖励
     var killCoins = Math.floor(p.kills * 0.1)
     var timeCoins = Math.floor(this.elapsed / 60) * 2
@@ -1430,6 +1436,29 @@ GameGlobal.Survival = {
         level:p.level, won:this.victory
       })
     }
+  },
+
+  // 分享复活：回满血、清掉周围敌人、短暂无敌（每局限一次）
+  reviveByShare: function() {
+    if (this._revived || !this.gameOver) return
+    this._revived = true
+    this.gameOver = false
+    this.running = true
+    this.paused = false
+    this.levelUp = false
+    this._lastTick = Date.now()   // 重置计时，避免复活瞬间 dt 跳变
+    var p = this.player
+    p.hp = p.maxHp
+    p._iFrames = Math.max(p._iFrames || 0, 3)   // 3 秒无敌
+    // 清掉玩家周围一圈敌人，给喘息空间
+    var clearR = 280, kept = []
+    for (var i = 0; i < this.enemies.length; i++) {
+      var e = this.enemies[i], dx = e.x - p.x, dy = e.y - p.y
+      if (dx*dx + dy*dy > clearR*clearR) kept.push(e)
+      else _spawnP(e.x, e.y, '#e74c3c', 6)
+    }
+    this.enemies = kept
+    GameGlobal.Sound.play('win')
   },
 
   // 摇杆

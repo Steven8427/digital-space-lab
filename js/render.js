@@ -464,11 +464,30 @@ GameGlobal.drawGameOverlay = function() {
     ctx.fillText('继续挑战  →  冲击最高分', cx, ccy+ch/2)
     GameUI.continueBtn = { x:ccx, y:ccy, w:cw, h:ch }
   } else {
-    var bw = BOARD_W*0.58, bh = BTN_H*0.95, bx = cx-bw/2, by = cy+ts*0.9
-    roundRect(bx, by, bw, bh, 14, '#fff')
-    setFont(bh*0.36, '900'); ctx.fillStyle = '#1a1a2e'
-    ctx.fillText('再来一局', cx, by+bh/2)
-    GameUI.overlayBtn = { x:bx, y:by, w:bw, h:bh }
+    var bw = BOARD_W*0.58, bh = BTN_H*0.95, bx = cx-bw/2
+    if (!GameGlobal.Game._revived) {
+      // 分享复活按钮（高亮，置于上方）——每局仅一次
+      var rby = cy+ts*0.55
+      var rg = ctx.createLinearGradient(bx, 0, bx+bw, 0)
+      rg.addColorStop(0,'#f5a623'); rg.addColorStop(1,'#e8941a')
+      roundRect(bx, rby, bw, bh, 14, rg)
+      setFont(bh*0.32, '900'); ctx.fillStyle = '#fff'
+      ctx.fillText('📤 分享复活', cx, rby+bh/2)
+      GameUI.reviveBtn = { x:bx, y:rby, w:bw, h:bh }
+      // 再来一局移到下方
+      var by = rby + bh + GAP*1.2
+      roundRect(bx, by, bw, bh, 14, '#fff')
+      setFont(bh*0.36, '900'); ctx.fillStyle = '#1a1a2e'
+      ctx.fillText('再来一局', cx, by+bh/2)
+      GameUI.overlayBtn = { x:bx, y:by, w:bw, h:bh }
+    } else {
+      var by2 = cy+ts*0.9
+      roundRect(bx, by2, bw, bh, 14, '#fff')
+      setFont(bh*0.36, '900'); ctx.fillStyle = '#1a1a2e'
+      ctx.fillText('再来一局', cx, by2+bh/2)
+      GameUI.overlayBtn = { x:bx, y:by2, w:bw, h:bh }
+      GameUI.reviveBtn = null
+    }
     GameUI.continueBtn = null
   }
 }

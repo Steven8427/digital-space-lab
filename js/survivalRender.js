@@ -1129,9 +1129,12 @@ function _drawGameOver(S){
   var ih=cdH/4
   for(var i=0;i<items.length;i++){var iy=cdY+ih*i+ih/2;setFont(SW*0.028,'700');ctx.textAlign='left';ctx.fillStyle=C.textDim;ctx.fillText(items[i].l,BOARD_X+PAD*2,iy);setFont(SW*0.040,'900');ctx.textAlign='right';ctx.fillStyle=items[i].c;ctx.fillText(items[i].v,BOARD_X+BOARD_W-PAD*2,iy)}
 
+  // 分享复活可用时（首次死亡）：优先引导复活，暂不展示金币结算明细以腾出空间
+  var showRevive = (!S.victory && !S._revived)
+
   // 金币奖励明细
   var rw=S._lastReward
-  if(rw){
+  if(rw && !showRevive){
     var coinY=cdY+cdH+GAP
     var coinH=SH*0.18
     roundRect(BOARD_X,coinY,BOARD_W,coinH,12,'rgba(243,156,18,0.1)','rgba(243,156,18,0.3)')
@@ -1157,12 +1160,35 @@ function _drawGameOver(S){
     cdH+=coinH+GAP  // 调整按钮位置
   }
 
-  var bY1=cdY+cdH+GAP*2;var bg2=ctx.createLinearGradient(BOARD_X,0,BOARD_X+BOARD_W,0);bg2.addColorStop(0,'#e74c3c');bg2.addColorStop(1,'#f39c12')
-  roundRect(BOARD_X,bY1,BOARD_W,BTN_H*1.1,14,bg2);setFont(BTN_H*0.38,'900');ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText('再来一局',cx,bY1+BTN_H*0.55)
-  GameGlobal.SurvivalUI.retryBtn={x:BOARD_X,y:bY1,w:BOARD_W,h:BTN_H*1.1}
-  var bY2=bY1+BTN_H*1.1+GAP;roundRect(BOARD_X,bY2,BOARD_W,BTN_H*0.9,12,C.surface,'rgba(255,255,255,0.08)')
-  setFont(BTN_H*0.34,'700');ctx.fillStyle=C.textDim;ctx.fillText('返回大厅',cx,bY2+BTN_H*0.45)
-  GameGlobal.SurvivalUI.exitBtn={x:BOARD_X,y:bY2,w:BOARD_W,h:BTN_H*0.9}
+  var by=cdY+cdH+GAP*2
+  if(showRevive){
+    // 分享复活（金色主操作）
+    var rh=BTN_H*1.05
+    var rg=ctx.createLinearGradient(BOARD_X,0,BOARD_X+BOARD_W,0);rg.addColorStop(0,'#f5a623');rg.addColorStop(1,'#e8941a')
+    roundRect(BOARD_X,by,BOARD_W,rh,14,rg)
+    setFont(rh*0.34,'900');ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText('📤 分享复活，满血再战',cx,by+rh*0.5)
+    GameGlobal.SurvivalUI.reviveBtn={x:BOARD_X,y:by,w:BOARD_W,h:rh}
+    by+=rh+GAP*0.8
+    // 再来一局（次要）
+    var r2h=BTN_H*0.88
+    roundRect(BOARD_X,by,BOARD_W,r2h,12,C.surface,'rgba(231,76,60,0.45)')
+    setFont(r2h*0.34,'800');ctx.fillStyle='#e74c3c';ctx.fillText('再来一局',cx,by+r2h*0.5)
+    GameGlobal.SurvivalUI.retryBtn={x:BOARD_X,y:by,w:BOARD_W,h:r2h}
+    by+=r2h+GAP*0.7
+    // 返回大厅
+    var r3h=BTN_H*0.8
+    roundRect(BOARD_X,by,BOARD_W,r3h,12,C.surface,'rgba(255,255,255,0.08)')
+    setFont(r3h*0.32,'700');ctx.fillStyle=C.textDim;ctx.fillText('返回大厅',cx,by+r3h*0.5)
+    GameGlobal.SurvivalUI.exitBtn={x:BOARD_X,y:by,w:BOARD_W,h:r3h}
+  }else{
+    var bg2=ctx.createLinearGradient(BOARD_X,0,BOARD_X+BOARD_W,0);bg2.addColorStop(0,'#e74c3c');bg2.addColorStop(1,'#f39c12')
+    roundRect(BOARD_X,by,BOARD_W,BTN_H*1.1,14,bg2);setFont(BTN_H*0.38,'900');ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText('再来一局',cx,by+BTN_H*0.55)
+    GameGlobal.SurvivalUI.retryBtn={x:BOARD_X,y:by,w:BOARD_W,h:BTN_H*1.1}
+    var bY2=by+BTN_H*1.1+GAP;roundRect(BOARD_X,bY2,BOARD_W,BTN_H*0.9,12,C.surface,'rgba(255,255,255,0.08)')
+    setFont(BTN_H*0.34,'700');ctx.fillStyle=C.textDim;ctx.fillText('返回大厅',cx,bY2+BTN_H*0.45)
+    GameGlobal.SurvivalUI.exitBtn={x:BOARD_X,y:bY2,w:BOARD_W,h:BTN_H*0.9}
+    GameGlobal.SurvivalUI.reviveBtn=null
+  }
 }
 
 function _fmt(s){var m=Math.floor(s/60),ss=Math.floor(s%60);return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0')}
