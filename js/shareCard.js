@@ -8,14 +8,11 @@
 ;(function () {
   var CARD_W = 500, CARD_H = 400   // 微信分享图推荐比例 5:4
 
-  // 各游戏主题色（与首页卡片呼应）
-  var THEMES = {
-    '2048':      { c1: '#e94560', c2: '#f5a623', icon: '🎮', name: '2048' },
-    'huarong':   { c1: '#1abc9c', c2: '#3498db', icon: '🧩', name: '华容道' },
-    'sudoku':    { c1: '#6c5ce7', c2: '#a29bfe', icon: '🔢', name: '数独' },
-    'survival':  { c1: '#e74c3c', c2: '#f39c12', icon: '⚔', name: '生存模式' },
-    'tileMatch': { c1: '#2ecc71', c2: '#3498db', icon: '🧊', name: '三消堆叠' },
-    'home':      { c1: '#f5a623', c2: '#9b59b6', icon: '🌟', name: '数字空间实验室' }
+  // 主题色 / 名称 / 图标统一从 GameGlobal.GAMES 读取（见 gameConfig.js）
+  var _FALLBACK = { c1: '#f5a623', c2: '#9b59b6', icon: '🌟', name: '数字空间实验室' }
+  function _theme(key) {
+    var G = GameGlobal.GAMES
+    return (G && (G[key] || G.home)) || _FALLBACK
   }
 
   function _roundRect(c, x, y, w, h, r) {
@@ -40,7 +37,7 @@
     // 生成某游戏的分享图。scoreLine 形如「最高 1234 分」，可为空字符串
     generate: function (key, scoreLine) {
       scoreLine = scoreLine || ''
-      var theme = THEMES[key] || THEMES.home
+      var theme = _theme(key)
       // 已有且文案没变，跳过
       if (this._cache[key] && this._lastLine[key] === scoreLine) return
       if (this._busy[key]) return

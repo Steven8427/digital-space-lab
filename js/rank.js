@@ -32,30 +32,15 @@ GameGlobal.Rank = {
     var self = this, done = 0
     function onDone() { if (++done === 2) self.loading = false }
 
-    wx.cloud.callFunction({
-      name: 'leaderboard',
-      data: { action: 'query', type: 'score', limit: 100 },
-      success: function(res) {
-        if (res.result && res.result.success) {
-          self.scoreList   = res.result.data
-          self.myScoreRank = res.result.myRank || null
-        } else { self.error = '加载失败' }
-        onDone()
-      },
-      fail: function() { self.error = '网络错误'; onDone() }
+    GameGlobal.loadLeaderboard('score', function(err, data, myRank) {
+      if (!err) { self.scoreList = data; self.myScoreRank = myRank }
+      else self.error = err.message
+      onDone()
     })
 
-    wx.cloud.callFunction({
-      name: 'leaderboard',
-      data: { action: 'query', type: 'time', limit: 100 },
-      success: function(res) {
-        if (res.result && res.result.success) {
-          self.timeList   = res.result.data
-          self.myTimeRank = res.result.myRank || null
-        }
-        onDone()
-      },
-      fail: function() { onDone() }
+    GameGlobal.loadLeaderboard('time', function(err, data, myRank) {
+      if (!err) { self.timeList = data; self.myTimeRank = myRank }
+      onDone()
     })
   },
 

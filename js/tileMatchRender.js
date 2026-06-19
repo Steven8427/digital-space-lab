@@ -357,10 +357,9 @@ GameGlobal.TileMatchRank = {
   list: [], myRank: null, scrollY: 0, loading: false,
   load: function() {
     this.loading = true; this.scrollY = 0; var self = this
-    wx.cloud.callFunction({
-      name: 'leaderboard', data: { action: 'query', type: 'tile_match', limit: 100 },
-      success: function(r) { if (r.result && r.result.success) { self.list = r.result.data || []; self.myRank = r.result.myRank || null } self.loading = false },
-      fail: function() { self.loading = false }
+    GameGlobal.loadLeaderboard(GameGlobal.GAMES.tileMatch.lbType, function(err, data, myRank) {
+      if (!err) { self.list = data; self.myRank = myRank }
+      self.loading = false
     })
   }
 }

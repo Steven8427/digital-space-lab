@@ -179,29 +179,22 @@ GameGlobal.ChallengeRank = {
     this.scrollY = 0
     var self = this
 
-    wx.cloud.callFunction({
-      name: 'leaderboard',
-      data: { action: 'query', type: 'sudoku_challenge', limit: 100 },
-      success: function(res) {
-        self.loading = false
-        if (res.result && res.result.success) {
-          var list = res.result.data || []
-          // 按通关数降序，同关卡按用时升序
-          list.sort(function(a, b) {
-            if (b.score !== a.score) return b.score - a.score
-            return a.time - b.time
-          })
-          self.list = list
-          var my = res.result.myRank || null
-          if (my) {
-            for (var i = 0; i < list.length; i++) {
-              if (list[i].openid === my.openid) { my.rank = i + 1; break }
-            }
-          }
-          self.myRank = my
+    GameGlobal.loadLeaderboard('sudoku_challenge', function(err, data, my) {
+      self.loading = false
+      if (err) return
+      var list = data
+      // 按通关数降序，同关卡按用时升序
+      list.sort(function(a, b) {
+        if (b.score !== a.score) return b.score - a.score
+        return a.time - b.time
+      })
+      self.list = list
+      if (my) {
+        for (var i = 0; i < list.length; i++) {
+          if (list[i].openid === my.openid) { my.rank = i + 1; break }
         }
-      },
-      fail: function() { self.loading = false }
+      }
+      self.myRank = my
     })
   }
 }

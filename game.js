@@ -20,55 +20,54 @@ function _getShareInfo() {
   var screen = GameGlobal.currentScreen || 'home'
   var nickName = (wx.getStorageSync('userInfo') || {}).nickName || '我'
 
+  var G = GameGlobal.GAMES
   // 2048
   if (screen === 'game' || screen === 'lobby2048' || screen === 'rank') {
-    var best2048 = wx.getStorageSync('2048best') || 0
+    var best2048 = GameGlobal.getBest('2048')
     return {
       key: '2048',
       title: best2048 > 0 ? (nickName + '在2048拿到了' + best2048 + '分！你能超过吗？') : '快来挑战2048！你能拿多少分？',
-      scoreLine: best2048 > 0 ? ('最高 ' + best2048 + ' 分') : '',
+      scoreLine: G['2048'].scoreLine(best2048),
       query: 'from=share&game=2048'
     }
   }
   // 华容道
   if (screen === 'huarong' || screen === 'lobbyHuarong' || screen === 'huarongRank') {
-    var bestHR = wx.getStorageSync('huarongBest') || 0
+    var bestHR = GameGlobal.getBest('huarong')
     return {
       key: 'huarong',
       title: bestHR > 0 ? (nickName + '用' + bestHR + '步通关华容道！你能更少吗？') : '快来挑战华容道！看你几步能通关？',
-      scoreLine: bestHR > 0 ? (bestHR + ' 步通关') : '',
+      scoreLine: G['huarong'].scoreLine(bestHR),
       query: 'from=share&game=huarong'
     }
   }
   // 数独
   if (screen === 'sudoku' || screen === 'lobbySudoku' || screen === 'sudokuRank') {
-    var bestSD = wx.getStorageSync('sudokuBestTime') || 0
-    var sdLine = ''
-    if (bestSD > 0) { var sm = Math.floor(bestSD / 60), ss = bestSD % 60; sdLine = '最快 ' + sm + ':' + (ss < 10 ? '0' + ss : ss) }
+    var bestSD = GameGlobal.getBest('sudoku')
     return {
       key: 'sudoku',
       title: bestSD > 0 ? (nickName + '用' + Math.floor(bestSD / 60) + '分' + (bestSD % 60) + '秒完成数独！你能更快吗？') : '快来挑战数独！看你多快能解开？',
-      scoreLine: sdLine,
+      scoreLine: G['sudoku'].scoreLine(bestSD),
       query: 'from=share&game=sudoku'
     }
   }
   // 生存模式
   if (screen === 'survival' || screen === 'lobbySurvival' || screen === 'survivalRank') {
-    var bestSV = wx.getStorageSync('survivalBest') || 0
+    var bestSV = GameGlobal.getBest('survival')
     return {
       key: 'survival',
       title: bestSV > 0 ? (nickName + '在生存模式击杀了' + bestSV + '只怪物！你能超过吗？') : '快来挑战生存模式！看你能活多久？',
-      scoreLine: bestSV > 0 ? ('击杀 ' + bestSV) : '',
+      scoreLine: G['survival'].scoreLine(bestSV),
       query: 'from=share&game=survival'
     }
   }
   // 三消
   if (screen === 'tileMatch' || screen === 'lobbyTile' || screen === 'tileMatchRank') {
-    var bestTM = wx.getStorageSync('tileMatchBest') || 0
+    var bestTM = GameGlobal.getBest('tileMatch')
     return {
       key: 'tileMatch',
       title: bestTM > 0 ? (nickName + '三消堆叠通关到第' + bestTM + '关！你能超过吗？') : '快来挑战三消堆叠！看你能过几关？',
-      scoreLine: bestTM > 0 ? ('第 ' + bestTM + ' 关') : '',
+      scoreLine: G['tileMatch'].scoreLine(bestTM),
       query: 'from=share&game=tileMatch'
     }
   }
@@ -153,7 +152,8 @@ GameGlobal.tryJoinPendingPK = function() {
 
 // ── 2. 加载模块（顺序很重要！layout 必须第一个）
 require('./js/layout.js')    // canvas、尺寸、颜色、绘图工具 → GameGlobal
-try { require('./js/shareCard.js') } catch(e) { console.error('shareCard.js 加载失败', e) }  // 分享图生成（须在 layout 之后）
+try { require('./js/gameConfig.js') } catch(e) { console.error('gameConfig.js 加载失败', e) }  // 游戏参数注册表 + Store 缓存 + loadLeaderboard
+try { require('./js/shareCard.js') } catch(e) { console.error('shareCard.js 加载失败', e) }  // 分享图生成（须在 layout / gameConfig 之后）
 require('./js/sound.js')     // GameGlobal.Sound
 require('./js/timer.js')     // GameGlobal.Timer
 require('./js/gameLogic.js') // GameGlobal.Game
@@ -1536,11 +1536,17 @@ if (!userInfo || !userInfo.nickName) {
 // 静态界面降帧（主页/设置等无动画界面只需20fps）
 var _lastFrameTime = 0
 var _needsRedraw = true
+var _prevScreenForCache = ''
 GameGlobal.markDirty = function() { _needsRedraw = true }
 
 function loop(ts) {
   // 有待加入的 PK 房间（来自分享邀请卡片）时，在空闲界面自动加入
   if (GameGlobal._pendingPK && GameGlobal.tryJoinPendingPK) GameGlobal.tryJoinPendingPK()
+  // 切换界面时清空存储读缓存：进入新界面重新读一次，界面内全部走内存
+  if (currentScreen !== _prevScreenForCache) {
+    _prevScreenForCache = currentScreen
+    if (GameGlobal.Store) GameGlobal.Store.clear()
+  }
   var isAnimated = (currentScreen === 'loading' || currentScreen === 'game' || currentScreen === 'pk' || currentScreen === 'huarong' || currentScreen === 'sudoku' || currentScreen === 'sudokuChallengeGame' || currentScreen === 'survival')
   var fps = isAnimated ? 60 : 20
   var interval = 1000 / fps

@@ -465,27 +465,18 @@ GameGlobal.SudokuRank = {
 
     for (var ti = 0; ti < tabs.length; ti++) {
       (function(tab) {
-        wx.cloud.callFunction({
-          name: 'leaderboard',
-          data: { action: 'query', type: 'sudoku_' + tab, limit: 100 },
-          success: function(res) {
-            if (res.result && res.result.success) {
-              var list = res.result.data || []
-              list.sort(function(a, b) { return a.time - b.time })
-              self.lists[tab] = list
-              var my = res.result.myRank || null
-              if (my) {
-                for (var i = 0; i < list.length; i++) {
-                  if (list[i].openid === my.openid) { my.rank = i + 1; break }
-                }
+        GameGlobal.loadLeaderboard('sudoku_' + tab, function(err, data, my) {
+          if (!err) {
+            data.sort(function(a, b) { return a.time - b.time })
+            self.lists[tab] = data
+            if (my) {
+              for (var i = 0; i < data.length; i++) {
+                if (data[i].openid === my.openid) { my.rank = i + 1; break }
               }
-              self.myRanks[tab] = my
             }
-            if (++done === total) self.loading = false
-          },
-          fail: function() {
-            if (++done === total) self.loading = false
+            self.myRanks[tab] = my
           }
+          if (++done === total) self.loading = false
         })
       })(tabs[ti])
     }

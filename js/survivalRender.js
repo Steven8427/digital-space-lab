@@ -1194,7 +1194,7 @@ function _drawGameOver(S){
 function _fmt(s){var m=Math.floor(s/60),ss=Math.floor(s%60);return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0')}
 
 // ── 排行榜（同v3保持不变）
-GameGlobal.SurvivalRank={list:[],myRank:null,scrollY:0,loading:false,load:function(){this.loading=true;this.scrollY=0;var self=this;wx.cloud.callFunction({name:'leaderboard',data:{action:'query',type:'survival',limit:100},success:function(r){if(r.result&&r.result.success){self.list=r.result.data||[];self.myRank=r.result.myRank||null}self.loading=false},fail:function(){self.loading=false}})}}
+GameGlobal.SurvivalRank={list:[],myRank:null,scrollY:0,loading:false,load:function(){this.loading=true;this.scrollY=0;var self=this;GameGlobal.loadLeaderboard(GameGlobal.GAMES.survival.lbType,function(err,data,myRank){if(!err){self.list=data;self.myRank=myRank}self.loading=false})}}
 GameGlobal.SurvivalRankUI={backBtn:null}
 GameGlobal.drawSurvivalRankScreen = function() {
   drawBg()

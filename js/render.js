@@ -66,7 +66,7 @@ GameGlobal.drawHomeScreen = function() {
   drawStars()
 
   var cx = SW/2
-  var uinfo = wx.getStorageSync('userInfo') || {}
+  var uinfo = GameGlobal.Store.get('userInfo', {})
 
   // ── 左上角头像
   var avR = Math.round(SW*0.060)
@@ -120,7 +120,7 @@ GameGlobal.drawHomeScreen = function() {
   var cardGap = GAP
   var gridY = SH * 0.42
 
-  var best2048 = wx.getStorageSync('2048best') || 0
+  var best2048 = GameGlobal.getBest('2048')
   _drawHomeCard(BOARD_X, gridY, halfW, cardH, '🎮', '2048', best2048>0?'最高'+best2048:'', '#e94560', '#f5a623')
   Home.btn2048 = { x:BOARD_X, y:gridY, w:halfW, h:cardH }
 
@@ -132,14 +132,14 @@ GameGlobal.drawHomeScreen = function() {
   _drawHomeCard(BOARD_X, y2, halfW, cardH, '🔢', '数独', '', '#6c5ce7', '#a29bfe')
   Home.btnSudoku = { x:BOARD_X, y:y2, w:halfW, h:cardH }
 
-  var bestSV = wx.getStorageSync('survivalBest') || 0
+  var bestSV = GameGlobal.getBest('survival')
   _drawHomeCard(x2, y2, halfW, cardH, '⚔', '生存', bestSV>0?bestSV+'杀':'NEW!', '#e74c3c', '#f39c12')
   Home.btnSurvival = { x:x2, y:y2, w:halfW, h:cardH }
 
   // 第5个游戏：三消堆叠（全宽横幅）
   var y3 = y2 + cardH + cardGap
   var cardH2 = BTN_H * 1.2
-  var tmBest = wx.getStorageSync('tileMatchBest') || 0
+  var tmBest = GameGlobal.getBest('tileMatch')
   _drawHomeCard(BOARD_X, y3, BOARD_W, cardH2, '🧊', '三消堆叠', tmBest>0?'第'+tmBest+'关':'NEW!', '#2ecc71', '#3498db')
   Home.btnTile = { x:BOARD_X, y:y3, w:BOARD_W, h:cardH2 }
 
@@ -220,7 +220,7 @@ GameGlobal.drawLobby2048Screen = function() {
   setFont(SW*0.028,'600'); ctx.fillStyle='rgba(255,255,255,0.3)'
   ctx.fillText('合并方块，挑战极限！', cx, SH*0.22)
 
-  var best = wx.getStorageSync('2048best') || 0
+  var best = GameGlobal.getBest('2048')
   var cardX=BOARD_X, cardW=BOARD_W, cardH=BTN_H*1.1, cardY=SH*0.28
   roundRect(cardX, cardY, cardW, cardH, 16, C.surface, 'rgba(245,166,35,0.25)')
   setFont(SW*0.028,'700'); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle=C.textDim
@@ -322,7 +322,7 @@ GameGlobal.drawLobbyHuarongScreen = function() {
 
   // 历史最优（按当前尺寸）
   var bestKey = 'huarongBest_' + selSz + 'x' + selSz
-  var best = wx.getStorageSync(bestKey) || 0
+  var best = GameGlobal.Store.get(bestKey, 0)
   var cardY = SH*0.242 + 2*(szH+GAP) + GAP
   var cardH = BTN_H*0.95
   roundRect(BOARD_X, cardY, BOARD_W, cardH, 14, C.surface, 'rgba(26,188,156,0.18)')

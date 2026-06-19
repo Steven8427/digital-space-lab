@@ -352,46 +352,32 @@ GameGlobal.HuarongRank = {
     var self   = this, done = 0
     function onDone() { if (++done === 2) self.loading = false }
 
-    wx.cloud.callFunction({
-      name: 'leaderboard',
-      data: { action: 'query', type: 'huarong_moves' + suffix, limit: 100 },
-      success: function(res) {
-        if (res.result && res.result.success) {
-          var list = res.result.data || []
-          list.sort(function(a, b) { return a.time - b.time })
-          self.movesList = list
-          var my = res.result.myRank || null
-          if (my) {
-            for (var i = 0; i < list.length; i++) {
-              if (list[i].openid === my.openid) { my.rank = i + 1; break }
-            }
+    GameGlobal.loadLeaderboard('huarong_moves' + suffix, function(err, data, my) {
+      if (!err) {
+        data.sort(function(a, b) { return a.time - b.time })
+        self.movesList = data
+        if (my) {
+          for (var i = 0; i < data.length; i++) {
+            if (data[i].openid === my.openid) { my.rank = i + 1; break }
           }
-          self.myMovesRank = my
-        } else { self.error = '加载失败' }
-        onDone()
-      },
-      fail: function() { self.error = '网络错误'; onDone() }
+        }
+        self.myMovesRank = my
+      } else { self.error = err.message }
+      onDone()
     })
 
-    wx.cloud.callFunction({
-      name: 'leaderboard',
-      data: { action: 'query', type: 'huarong_time' + suffix, limit: 100 },
-      success: function(res) {
-        if (res.result && res.result.success) {
-          var list = res.result.data || []
-          list.sort(function(a, b) { return a.time - b.time })
-          self.timeList = list
-          var my = res.result.myRank || null
-          if (my) {
-            for (var i = 0; i < list.length; i++) {
-              if (list[i].openid === my.openid) { my.rank = i + 1; break }
-            }
+    GameGlobal.loadLeaderboard('huarong_time' + suffix, function(err, data, my) {
+      if (!err) {
+        data.sort(function(a, b) { return a.time - b.time })
+        self.timeList = data
+        if (my) {
+          for (var i = 0; i < data.length; i++) {
+            if (data[i].openid === my.openid) { my.rank = i + 1; break }
           }
-          self.myTimeRank = my
         }
-        onDone()
-      },
-      fail: function() { onDone() }
+        self.myTimeRank = my
+      }
+      onDone()
     })
   },
 

@@ -94,6 +94,8 @@ GameGlobal.setFont = function(size, weight) {
   ctx.font = (weight || '700') + ' ' + Math.round(size) + 'px sans-serif'
 }
 
+// 背景两层径向渐变只跟屏幕尺寸有关，缓存一次即可，避免每帧每界面重建
+var _bgG1 = null, _bgG2 = null
 GameGlobal.drawBg = function() {
   // 如果有主题背景渲染器，优先使用
   if (GameGlobal._themeBgRenderer) {
@@ -102,12 +104,14 @@ GameGlobal.drawBg = function() {
   }
   ctx.fillStyle = C.bg
   ctx.fillRect(0, 0, SW, SH)
-  var g1 = ctx.createRadialGradient(SW*0.85, SH*0.05, 0, SW*0.85, SH*0.05, SW*0.7)
-  g1.addColorStop(0, 'rgba(233,69,96,0.18)'); g1.addColorStop(1, 'rgba(233,69,96,0)')
-  ctx.fillStyle = g1; ctx.fillRect(0, 0, SW, SH)
-  var g2 = ctx.createRadialGradient(SW*0.1, SH*0.95, 0, SW*0.1, SH*0.95, SW*0.7)
-  g2.addColorStop(0, 'rgba(245,166,35,0.12)'); g2.addColorStop(1, 'rgba(245,166,35,0)')
-  ctx.fillStyle = g2; ctx.fillRect(0, 0, SW, SH)
+  if (!_bgG1) {
+    _bgG1 = ctx.createRadialGradient(SW*0.85, SH*0.05, 0, SW*0.85, SH*0.05, SW*0.7)
+    _bgG1.addColorStop(0, 'rgba(233,69,96,0.18)'); _bgG1.addColorStop(1, 'rgba(233,69,96,0)')
+    _bgG2 = ctx.createRadialGradient(SW*0.1, SH*0.95, 0, SW*0.1, SH*0.95, SW*0.7)
+    _bgG2.addColorStop(0, 'rgba(245,166,35,0.12)'); _bgG2.addColorStop(1, 'rgba(245,166,35,0)')
+  }
+  ctx.fillStyle = _bgG1; ctx.fillRect(0, 0, SW, SH)
+  ctx.fillStyle = _bgG2; ctx.fillRect(0, 0, SW, SH)
 }
 
 GameGlobal.drawBtn = function(x, y, w, h, text, bg, fg) {
