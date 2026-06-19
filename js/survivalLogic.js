@@ -3,8 +3,9 @@
 //  武器自动攻击，敌人数字=血量，打到0消灭
 // ================================================
 var SW = GameGlobal.SW, SH = GameGlobal.SH
-var MAP_W = 3000, MAP_H = 3000, GRID_SIZE = 80
-var BASE_SPEED = 160, SPAWN_DIST = 480, GAME_DURATION = 600, MAX_LEVEL = 50
+var _SV = GameGlobal.SVConfig   // 所有可调数值见 survivalConfig.js
+var MAP_W = _SV.MAP_W, MAP_H = _SV.MAP_H, GRID_SIZE = _SV.GRID_SIZE
+var BASE_SPEED = _SV.BASE_SPEED, SPAWN_DIST = _SV.SPAWN_DIST, GAME_DURATION = _SV.GAME_DURATION, MAX_LEVEL = _SV.MAX_LEVEL
 
 // 50级经验表：前期快升，后期平缓增长
 var LEVEL_XP = (function(){
@@ -12,20 +13,13 @@ var LEVEL_XP = (function(){
   return t
 })()
 
-// ── 敌人类型
-var ENEMY_TYPES = {
-  walker: { speed:40, chase:true },
-  swarm:  { speed:55, chase:true },
-  tank:   { speed:22, chase:true },
-  dash:   { speed:30, chase:true, dashSpeed:180, dashRange:150 },
-  split:  { speed:35, chase:true }
-}
+// ── 敌人类型（数值见 survivalConfig.js）
+var ENEMY_TYPES = _SV.ENEMY_TYPES
 
 function _getWeights(t) {
-  if (t<60)  return {walker:55,swarm:35,tank:0,dash:5,split:5}
-  if (t<120) return {walker:45,swarm:25,tank:10,dash:10,split:10}
-  if (t<300) return {walker:35,swarm:20,tank:15,dash:15,split:15}
-  return              {walker:25,swarm:15,tank:20,dash:20,split:20}
+  var W = _SV.SPAWN_WEIGHTS
+  for (var i=0;i<W.length;i++) if (t < W[i].until) return W[i].w
+  return W[W.length-1].w
 }
 function _pickType(t) {
   var w=_getWeights(t), total=0; for(var k in w) total+=w[k]
@@ -34,12 +28,14 @@ function _pickType(t) {
 }
 // 敌人数字（血量）随时间增长
 function _pickEnemyHP(elapsed) {
-  var base = 3 + Math.floor(elapsed / 20) * 3  // 每20秒+3，增长更快
+  var H = _SV.ENEMY_HP
+  var base = H.base + Math.floor(elapsed / H.everySec) * H.inc
   var vary = Math.floor(Math.random() * base * 0.5)
   return Math.max(1, base + vary - Math.floor(base*0.25))
 }
 function _enemyRadius(type) {
-  if (type==='tank') return 24; if (type==='swarm') return 13; return 18
+  var t = _SV.ENEMY_TYPES[type]
+  return (t && t.radius) || 18
 }
 
 // ── 粒子
@@ -60,80 +56,20 @@ function _updateP(dt) {
 // ================================================
 //  武器定义
 // ================================================
-var WEAPON_DEFS = {
-  orbit: {
-    name:'旋转飞刀', desc:'数字环绕你旋转', icon:'🔪',
-    baseDmg:5, baseCD:0, count:2, range:65,
-    upgrade: function(w) { w.count++; w.dmg+=3; w.range+=8 }
-  },
-  bolt: {
-    name:'能量弹', desc:'自动射击最近敌人', icon:'🔮',
-    baseDmg:8, baseCD:0.7, count:1, range:300,
-    upgrade: function(w) { w.dmg+=5; w.cd*=0.82; if(w.level%2===0) w.count++ }
-  },
-  lightning: {
-    name:'闪电链', desc:'连锁闪电弹跳伤害', icon:'⚡',
-    baseDmg:6, baseCD:2.0, count:3, range:250,
-    upgrade: function(w) { w.dmg+=4; w.count+=1; w.cd*=0.9 }
-  },
-  aura: {
-    name:'冰冻光环', desc:'减速并持续伤害', icon:'❄',
-    baseDmg:4, baseCD:0.4, count:1, range:60,
-    upgrade: function(w) { w.dmg+=3; w.range+=15; w.cd*=0.9 }
-  },
-  ring: {
-    name:'火焰圈', desc:'周期性火焰扩散', icon:'🔥',
-    baseDmg:12, baseCD:2.5, count:1, range:180,
-    upgrade: function(w) { w.dmg+=6; w.cd*=0.85; w.range+=15 }
-  },
-  boomerang: {
-    name:'回旋镖', desc:'飞出再飞回，穿透敌人', icon:'🪃',
-    baseDmg:8, baseCD:1.5, count:1, range:220,
-    upgrade: function(w) { w.dmg+=5; w.count++; w.cd*=0.88 }
-  },
-  meteor: {
-    name:'陨石', desc:'随机砸落范围爆炸', icon:'☄',
-    baseDmg:20, baseCD:3.0, count:1, range:250,
-    upgrade: function(w) { w.dmg+=10; w.count++; w.cd*=0.88 }
-  },
-  shield: {
-    name:'护盾球', desc:'旋转护盾挡住敌人', icon:'🛡',
-    baseDmg:6, baseCD:0, count:3, range:85,
-    upgrade: function(w) { w.dmg+=4; w.count++; w.range+=12 }
-  },
-  vampire: {
-    name:'吸血斧', desc:'近战攻击回血', icon:'🪓',
-    baseDmg:10, baseCD:0.8, count:1, range:120,
-    upgrade: function(w) { w.dmg+=6; w.cd*=0.82; w.range+=15 }
-  },
-  tornado: {
-    name:'龙卷风', desc:'向前方推开敌人', icon:'🌪',
-    baseDmg:7, baseCD:2.0, count:1, range:200,
-    upgrade: function(w) { w.dmg+=5; w.cd*=0.85; w.range+=25 }
-  },
-  poison: {
-    name:'毒雾', desc:'留下毒区域持续伤害', icon:'☢',
-    baseDmg:5, baseCD:3.0, count:1, range:90,
-    upgrade: function(w) { w.dmg+=4; w.count++; w.range+=20; w.cd*=0.92 }
-  },
-  chain: {
-    name:'锁链', desc:'定住敌人无法移动', icon:'⛓',
-    baseDmg:6, baseCD:1.8, count:1, range:250,
-    upgrade: function(w) { w.dmg+=4; w.count++; w.cd*=0.88; w.range+=20 }
-  }
+// 武器定义改为从 survivalConfig.js 读取（基础数值 + 升级加成 up）
+var WEAPON_DEFS = _SV.WEAPON_DEFS
+
+// 按配置里的 up 给武器升级加成（替代原来每把武器各自的 upgrade 函数）
+function _applyUpgrade(w, up) {
+  if (!up) return
+  w.dmg += (up.dmg || 0)
+  if (up.cd) w.cd *= up.cd
+  w.range += (up.range || 0)
+  if (up.countEvery && w.level % up.countEvery === 0) w.count++
 }
 
-// ================================================
-//  武器进化定义
-// ================================================
-var EVOLUTION_DEFS = {
-  bloodstorm:   { a:'orbit',     b:'vampire',  name:'血刃风暴', desc:'双层飞刀群+大范围回血', icon:'💀', baseDmg:30, baseCD:0, count:6, range:120 },
-  thunderball:  { a:'bolt',      b:'lightning', name:'雷球连锁', desc:'能量弹命中触发闪电', icon:'🌩', baseDmg:20, baseCD:0.5, count:3, range:350 },
-  elemental:    { a:'aura',      b:'ring',      name:'元素爆裂', desc:'冰火交替脉冲冻爆', icon:'💥', baseDmg:30, baseCD:1.8, count:1, range:200 },
-  bounceshield: { a:'boomerang', b:'shield',    name:'弹射护盾', desc:'发射护盾弹弹射多敌', icon:'🔰', baseDmg:22, baseCD:1.2, count:3, range:300 },
-  plaguemeteor: { a:'meteor',    b:'poison',    name:'瘟疫陨石', desc:'大范围陨石+毒区+减速', icon:'☠', baseDmg:40, baseCD:2.0, count:3, range:300 },
-  voidvortex:   { a:'tornado',   b:'chain',     name:'虚空漩涡', desc:'巨型龙卷风吸拽绞杀', icon:'🌀', baseDmg:22, baseCD:1.5, count:1, range:300 }
-}
+// 武器进化定义（见 survivalConfig.js）
+var EVOLUTION_DEFS = _SV.EVOLUTION_DEFS
 
 // ================================================
 //  主模块
@@ -172,7 +108,7 @@ GameGlobal.Survival = {
     this.foodItems=[]; this._foodTimer=0
 
     this.player = {
-      x:MAP_W/2, y:MAP_H/2, hp:100, maxHp:100,
+      x:MAP_W/2, y:MAP_H/2, hp:_SV.PLAYER_HP, maxHp:_SV.PLAYER_HP,
       level:1, xp:0, speed:BASE_SPEED,
       kills:0, dmgDealt:0, _trail:[], _iFrames:0,
       facingLeft:false, skin:'doux'
@@ -1147,13 +1083,14 @@ GameGlobal.Survival = {
     else if(ch.type==='upgrade'){
       var w=ch.w; w.level++
       if(w.evolved){
-        // 进化武器升级：每级+15%伤害，+10%范围，-5%CD
-        w.dmg=Math.floor(w.dmg*1.15)
-        w.range=Math.floor(w.range*1.1)
-        if(w.cd>0) w.cd=w.cd*0.95
-        if(w.level%2===0 && w.count<10) w.count++
+        // 进化武器升级（数值见 survivalConfig.js 的 EVOLVED_UP）
+        var eu=_SV.EVOLVED_UP
+        w.dmg=Math.floor(w.dmg*eu.dmgMult)
+        w.range=Math.floor(w.range*eu.rangeMult)
+        if(w.cd>0) w.cd=w.cd*eu.cdMult
+        if(eu.countEvery && w.level%eu.countEvery===0 && w.count<eu.countMax) w.count++
       } else {
-        var def=WEAPON_DEFS[w.id]; if(def&&def.upgrade) def.upgrade(w)
+        var def=WEAPON_DEFS[w.id]; if(def&&def.up) _applyUpgrade(w, def.up)
       }
     }
     else if(ch.type==='heal') { p.hp=Math.min(p.maxHp, p.hp+30) }
@@ -1200,12 +1137,8 @@ GameGlobal.Survival = {
     var _ps=GameGlobal.SurvivalSprites?GameGlobal.SurvivalSprites.pickMonsterSprite:null
     var n=this._eliteCount||0
     // 3种精英怪轮流出现，随次数增强
-    var eliteTypes=[
-      {type:'tank',  hp:400+n*60, speed:28+n*1.5, size:1.6, color:'#e74c3c', name:'重甲'},   // 高血高防
-      {type:'dash',  hp:250+n*40, speed:60+n*3,   size:1.3, color:'#9b59b6', name:'疾风'},   // 高速冲刺
-      {type:'split', hp:300+n*50, speed:35+n*2,   size:1.5, color:'#f39c12', name:'裂变'},   // 死后分裂更多
-    ]
-    var elite=eliteTypes[n%3]
+    var _e=_SV.ELITES[n%3]   // 3种精英轮流，hp/speed 随次数 n 增强（见 survivalConfig.js）
+    var elite={type:_e.type, hp:_e.hp0+n*_e.hpPer, speed:_e.spd0+n*_e.spdPer, size:_e.size, color:_e.color, name:_e.name}
     var ex=p.x+Math.cos(a)*450,ey=p.y+Math.sin(a)*450
     this._uidCounter=(this._uidCounter||0)+1
     this.enemies.push({
@@ -1223,7 +1156,7 @@ GameGlobal.Survival = {
   _spawnBoss: function() {
     var p=this.player
     this.boss={
-      x:p.x+500, y:p.y, hp:2000, maxHp:2000, speed:22,
+      x:p.x+500, y:p.y, hp:_SV.BOSS.hp, maxHp:_SV.BOSS.hp, speed:_SV.BOSS.speed,
       _spawnTimer:0, _flashTimer:0,
       // 阶段系统
       phase:1,           // 1=普通, 2=狂暴(50%HP), 3=绝望(25%HP)
